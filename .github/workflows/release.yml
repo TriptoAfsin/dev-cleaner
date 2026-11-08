@@ -1,0 +1,141 @@
+name: Release
+
+# Push a semver tag like v0.2.0 (scripts/bump-version does it) to build and
+# publish. Tags with a pre-release suffix (v0.2.0-beta.1) become pre-releases.
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+*'
+  workflow_dispatch:
+
+jobs:
+  # One draft release, created before any build starts, so parallel builds
+  # upload into the same release instead of racing to create one each.
+  create-release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      release_id: ${{ steps.create.outputs.id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Create the draft release
+        id: create
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          VERSION=${TAG#v}
+          NOTES=$(sed -n "/## \[$VERSION\]/,/## \[/p" CHANGELOG.md | sed '$d' | tail -n +2)
+          [ -z "$NOTES" ] && NOTES="See CHANGELOG.md for details."
+          PRE=false
+          case "$VERSION" in *-*) PRE=true ;; esac
+          {
+            echo "## What's changed"
+            echo "$NOTES"
+            echo
+            echo "## Downloads"
+            echo '- Windows: `.msi` or `-setup.exe`, or the portable `.zip`'
+            echo '- macOS: `.dmg`, separate Apple silicon (aarch64) and Intel (x64) builds'
+            echo
+            echo "Or install with Homebrew, Scoop or WinGet: see the README."
+            echo
+            echo "## Note on unsigned builds"
+            echo 'These binaries are not code-signed yet. On Windows, SmartScreen shows "Windows protected your PC": click More info, then Run anyway. On macOS, run `xattr -cr "/Applications/Dev Cleaner.app"` or open System Settings > Privacy & Security and click Open Anyway. Check downloads against the SHA-256 checksums below or in `SHA256SUMS.txt`.'
+          } > body.md
+          ID=$(gh api -X POST "repos/${{ github.repository }}/releases" \
+            -f tag_name="$TAG" -f name="Dev Cleaner v$VERSION" \
+            -F draft=true -F prerelease=$PRE -F body=@body.md --jq .id)
+          echo "id=$ID" >> "$GITHUB_OUTPUT"
+
+  release:
+    needs: create-release
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: macos-latest
+            args: '--target aarch64-apple-darwin'
+          - platform: macos-latest
+            args: '--target x86_64-apple-darwin'
+          - platform: windows-latest
+            args: ''
+    runs-on: ${{ matrix.platform }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.platform == 'macos-latest' && 'aarch64-apple-darwin,x86_64-apple-darwin' || '' }}
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: './src-tauri -> target'
+
+      - run: npm ci
+
+      - name: Build the app
+        uses: tauri-apps/tauri-action@v0.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
+
+      # Runs without installing; the `portable` file keeps all data in a
+      # `data` folder beside the exe. This is what Scoop installs.
+      - name: Portable zip (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          $dir = "Dev Cleaner"
+          New-Item -ItemType Directory $dir | Out-Null
+          Copy-Item "src-tauri/target/release/dev-cleaner.exe" "$dir/Dev Cleaner.exe"
+          Set-Content "$dir/portable" "Dev Cleaner keeps its settings in the data folder next to it while this file is here. Delete this file to use the normal per-user folder instead. Needs the Microsoft Edge WebView2 Runtime, which Windows 10 and 11 already have."
+          $zip = "Dev.Cleaner_${version}_x64_portable.zip"
+          Compress-Archive -Path $dir -DestinationPath $zip
+          gh api -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets?name=$zip" `
+            -H "Content-Type: application/zip" --input $zip --jq .name
+
+  # SHA-256 of every download, as SHA256SUMS.txt and in the release notes.
+  # Scoop's autoupdate reads its hash from SHA256SUMS.txt.
+  checksums:
+    needs: [create-release, release]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: SHA-256 of every download
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REPO: ${{ github.repository }}
+          ID: ${{ needs.create-release.outputs.release_id }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir dl
+          gh api "repos/$REPO/releases/$ID/assets" --paginate --jq '.[] | "\(.id)\t\(.name)"' |
+            while IFS=$'\t' read -r asset name; do
+              [ "$name" = "SHA256SUMS.txt" ] && continue
+              gh api -H "Accept: application/octet-stream" "repos/$REPO/releases/assets/$asset" > "dl/$name"
+            done
+          (cd dl && sha256sum -- * | sort -k2) > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          gh api -X POST "https://uploads.github.com/repos/$REPO/releases/$ID/assets?name=SHA256SUMS.txt" \
+            -H "Content-Type: text/plain" --input SHA256SUMS.txt --jq .name
+          gh api "repos/$REPO/releases/$ID" --jq .body > body.md
+          printf '\n## SHA-256 checksums\n\n```\n%s\n```\n' "$(cat SHA256SUMS.txt)" >> body.md
+          # The tag goes with the edit: without it a draft loses its tag.
+          gh api -X PATCH "repos/$REPO/releases/$ID" -f tag_name="$TAG" -F body=@body.md --jq .html_url

@@ -1,0 +1,11 @@
+node_modules
+dist
+src-tauri/target
+src-tauri/target-*
+src-tauri/gen/schemas
+e2e/.bin
+e2e/.artifacts
+.hallmark
+*.log
+.DS_Store
+app-icon.png

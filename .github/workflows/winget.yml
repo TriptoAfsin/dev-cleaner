@@ -1,0 +1,26 @@
+name: Publish to WinGet
+
+# When a release is published (drafts and pre-releases are skipped), open a PR
+# on microsoft/winget-pkgs with the new version. Needs a classic PAT with
+# public_repo scope in the WINGET_TOKEN secret and a fork of
+# microsoft/winget-pkgs under the same account. The first version is
+# submitted once by hand: see packaging/winget/README.md.
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag to publish (e.g. v0.2.0)
+        required: true
+
+jobs:
+  winget:
+    runs-on: windows-latest
+    steps:
+      - uses: vedantmgoyal9/winget-releaser@v2
+        with:
+          identifier: TriptoAfsin.DevCleaner
+          installers-regex: '_x64_en-US\.msi$'
+          release-tag: ${{ inputs.tag || github.event.release.tag_name }}
+          token: ${{ secrets.WINGET_TOKEN }}
