@@ -10,29 +10,42 @@ let ctx
 before(async () => (ctx = await launch()))
 after(async () => ctx?.stop())
 
-/** Scroll the page to the middle and report where the header and footer sit. */
-const stickiness = () =>
+/** Scroll the table's own list and report how the panel looks. */
+const panel = () =>
   ctx.s.exec(`
+    const list = document.querySelector('[data-testid=cache-list]')
+    const card = list.parentElement
+    list.scrollTop = list.scrollHeight / 2
     const page = document.querySelector('main [data-testid^="page-"]')
-    page.scrollTop = page.scrollHeight / 2
     const view = page.getBoundingClientRect()
-    const head = document.querySelector('.thead')?.getBoundingClientRect()
-    const foot = document.querySelector('.tfoot')?.getBoundingClientRect()
+    const c = card.getBoundingClientRect()
+    const l = list.getBoundingClientRect()
+    const head = list.previousElementSibling.getBoundingClientRect()
+    const foot = card.lastElementChild.getBoundingClientRect()
     return {
-      scrollable: page.scrollHeight > page.clientHeight + 40,
-      headVisible: !!head && head.top >= view.top - 1 && head.bottom <= view.bottom + 1,
-      footVisible: !!foot && foot.bottom <= view.bottom + 1 && foot.top >= view.top - 1,
+      listScrolls: list.scrollHeight > list.clientHeight + 40 && list.scrollTop > 0,
+      pageStill: page.scrollTop === 0,
+      cardInView: c.top >= view.top - 1 && c.bottom <= view.bottom + 1,
+      headAboveRows: head.bottom <= l.top + 1,
+      footBelowRows: foot.top >= l.bottom - 1,
     }`)
 
-test("on a long Disk list, the table header and footer stay visible while scrolling", async () => {
+test("long tables scroll inside their card; header and footer frame the rows", async () => {
   await ctx.s.cmd("POST", "/window/rect", { width: 1100, height: 640 }).catch(() => {})
   await ctx.nav("disk")
   await ctx.s.waitFor(() => ctx.s.exec(`return document.querySelectorAll('[data-testid=cache-list] li').length > 10`), "cache rows")
   await sleep(300)
-  const r = await stickiness()
-  assert.ok(r.scrollable, "the page needs to scroll for this test to mean anything")
-  assert.ok(r.headVisible, "header visible after scrolling")
-  assert.ok(r.footVisible, "footer with Clean selected visible after scrolling")
+  const r = await panel()
+  assert.deepEqual(r, { listScrolls: true, pageStill: true, cardInView: true, headAboveRows: true, footBelowRows: true })
+})
+
+test("every cleanup row has a tooltip saying what it is, what it deletes and what runs", async () => {
+  const { s } = ctx
+  await s.exec(`document.querySelector('[data-testid=cache-list]').scrollTop = 0`)
+  await s.exec(`document.querySelector('[data-testid="cache-npm"] [aria-label="What does this mean?"]').focus()`)
+  await s.waitFor(async () => /npm cache[\s\S]*Deletes:[\s\S]*Runs:[\s\S]*Risk:/.test(await s.exec(`return document.querySelector('[role=tooltip]')?.innerText ?? ''`)), "row tooltip")
+  const missing = await s.exec(`return [...document.querySelectorAll('[data-testid=cache-list] li[data-testid^="cache-"]')].filter(li => !li.querySelector('[aria-label="What does this mean?"]')).length`)
+  assert.equal(missing, 0)
 })
 
 test("hovering Free memory explains exactly what it does", async () => {

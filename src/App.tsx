@@ -41,7 +41,7 @@ export function App() {
   }, [])
 
   const views: Record<Page, React.ReactNode> = {
-    models: <Models />,
+    models: <Models go={setPage} />,
     configs: <Configs />,
     overview: <Overview go={setPage} />,
     disk: <Disk />,

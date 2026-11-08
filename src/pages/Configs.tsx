@@ -54,7 +54,7 @@ export function Configs() {
   useEffect(() => sessionStorage.setItem("dc-configs-tab", tab), [tab])
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
         title="Configs"
         lede="Back up editor and AI tool settings to one zip, restore them on any machine, or copy them from one tool to another. Every restore and copy makes a backup first."
@@ -170,14 +170,14 @@ function BackupTab() {
 
   return (
     <>
-      <Card className="overflow-clip">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
         {tools.length === 0 ? (
           <Empty icon={<Archive size={28} />} title="No configs found">
             None of the supported editors, terminals or AI tools have settings on this machine.
           </Empty>
         ) : (
           <>
-            <div className="thead grid grid-cols-[18px_16px_minmax(0,1fr)_84px] items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+            <div className="shrink-0 grid grid-cols-[18px_16px_minmax(0,1fr)_84px] items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
               <Checkbox
                 label="Select everything"
                 checked={sel.length === all.length && all.length > 0}
@@ -188,7 +188,7 @@ function BackupTab() {
               <span>Tool</span>
               <span className="text-right">Size</span>
             </div>
-            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="config-sources">
+            <ul className="m-0 min-h-0 flex-1 overflow-y-auto min-h-[120px] list-none p-0" data-testid="config-sources">
               {tools.map((t) => {
                 const ids = t.items.map((i) => i.id)
                 const n = ids.filter((id) => selected.has(id)).length
@@ -239,7 +239,7 @@ function BackupTab() {
           </>
         )}
         {all.length > 0 && (
-          <div className="tfoot flex items-center gap-3 border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="shrink-0 flex items-center gap-3 border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {sel.length} items · {bytes(selBytes)}
             </span>
@@ -419,7 +419,7 @@ function RestoreTab() {
 
   return (
     <>
-      <Card className="overflow-clip">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-3 border-b border-border px-4 py-2.5">
           <FileArchive size={15} className="text-subtle" />
           <div className="min-w-0 flex-1">
@@ -442,7 +442,7 @@ function RestoreTab() {
           </Empty>
         ) : (
           <>
-            <div className="thead grid grid-cols-[18px_16px_minmax(0,1fr)_auto] items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+            <div className="shrink-0 grid grid-cols-[18px_16px_minmax(0,1fr)_auto] items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
               <Checkbox
                 label="Select everything"
                 checked={sel.length === usable.length && usable.length > 0}
@@ -453,7 +453,7 @@ function RestoreTab() {
               <span>Item and where it goes</span>
               <span />
             </div>
-            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="bundle-items">
+            <ul className="m-0 min-h-0 flex-1 overflow-y-auto min-h-[120px] list-none p-0" data-testid="bundle-items">
               {bundle.items.map((i) => (
                 <motion.li
                   key={i.id}
@@ -493,7 +493,7 @@ function RestoreTab() {
                 </motion.li>
               ))}
             </ul>
-            <div className="tfoot flex items-center gap-3 border-t border-border bg-surface-2 px-4 py-2.5">
+            <div className="shrink-0 flex items-center gap-3 border-t border-border bg-surface-2 px-4 py-2.5">
               <span className="mono text-[12.5px]">
                 {sel.length} selected{replacing.length ? ` · ${replacing.length} replace existing` : ""}
               </span>
@@ -506,7 +506,7 @@ function RestoreTab() {
         )}
       </Card>
 
-      <Card className="overflow-clip">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
         <div className="flex items-center gap-2 border-b border-border px-4 py-2.5">
           <History size={14} className="text-subtle" />
           <span className="text-[13px] font-medium">Previous restores</span>
@@ -832,7 +832,7 @@ function ListSkeleton({ cards }: { cards?: boolean }) {
       </div>
     )
   return (
-    <Card className="overflow-clip">
+    <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
       {[0, 1, 2, 3, 4, 5].map((i) => (
         <div key={i} className="flex h-11 items-center gap-3 border-t border-border px-4 first:border-t-0">
           <Skeleton className="h-4 w-4" />

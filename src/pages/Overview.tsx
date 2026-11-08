@@ -78,7 +78,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
       </div>
 
       <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-3.5">
-        <Card className="flex flex-col overflow-clip">
+        <Card className="flex flex-col overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3">
             <h2 className="m-0 text-[13px] font-semibold">Reclaimable caches</h2>
             <button type="button" className="text-[12px] text-accent hover:underline" onClick={() => go("disk")}>
@@ -107,7 +107,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
                   />
                 ))}
           </ul>
-          <div className="tfoot mt-auto flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="mt-auto flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selected.size} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>

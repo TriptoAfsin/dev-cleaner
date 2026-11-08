@@ -6,7 +6,7 @@ import { bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useSettings } from "@/lib/settings"
 import { useStore } from "@/lib/store"
-import { Badge, Bar, Button, Checkbox, Dialog, Skeleton, VerdictPill } from "./ui"
+import { Badge, Bar, Button, Checkbox, Dialog, InfoTip, Skeleton, VerdictPill } from "./ui"
 
 /** Ending processes: confirm (unless turned off for safe apps), end, report. */
 export function useKill(after?: () => void) {
@@ -160,6 +160,9 @@ export function CacheRow({
             <span className="min-w-0 truncate">
               {c.name} <span className="font-normal text-subtle">· {c.eco}</span>
             </span>
+            <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+              <InfoTip text={<CacheHelp c={c} />} />
+            </span>
             {c.risk === "slow" && <Badge tone="warn">slow rebuild</Badge>}
             {c.risk === "data" && <Badge tone="danger">your data</Badge>}
             {c.admin && <Badge tone="accent">admin</Badge>}
@@ -218,5 +221,31 @@ export function CacheRow({
         )}
       </AnimatePresence>
     </li>
+  )
+}
+
+/** Tooltip body for a cleanup row: what it is, what is deleted, what runs. */
+export function CacheHelp({ c }: { c: CacheItem }) {
+  const risk =
+    c.risk === "safe"
+      ? "Safe: rebuilt on demand."
+      : c.risk === "slow"
+        ? "Safe, but the next build, launch or install is slower or downloads again."
+        : "Your own files: never selected for you, and can't be undone."
+  return (
+    <span className="flex flex-col gap-1.5 text-left">
+      <span className="font-semibold">{c.name}</span>
+      <span>{c.about}</span>
+      <span>
+        <b>Deletes:</b> {c.paths.length ? c.paths.length === 1 ? c.paths[0] : `${c.paths.length} locations (expand the row to see them)` : "nothing directly; the command below does the work"}
+      </span>
+      <span>
+        <b>Runs:</b> <span className="mono">{c.method}</span>
+      </span>
+      <span>
+        <b>Risk:</b> {risk}
+        {c.admin ? " Asks for admin approval." : ""}
+      </span>
+    </span>
   )
 }

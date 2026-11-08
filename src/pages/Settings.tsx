@@ -82,7 +82,7 @@ export function SettingsPage() {
           <div>
             <div className="text-[13px] font-medium">Drives</div>
             <div className="mt-0.5 text-[12px] text-muted">
-              Where cleanups look beyond your home folder: pnpm stores and Recycle Bins on each drive, Projects “Add drives”, and AI model files.
+              Which drives cleanups include. System junk walks them for unfinished downloads, Steam shader caches and Thumbs.db files and empties their Recycle Bins; Disk cleanup finds the pnpm store on each; AI models searches them for model files; Projects can add them with “Add drives”. Caches in your user folder are always included.
             </div>
           </div>
           <button

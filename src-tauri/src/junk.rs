@@ -55,19 +55,150 @@ fn firefox(profiles: &Path) -> Vec<PathBuf> {
     children(profiles, |_| true, &["cache2", "startupCache", "thumbnails"])
 }
 
-pub fn targets(_drives: Option<&[String]>) -> Vec<Target> {
+// ------------------------------------------------------------ drive walk
+
+/// What a walk of the chosen drives found. Kept between a scan and the
+/// clean that follows it, so cleaning doesn't walk every drive again.
+#[derive(Default, Clone)]
+struct DriveJunk {
+    partials: Vec<PathBuf>,
+    thumbs: Vec<PathBuf>,
+    shader_caches: Vec<PathBuf>,
+}
+
+static LAST_WALK: std::sync::Mutex<Option<DriveJunk>> = std::sync::Mutex::new(None);
+
+const PARTIAL_EXT: &[&str] = &["crdownload", "part", "partial", "download", "opdownload"];
+
+/// Folders never worth walking for junk: the OS, other users, caches the
+/// other pages measure, version control and dependency trees.
+const WALK_SKIP: &[&str] = &[
+    "windows", "$recycle.bin", "system volume information", "programdata", "recovery", "$windows.~bt", "$windows.~ws",
+    "program files", "program files (x86)", "windowsapps", "xboxgames", "epic games",
+    "appdata", "library", "node_modules", ".git", ".hg", ".svn", "target", ".venv", "venv", "site-packages",
+    ".cache", ".cargo", ".rustup", ".npm", ".pnpm-store", "proc", "sys", "dev", "snap", "private", "system",
+];
+
+fn walk_drive(dir: &Path, depth: u32, out: &std::sync::Mutex<DriveJunk>) {
+    use rayon::prelude::*;
+    if depth > 7 {
+        return;
+    }
+    let Ok(rd) = std::fs::read_dir(dir) else { return };
+    let mut subdirs = vec![];
+    let mut found = DriveJunk::default();
+    for e in rd.flatten() {
+        let Ok(ft) = e.file_type() else { continue };
+        if ft.is_symlink() {
+            continue;
+        }
+        let name = e.file_name().to_string_lossy().to_ascii_lowercase();
+        if ft.is_dir() {
+            // Steam keeps per-game shader caches next to each library.
+            let in_steamapps = dir.file_name().is_some_and(|n| n.to_string_lossy().eq_ignore_ascii_case("steamapps"));
+            if name == "shadercache" && in_steamapps {
+                found.shader_caches.push(e.path());
+            } else if in_steamapps && name == "common" {
+                // Installed games: their files belong to the game. Removing
+                // even a Thumbs.db makes Steam's "verify files" fetch it again.
+                continue;
+            } else if !WALK_SKIP.contains(&name.as_str()) && !name.starts_with('$') {
+                subdirs.push(e.path());
+            }
+        } else if name == "thumbs.db" {
+            found.thumbs.push(e.path());
+        } else if PARTIAL_EXT.iter().any(|x| name.ends_with(&format!(".{x}"))) {
+            found.partials.push(e.path());
+        }
+    }
+    if !(found.partials.is_empty() && found.thumbs.is_empty() && found.shader_caches.is_empty()) {
+        if let Ok(mut o) = out.lock() {
+            o.partials.extend(found.partials);
+            o.thumbs.extend(found.thumbs);
+            o.shader_caches.extend(found.shader_caches);
+        }
+    }
+    subdirs.par_iter().for_each(|d| walk_drive(d, depth + 1, out));
+}
+
+/// Walk every chosen drive (all fixed drives when none are chosen). Never
+/// under the e2e fake home: a test must not find files on real drives.
+fn drive_junk(drives: Option<&[String]>, walk: bool) -> DriveJunk {
+    use rayon::prelude::*;
+    if util::fake_home().is_some() {
+        return DriveJunk::default();
+    }
+    if !walk {
+        if let Some(j) = LAST_WALK.lock().ok().and_then(|w| w.clone()) {
+            return j;
+        }
+    }
+    let roots: Vec<PathBuf> = sysinfo::Disks::new_with_refreshed_list()
+        .list()
+        .iter()
+        .filter(|d| !d.is_removable() && d.total_space() > 0)
+        .map(|d| d.mount_point().to_path_buf())
+        .filter(|m| drive_chosen(m, drives))
+        // On macOS and Linux "/" holds the system; walk the home folder instead.
+        .map(|m| if !cfg!(windows) && m == Path::new("/") { home() } else { m })
+        .filter(|m| !(cfg!(target_os = "macos") && m.starts_with("/System")))
+        .collect();
+    let out = std::sync::Mutex::new(DriveJunk::default());
+    roots.par_iter().for_each(|r| walk_drive(r, 0, &out));
+    // Program Files is skipped by the walk, but Steam's default library lives
+    // there and its shader cache is still worth listing.
+    if cfg!(windows) {
+        let pf86 = std::env::var("ProgramFiles(x86)").unwrap_or_else(|_| r"C:\Program Files (x86)".into());
+        let sc = PathBuf::from(pf86).join("Steam").join("steamapps").join("shadercache");
+        let on_chosen = sc.components().next().is_some_and(|c| drive_chosen(Path::new(&format!("{}\\", c.as_os_str().to_string_lossy())), drives));
+        if sc.is_dir() && on_chosen {
+            if let Ok(mut o) = out.lock() {
+                o.shader_caches.push(sc);
+            }
+        }
+    }
+    let j = out.into_inner().unwrap_or_default();
+    if let Ok(mut w) = LAST_WALK.lock() {
+        *w = Some(j.clone());
+    }
+    j
+}
+
+/// Whether a drive's mount point is among the chosen ones (None = all).
+pub(crate) fn drive_chosen(mount: &Path, drives: Option<&[String]>) -> bool {
+    let key = |s: &str| s.trim_end_matches(['\\', '/']).to_ascii_lowercase();
+    let m = key(&mount.to_string_lossy());
+    drives.is_none_or(|ds| ds.iter().any(|d| key(d) == m))
+}
+
+fn dedupe(mut v: Vec<PathBuf>) -> Vec<PathBuf> {
+    let mut seen = std::collections::HashSet::new();
+    v.retain(|p| seen.insert(p.to_string_lossy().to_ascii_lowercase()));
+    v
+}
+
+pub fn targets(drives: Option<&[String]>, walk: bool) -> Vec<Target> {
     let h = home();
     let fake = util::fake_home().is_some();
     let dl = h.join("Downloads");
+    let found = drive_junk(drives, walk);
+    let mut partials = files_with(&dl, PARTIAL_EXT, None);
+    partials.extend(found.partials);
     let mut v = vec![
         t("broken-downloads", "Unfinished downloads", "Downloads", Risk::Safe,
-            "Downloads that never finished (.crdownload, .part, .download, .partial). They can't be opened; download the file again if you still need it.",
-            files_with(&dl, &["crdownload", "part", "partial", "download", "opdownload"], None), How::Delete),
+            "Downloads that never finished (.crdownload, .part, .download, .partial), in your Downloads folder and on every drive chosen in Settings. They can't be opened; download the file again if you still need it.",
+            dedupe(partials), How::Delete),
+        t("thumbs-db", "Thumbs.db files", "Downloads", Risk::Safe,
+            "Hidden thumbnail caches older Windows versions and network shares leave in folders of pictures and videos, found on the chosen drives. Windows rebuilds them only if it needs them.",
+            found.thumbs, How::Delete),
+        t("steam-shaders", "Steam shader caches", "Apps", Risk::Slow,
+            "Shaders Steam compiled for each game, in every Steam library on the chosen drives. Games rebuild them; the first launch after may stutter briefly.",
+            found.shader_caches, How::Delete),
         t("old-installers", "Old disk images & installers", "Downloads", Risk::Data,
             "Disk images and installers in Downloads older than a week (.dmg, .iso, .pkg, .msi, .exe setup files). Usually installed already, but they are your files: check before deleting.",
             files_with(&dl, &["dmg", "iso", "pkg", "msi", "img"], None), How::OlderThan(7 * DAY)),
         t("recycle-bin", if cfg!(windows) { "Recycle Bin" } else { "Trash" }, "System", Risk::Data,
-            "Files you deleted earlier. Emptying it can't be undone.",
+            "Files you deleted earlier, on every drive chosen in Settings. Emptying it can't be undone.",
             vec![], How::RecycleBin),
     ];
 
@@ -279,7 +410,8 @@ fn os_recycle_size() -> Option<(u64, u64)> {
     // A NULL root is rejected for queries, so ask each fixed drive.
     let mut total = (0u64, 0u64);
     let mut any = false;
-    for d in sysinfo::Disks::new_with_refreshed_list().list() {
+    let chosen = crate::caches::chosen_drives();
+    for d in sysinfo::Disks::new_with_refreshed_list().list().iter().filter(|d| drive_chosen(d.mount_point(), chosen.as_deref())) {
         let root: Vec<u16> = d.mount_point().as_os_str().to_string_lossy().encode_utf16().chain(Some(0)).collect();
         let mut info = SHQUERYRBINFO { cbSize: std::mem::size_of::<SHQUERYRBINFO>() as u32, i64Size: 0, i64NumItems: 0 };
         // SAFETY: root is NUL-terminated and info is a correctly sized struct we own.
@@ -315,10 +447,17 @@ pub fn empty_recycle_bin() -> bool {
 #[cfg(windows)]
 fn os_empty_recycle() -> bool {
     use windows_sys::Win32::UI::Shell::{SHEmptyRecycleBinW, SHERB_NOCONFIRMATION, SHERB_NOPROGRESSUI, SHERB_NOSOUND};
-    // SAFETY: a NULL window and NULL root empty the bin on every drive.
-    let hr = unsafe { SHEmptyRecycleBinW(std::ptr::null_mut(), std::ptr::null(), SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND) };
-    // S_OK, or an empty bin reported as E_UNEXPECTED.
-    hr == 0 || hr as u32 == 0x8000_FFFF
+    // Each chosen drive has its own bin; empty only those.
+    let chosen = crate::caches::chosen_drives();
+    let mut ok = true;
+    for d in sysinfo::Disks::new_with_refreshed_list().list().iter().filter(|d| !d.is_removable() && drive_chosen(d.mount_point(), chosen.as_deref())) {
+        let root: Vec<u16> = d.mount_point().as_os_str().to_string_lossy().encode_utf16().chain(Some(0)).collect();
+        // SAFETY: a NULL window and a NUL-terminated drive root.
+        let hr = unsafe { SHEmptyRecycleBinW(std::ptr::null_mut(), root.as_ptr(), SHERB_NOCONFIRMATION | SHERB_NOPROGRESSUI | SHERB_NOSOUND) };
+        // S_OK, or an already-empty bin reported as E_UNEXPECTED.
+        ok &= hr == 0 || hr as u32 == 0x8000_FFFF;
+    }
+    ok
 }
 
 #[cfg(target_os = "macos")]

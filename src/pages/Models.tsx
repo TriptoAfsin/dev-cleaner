@@ -2,13 +2,14 @@ import { useMemo, useRef, useState } from "react"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemInDir } from "@tauri-apps/plugin-opener"
 import { AnimatePresence, motion } from "motion/react"
-import { BrainCircuit, FolderOpen, FolderPlus, Search, Square, Trash2, X } from "lucide-react"
+import { BrainCircuit, FolderOpen, FolderPlus, HardDrive, Search, Square, Trash2, X } from "lucide-react"
 import { siHuggingface, siLmstudio, siOllama, siPytorch } from "simple-icons"
 import { on } from "@/lib/api"
 import { ago, bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
 import { useDrives, useSettings } from "@/lib/settings"
+import type { Page } from "@/components/Shell"
 import { lastUsed, loadModelRoots, modelsApi, quantOf, saveModelRoots, type Model, type ModelDeleteEvent } from "@/lib/models"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader, Skeleton } from "@/components/ui"
 
@@ -63,7 +64,7 @@ function SourceIcon({ kind, size = 15, mono }: { kind: string; size?: number; mo
   )
 }
 
-export function Models() {
+export function Models({ go }: { go: (p: Page) => void }) {
   const { settings } = useSettings()
   const drives = useDrives()
   const store = useStore() as ReturnType<typeof useStore> & { openReport?: (r: Report) => void }
@@ -197,7 +198,7 @@ export function Models() {
   const cols = "grid-cols-[18px_20px_minmax(0,1fr)_150px_110px_84px_28px]"
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
         title="AI models"
         lede="Models you downloaded for local AI: Ollama, LM Studio, Hugging Face, ComfyUI and loose .gguf / .safetensors files. Nothing is selected for you."
@@ -218,6 +219,21 @@ export function Models() {
           </>
         }
       />
+
+      <div className="flex flex-wrap items-center gap-2 text-[12px] text-muted" data-testid="model-drives">
+        <HardDrive size={14} className="text-subtle" />
+        {settings.modelDrives && drives.roots.length ? (
+          <>
+            <span>Searching {drives.roots.length === drives.all.length ? "every drive" : `${drives.roots.length} of ${drives.all.length} drives`}:</span>
+            <span className="mono text-text">{drives.selected.join(" ")}</span>
+          </>
+        ) : (
+          <span>Only your user folders and app folders are searched; other drives are off.</span>
+        )}
+        <button type="button" className="text-accent hover:underline" onClick={() => go("settings")}>
+          Change in Settings
+        </button>
+      </div>
 
       {roots.length > 0 && (
         <div className="flex flex-wrap items-center gap-2" data-testid="model-roots">
@@ -275,7 +291,7 @@ export function Models() {
         </div>
       )}
 
-      <Card className="overflow-clip">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
         {!scanning && live.length === 0 ? (
           <Empty icon={<BrainCircuit size={28} />} title={scanned.current ? "No AI models found" : "Find downloaded AI models"}>
             {scanned.current
@@ -284,7 +300,7 @@ export function Models() {
           </Empty>
         ) : (
           <>
-            <div className={cn("thead grid items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle", cols)}>
+            <div className={cn("shrink-0 grid items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle", cols)}>
               <Checkbox
                 label="Select all shown"
                 checked={selectable.length > 0 && selectable.every((m) => selected.has(m.id))}
@@ -297,7 +313,7 @@ export function Models() {
               <span className="text-right">Size</span>
               <span />
             </div>
-            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="model-list">
+            <ul className="m-0 min-h-0 flex-1 overflow-y-auto min-h-[120px] list-none p-0" data-testid="model-list">
               {scanning && shown.length === 0 &&
                 [0, 1, 2].map((i) => (
                   <li key={`sk${i}`} className={cn("grid h-12 items-center gap-3 border-t border-border px-4 first:border-t-0", cols)}>
@@ -374,7 +390,7 @@ export function Models() {
           </>
         )}
         {live.length > 0 && (
-          <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="shrink-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>

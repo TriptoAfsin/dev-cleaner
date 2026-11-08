@@ -36,7 +36,7 @@ const DEFAULTS: Settings = {
   projectRoots: [],
   projectDepth: 7,
   drives: null,
-  modelDrives: false,
+  modelDrives: true,
   confirmKills: true,
 }
 

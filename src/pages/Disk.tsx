@@ -5,6 +5,7 @@ import type { CacheItem } from "@/lib/api"
 import { bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
+import { useDrives } from "@/lib/settings"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, PageHeader, Skeleton } from "@/components/ui"
 import { CacheRow } from "@/components/shared"
 
@@ -13,6 +14,7 @@ export const preselect = (c: CacheItem) => c.found && c.size > 0 && c.risk === "
 
 export function Disk({ junk = false }: { junk?: boolean }) {
   const store = useStore()
+  const drives = useDrives()
   const { scanning, scan, scanTotal, cleaning } = store
   const caches = store.caches.filter((c) => !!c.junk === junk)
   const [filter, setFilter] = useState("All")
@@ -38,12 +40,12 @@ export function Disk({ junk = false }: { junk?: boolean }) {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
         title={junk ? "System junk" : "Disk cleanup"}
         lede={
           <>
-            {junk ? "Temp files, update leftovers, error reports, logs, browser caches and the Recycle Bin:" : "Package and tool caches on this machine:"} <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
+            {junk ? `Temp files, update leftovers, error reports, logs, browser caches and the Recycle Bin, plus unfinished downloads and Steam shader caches on ${drives.selected.length === drives.all.length ? "every drive" : `${drives.selected.length} drives`}:` : "Package and tool caches on this machine:"} <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
           </>
         }
         actions={
@@ -74,8 +76,8 @@ export function Disk({ junk = false }: { junk?: boolean }) {
         ))}
       </div>
 
-      <Card className="overflow-clip">
-        <div className="thead flex items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
+        <div className="shrink-0 flex items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
           <Checkbox
             label="Select all shown"
             checked={allShownSelected && shown.length > 0}
@@ -88,7 +90,7 @@ export function Disk({ junk = false }: { junk?: boolean }) {
           <span>Cache</span>
           <span className="ml-auto">Size</span>
         </div>
-        <ul className="m-0 list-none p-0" data-testid="cache-list">
+        <ul className="m-0 min-h-0 flex-1 overflow-y-auto list-none p-0" data-testid="cache-list">
           {shown.map((c) => (
             <CacheRow
               key={c.id}
@@ -108,7 +110,7 @@ export function Disk({ junk = false }: { junk?: boolean }) {
               </li>
             ))}
         </ul>
-        <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+        <div className="shrink-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
           <span className="mono text-[12.5px]">
             {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
           </span>

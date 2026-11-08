@@ -136,7 +136,7 @@ export function Projects() {
   }
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
         title="Projects"
         lede={
@@ -224,7 +224,7 @@ export function Projects() {
         </div>
       )}
 
-      <Card className="overflow-clip">
+      <Card className="flex min-h-[300px] flex-1 flex-col overflow-hidden">
         {!scanning && items.length === 0 ? (
           <Empty icon={<FolderSearch size={28} />} title={scanned.current ? "No build folders found" : "Scan a folder of projects"}>
             {scanned.current
@@ -233,7 +233,7 @@ export function Projects() {
           </Empty>
         ) : (
           <>
-            <div className="thead grid grid-cols-[18px_20px_minmax(0,1fr)_130px_110px_84px_28px] items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+            <div className="shrink-0 grid grid-cols-[18px_20px_minmax(0,1fr)_130px_110px_84px_28px] items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
               <Checkbox
                 label="Select all shown"
                 checked={shown.length > 0 && shown.every((a) => selected.has(a.path))}
@@ -246,7 +246,7 @@ export function Projects() {
               <span className="text-right">Size</span>
               <span />
             </div>
-            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="artifact-list">
+            <ul className="m-0 min-h-0 flex-1 overflow-y-auto min-h-[120px] list-none p-0" data-testid="artifact-list">
               <AnimatePresence initial={false}>
                 {shown.map((a) => {
                   const stale = a.modified && Date.now() / 1000 - a.modified > 30 * DAY
@@ -268,7 +268,10 @@ export function Projects() {
                           {a.path}
                         </div>
                       </div>
-                      <span className="truncate text-[12.5px] text-muted">{a.label}</span>
+                      <span className="flex min-w-0 items-center text-[12.5px] text-muted">
+                        <span className="truncate">{a.label}</span>
+                        <InfoTip text={<ArtifactHelp a={a} />} />
+                      </span>
                       <span className={cn("text-[12.5px]", stale ? "text-warn" : "text-muted")}>{ago(a.modified)}</span>
                       <span className="mono text-right text-[12.5px]">{bytes(a.size)}</span>
                       <IconButton label="Show in folder" className="h-6 w-6 border-transparent bg-transparent" onClick={() => void revealItemInDir(a.path).catch(() => {})}>
@@ -289,7 +292,7 @@ export function Projects() {
           </>
         )}
         {items.length > 0 && (
-          <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="shrink-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>
@@ -351,5 +354,35 @@ function Chip({ on, onClick, children }: { on: boolean; onClick: () => void; chi
     >
       {children}
     </button>
+  )
+}
+
+const KIND_HELP: Record<string, string> = {
+  node_modules: "Packages npm, pnpm, Yarn or Bun installed for this project. Your package.json and lockfile stay, so one install brings it back exactly.",
+  venv: "A Python virtual environment: an interpreter copy plus installed packages. Your code and requirements files stay.",
+  target: "Rust's build output: compiled crates, incremental caches and binaries. cargo build recreates it.",
+  next: "Next.js build output and its cache. Rebuilt by next dev or next build.",
+  nuxt: "Nuxt build output. Rebuilt by nuxt dev or nuxt build.",
+  svelte: "SvelteKit's generated files and build output.",
+  turbo: "Turborepo's local task cache. Tasks run again instead of replaying.",
+  parcel: "Parcel's build cache.",
+  angular: "Angular CLI's build cache.",
+  unsloth: "Kernels Unsloth compiled for this training script. Recompiled on the next run.",
+  pycache: "Caches of mypy, ruff or pytest. Recreated on the next run.",
+}
+
+function ArtifactHelp({ a }: { a: Artifact }) {
+  return (
+    <span className="flex flex-col gap-1.5 text-left">
+      <span className="font-semibold">{a.label}</span>
+      <span>{KIND_HELP[a.kind] ?? "A build folder this project's tools regenerate."}</span>
+      <span>
+        <b>Deletes:</b> {a.path} ({a.files.toLocaleString()} files)
+      </span>
+      <span>
+        <b>Bring it back:</b> <span className="mono">{a.restore}</span>
+      </span>
+      <span>Your source code is never touched.</span>
+    </span>
   )
 }

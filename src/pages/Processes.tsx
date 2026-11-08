@@ -33,10 +33,10 @@ export function Processes() {
   )
 
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader title="Processes" lede={stats ? `${stats.processCount} processes running. Each app gets a verdict on whether it is safe to end.` : "Reading processes…"} actions={<SnapshotButton name="processes" />} />
-      <div className="grid grid-cols-[360px_minmax(0,1fr)] items-start gap-3.5">
-        <Card className="flex flex-col">
+      <div className="grid min-h-[360px] flex-1 grid-cols-[360px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-3.5">
+        <Card className="flex flex-col self-start">
           <div className="flex items-baseline justify-between px-4 pt-3.5">
             <h2 className="m-0 text-[13px] font-semibold">Top CPU</h2>
             <span className="mono text-[12px] text-subtle">{stats ? `${stats.cpu.toFixed(0)}% total` : ""}</span>
@@ -46,7 +46,7 @@ export function Processes() {
           </div>
           <TopCpu procs={procs.data} limit={6} onKill={(g) => kill.request(g.name, g.pids, g)} />
         </Card>
-        <Card className="flex min-w-0 flex-col overflow-clip">
+        <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
             <label className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2.5 focus-within:border-accent">
               <Search size={14} className="text-subtle" />
@@ -74,14 +74,14 @@ export function Processes() {
               </button>
             ))}
           </div>
-          <div className="thead grid grid-cols-[minmax(0,1.3fr)_80px_64px_minmax(0,1.5fr)_92px] gap-3 border-y border-border px-4 py-2 text-left text-[11px] text-subtle">
+          <div className="shrink-0 grid grid-cols-[minmax(0,1.3fr)_80px_64px_minmax(0,1.5fr)_92px] gap-3 border-y border-border px-4 py-2 text-left text-[11px] text-subtle">
             {head("name", "App")}
             {head("memory", "Memory", true)}
             {head("cpu", "CPU", true)}
             <span className="uppercase tracking-[0.06em]">Verdict</span>
             <span />
           </div>
-          <ul className="m-0 list-none p-0" data-testid="process-list">
+          <ul className="m-0 min-h-0 flex-1 overflow-y-auto list-none p-0" data-testid="process-list">
             {procs.data
               ? rows.map((p) => <Row key={p.name} p={p} onKill={() => kill.request(p.name, p.pids, p)} />)
               : Array.from({ length: 8 }).map((_, i) => (

@@ -158,12 +158,28 @@ fn dedupe(paths: Vec<PathBuf>) -> Vec<PathBuf> {
 
 /// `drives` limits per-drive locations (pnpm stores) to the drives chosen in
 /// Settings; None means every drive.
+/// The drives chosen in Settings for the last scan. A clean uses the same
+/// set, so it never reaches a drive the scan didn't show.
+static LAST_DRIVES: std::sync::Mutex<Option<Vec<String>>> = std::sync::Mutex::new(None);
+
+pub(crate) fn chosen_drives() -> Option<Vec<String>> {
+    LAST_DRIVES.lock().ok().and_then(|d| d.clone())
+}
+
+/// `walk` re-walks the chosen drives for per-drive junk; without it the last
+/// walk's results are reused (a clean right after a scan).
 fn targets(drives: Option<&[String]>) -> Vec<Target> {
+    targets_with(drives, false)
+}
+
+fn targets_with(drives: Option<&[String]>, walk: bool) -> Vec<Target> {
+    let remembered = chosen_drives();
+    let drives = drives.or(remembered.as_deref());
     let mut t = base_targets();
     for x in t.iter_mut().filter(|x| matches!(x.id, "temp" | "crashdumps")) {
         x.junk = true;
     }
-    t.extend(crate::junk::targets(drives));
+    t.extend(crate::junk::targets(drives, walk));
     if util::fake_home().is_none() {
         let extra: Vec<Vec<PathBuf>> = t.par_iter().map(|x| reported(x.id, drives)).collect();
         for (x, e) in t.iter_mut().zip(extra) {
@@ -512,7 +528,10 @@ fn measure(t: &Target) -> CacheItem {
 /// Measure every target in parallel, emitting each as soon as it is done so
 /// the list fills in live.
 pub fn scan(app: &AppHandle, drives: Option<&[String]>) -> Vec<CacheItem> {
-    let ts = targets(drives);
+    if let Ok(mut d) = LAST_DRIVES.lock() {
+        *d = drives.map(|x| x.to_vec());
+    }
+    let ts = targets_with(drives, true);
     let _ = app.emit("cache-scan-start", ts.len());
     let mut items: Vec<CacheItem> = ts
         .par_iter()
