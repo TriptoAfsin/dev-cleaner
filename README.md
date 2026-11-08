@@ -6,7 +6,7 @@
 
 **Reclaim disk and memory from developer caches, build folders, AI models, processes and ports.**
 
-Windows and macOS · Rust core, React shell, built with Tauri 2 · MIT
+Windows, macOS and Linux · Rust core, React shell, built with Tauri 2 · MIT
 
 [Download](https://github.com/TriptoAfsin/dev-cleaner/releases/latest) · [Install with a package manager](#install) · [Changelog](./CHANGELOG.md)
 
@@ -23,14 +23,15 @@ Nothing is removed until you confirm. Anything the OS needs is protected.
 | | |
 |---|---|
 | **Disk cleanup**: 50+ caches across Node, Bun, Deno, Rust, Python, Go, Java, .NET, PHP, Dart, Scala, C/C++, Docker, editors, AI/ML and the OS. pnpm stores are found on every drive, and each tool is asked where its cache really is. | <img src="./docs/screenshots/disk-dark.png" alt="Disk cleanup" /> |
-| **Projects**: point it at your code folder; it finds `node_modules`, Python venvs, Rust `target`, `.next`, `.turbo`, `.svelte-kit`, Unsloth and Python tool caches, shows when each was last used, and deletes the ones you pick. Source is never touched. | <img src="./docs/screenshots/projects-dark.png" alt="Projects" /> |
+| **System junk**: temp folders, Windows Update and Delivery Optimization leftovers, error reports, memory dumps, servicing logs, thumbnail caches, browser and chat-app caches, unfinished downloads and the Recycle Bin / Trash. macOS: app caches, logs, Xcode device support, simulators, Mail attachments, Time Machine snapshots. Linux: thumbnails, journal, apt/dnf/pacman caches, old Snap revisions, unused Flatpak runtimes. Items that need admin run together after one approval. | <img src="./docs/screenshots/junk-dark.png" alt="System junk" /> |
+| **Projects**: point it at your code folders or whole drives; it finds `node_modules`, Python venvs, Rust `target`, `.next`, `.turbo`, `.svelte-kit`, Unsloth and Python tool caches, shows when each was last used, and deletes the ones you pick. Source is never touched. | <img src="./docs/screenshots/projects-dark.png" alt="Projects" /> |
 | **AI models**: Ollama, LM Studio and Hugging Face models, plus loose `.gguf`, `.safetensors`, `.ckpt`, `.pt` and `.onnx` files (ComfyUI, Automatic1111, downloads). Nothing is pre-selected; Ollama models are removed with `ollama rm`. | <img src="./docs/screenshots/models-dark.png" alt="AI models" /> |
 | **Processes and memory**: apps grouped by name, sorted by RAM or CPU, each with a verdict: *Safe to end*, *Save first* or *System*. A live Top CPU chart with End buttons. Free memory trims idle pages without closing anything. | <img src="./docs/screenshots/processes-dark.png" alt="Processes" /> |
 | **Ports**: which process holds 3000, 5173, 5432, 8080 and other dev ports, with the command line and project folder; free a port in one click. | <img src="./docs/screenshots/ports-dark.png" alt="Ports" /> |
 | **System**: OS, CPU, memory compression, page file, drives, battery (laptops only), WSL, runtimes, editors and AI coding CLIs, each value with a tooltip, plus recommendations on where performance goes. Copy it all as Markdown for a bug report. | <img src="./docs/screenshots/system-dark.png" alt="System" /> |
 | **Configs**: back up VS Code, Cursor, Zed, JetBrains, Claude Code, Codex, Gemini, Copilot and more to one zip with instructions an AI agent can follow to restore it. Restore backs up what it replaces first. Copy settings, extensions, skills, commands, rules and MCP servers between tools. | <img src="./docs/screenshots/configs-dark.png" alt="Configs" /> |
 
-Also: save or copy any page as a PNG, a shareable card after each clean, light/dark/system themes with an accent picker, and a custom title bar that still drags, snaps, maximizes on double-click and remembers its position, size and monitor.
+Also: choose which drives to include (pnpm stores, Recycle Bins, project and model scans), save or copy any page as a PNG, a shareable card after each clean, light/dark/system themes with an accent picker, and a custom title bar that still drags, snaps, maximizes on double-click and remembers its position, size and monitor.
 
 <p align="center">
   <img src="./docs/screenshots/overview-light.png" alt="Overview in light mode" width="49%" />
@@ -43,6 +44,7 @@ Download the installer from [Releases](https://github.com/TriptoAfsin/dev-cleane
 
 - **Windows**: `.msi` or `-setup.exe`, or the portable `.zip` (settings stay in a `data` folder beside the exe).
 - **macOS**: `.dmg`, Apple silicon (`aarch64`) or Intel (`x64`).
+- **Linux**: `.AppImage` (any distro), `.deb` (Debian, Ubuntu) or `.rpm` (Fedora, openSUSE). No Flatpak: its sandbox hides host processes and files, which a cleaner needs to see.
 
 Or with a package manager:
 
@@ -64,7 +66,10 @@ winget install TriptoAfsin.DevCleaner
 
 - Read-only until you confirm. Scans never change anything.
 - The tool's own clean command runs first; folder contents are deleted only as a fallback, and files in use are skipped.
-- Temp folders: only items older than a day.
+- Temp folders: only items older than a day; system temp, error reports and logs only past 7 or 30 days.
+- Things that are never cleaned because it does harm: Windows Prefetch, WinSxS by hand, pagefile/hiberfil, macOS language files and app thinning (they break code signatures), the macOS sleep image, and anything in a browser profile except its caches (cookies, history and passwords are never touched).
+- Admin items (Windows temp, update cache, servicing logs, DISM; macOS system logs and snapshots; Linux journal and package caches) are never pre-selected and run in one elevated batch after a single UAC or password prompt.
+- Recycle Bin / Trash, device backups, Xcode archives and Windows.old count as your data: never pre-selected, and the confirmation says it can't be undone.
 - Processes the OS needs (csrss, svchost, lsass, WindowServer, launchd...) cannot be ended, from the UI or the backend.
 - Project and model deletes are re-validated in the backend: only a recognised build folder or model file can be removed.
 - Downloaded AI models, experiment outputs (`wandb/`, `mlruns/`, `outputs/`) and the Hugging Face `token` are never selected for you.
@@ -101,7 +106,7 @@ npm run version:minor -- --tag   # new features
 git push && git push --tags
 ```
 
-Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`: Windows (msi, setup exe, portable zip) and macOS (arm64, x64) builds, a draft release with notes from `CHANGELOG.md`, and `SHA256SUMS.txt`. Homebrew and Scoop pick up new releases automatically; WinGet gets a PR from `.github/workflows/winget.yml` (see `packaging/winget/README.md`).
+Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`: Windows (msi, setup exe, portable zip), macOS (arm64, x64) and Linux (AppImage, deb, rpm) builds, a draft release with notes from `CHANGELOG.md`, and `SHA256SUMS.txt`. Homebrew and Scoop pick up new releases automatically; WinGet gets a PR from `.github/workflows/winget.yml` (see `packaging/winget/README.md`).
 
 ## License
 

@@ -42,6 +42,12 @@ export type CacheItem = {
   files: number
   method: string
   found: boolean
+  /** Listed on the System junk page rather than Disk cleanup. */
+  junk: boolean
+  /** Needs admin rights; cleaned in one elevated batch. */
+  admin: boolean
+  /** False when the size is only known after cleaning. */
+  measured: boolean
 }
 export type CleanEvent = { id: string; phase: "running" | "done" | "failed"; freed: number; skipped: number; note: string }
 
@@ -127,11 +133,12 @@ export const api = {
   listProcesses: () => invoke<ProcGroup[]>("list_processes"),
   killProcesses: (pids: number[]) => invoke<KillResult>("kill_processes", { pids }),
   freeMemory: () => invoke<FreeResult>("free_memory"),
-  scanCaches: () => invoke<CacheItem[]>("scan_caches"),
+  scanCaches: (drives?: string[] | null) => invoke<CacheItem[]>("scan_caches", { drives: drives ?? null }),
   cleanCaches: (ids: string[]) => invoke<CleanEvent[]>("clean_caches", { ids }),
   listPorts: (all: boolean, extra: number[]) => invoke<PortEntry[]>("list_ports", { all, extra }),
   systemInfo: () => invoke<SystemInfo>("system_info"),
-  scanProjects: (root: string, depth?: number) => invoke<Artifact[]>("scan_projects", { root, depth }),
+  scanProjects: (roots: string[], depth?: number) => invoke<Artifact[]>("scan_projects", { roots, depth }),
+  listDrives: () => invoke<Drive[]>("list_drives"),
   cancelProjectScan: () => invoke<void>("cancel_project_scan"),
   deleteArtifacts: (paths: string[]) => invoke<DeleteEvent[]>("delete_artifacts", { paths }),
   isAdmin: () => invoke<boolean>("is_admin"),

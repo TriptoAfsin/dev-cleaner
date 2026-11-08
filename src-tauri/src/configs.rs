@@ -591,7 +591,7 @@ fn jetbrains_defs(b: &Bases) -> Vec<Def> {
         }
         let ver: Vec<u32> = name[pos..].split('.').map(|s| s.parse().unwrap_or(0)).collect();
         let product = name[..pos].to_string();
-        if best.get(&product).map_or(true, |(v, _)| *v < ver) {
+        if best.get(&product).is_none_or(|(v, _)| *v < ver) {
             best.insert(product, (ver, name));
         }
     }

@@ -8,17 +8,22 @@ import { useStore } from "@/lib/store"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, PageHeader, Skeleton } from "@/components/ui"
 import { CacheRow } from "@/components/shared"
 
-export function Disk() {
-  const { caches, scanning, scan, scanTotal, cleaning } = useStore()
+/** Selected by default: safe, measured, no admin prompt, never your data. */
+export const preselect = (c: CacheItem) => c.found && c.size > 0 && c.risk === "safe" && !c.admin
+
+export function Disk({ junk = false }: { junk?: boolean }) {
+  const store = useStore()
+  const { scanning, scan, scanTotal, cleaning } = store
+  const caches = store.caches.filter((c) => !!c.junk === junk)
   const [filter, setFilter] = useState("All")
   const [sel, setSel] = useState<Set<string> | null>(null)
   const [open, setOpen] = useState<string | null>(null)
   const [confirm, setConfirm] = useState(false)
 
-  const found = caches.filter((c) => c.found && c.size > 0)
+  const found = caches.filter((c) => c.found && (c.size > 0 || !c.measured))
   const ecos = useMemo(() => ["All", ...Array.from(new Set(found.map((c) => c.eco)))], [found])
   const shown = caches.filter((c) => filter === "All" || c.eco === filter)
-  const selected = sel ?? new Set(found.filter((c) => c.risk === "safe").map((c) => c.id))
+  const selected = sel ?? new Set(found.filter(preselect).map((c) => c.id))
   const selItems = caches.filter((c) => selected.has(c.id) && c.found)
   const selBytes = selItems.reduce((n, c) => n + c.size, 0)
   const total = found.reduce((n, c) => n + c.size, 0)
@@ -35,17 +40,17 @@ export function Disk() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title="Disk cleanup"
+        title={junk ? "System junk" : "Disk cleanup"}
         lede={
           <>
-            Package and tool caches on this machine: <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
+            {junk ? "Temp files, update leftovers, error reports, logs, browser caches and the Recycle Bin:" : "Package and tool caches on this machine:"} <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
           </>
         }
         actions={
           <>
-            <SnapshotButton name="disk" />
+            <SnapshotButton name={junk ? "junk" : "disk"} />
             <Button variant="primary" icon={<RefreshCw size={15} className={scanning ? "spin" : undefined} />} disabled={scanning} onClick={() => void scan()}>
-              {scanning ? `Scanning ${caches.length}/${scanTotal || "…"}` : "Scan"}
+              {scanning ? `Scanning ${store.caches.length}/${scanTotal || "…"}` : "Scan"}
             </Button>
           </>
         }
@@ -69,8 +74,8 @@ export function Disk() {
         ))}
       </div>
 
-      <Card className="overflow-hidden">
-        <div className="flex items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+      <Card className="overflow-clip">
+        <div className="thead flex items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
           <Checkbox
             label="Select all shown"
             checked={allShownSelected && shown.length > 0}
@@ -97,13 +102,13 @@ export function Disk() {
             />
           ))}
           {scanning &&
-            Array.from({ length: Math.max(0, (scanTotal || 8) - caches.length) }).map((_, i) => (
+            Array.from({ length: Math.max(0, Math.min(8, (scanTotal || 8) - store.caches.length)) }).map((_, i) => (
               <li key={`s${i}`} className="border-t border-border px-4 py-3.5">
                 <Skeleton className="h-4" />
               </li>
             ))}
         </ul>
-        <div className="sticky bottom-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+        <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
           <span className="mono text-[12.5px]">
             {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
           </span>
@@ -159,6 +164,16 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
           </li>
         ))}
       </ul>
+      {items.some((c) => c.risk === "data") && (
+        <div className="mb-2 rounded-lg bg-danger-soft px-3 py-2.5 text-[12px] leading-[1.5] text-danger">
+          Includes your own files ({items.filter((c) => c.risk === "data").map((c) => c.name).join(", ")}). Deleting them can't be undone.
+        </div>
+      )}
+      {items.some((c) => c.admin) && (
+        <div className="mb-2 rounded-lg bg-warn-soft px-3 py-2.5 text-[12px] leading-[1.5] text-warn">
+          {items.filter((c) => c.admin).length} item{items.filter((c) => c.admin).length === 1 ? " needs" : "s need"} admin rights. You'll be asked to approve once, for all of them.
+        </div>
+      )}
       <p className="m-0">Each tool's own clean command runs first; if it is missing, the folder's contents are deleted. Files in use are skipped.</p>
     </Dialog>
   )

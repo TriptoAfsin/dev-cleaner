@@ -9,15 +9,21 @@ on:
 
 jobs:
   check:
-    # Both platforms, so cfg(windows) and cfg(macos) code is compiled and
-    # linted on every push, not only at release.
+    # Every platform, so cfg(windows), cfg(macos) and cfg(linux) code is
+    # compiled and linted on every push, not only at release.
     strategy:
       fail-fast: false
       matrix:
-        os: [macos-latest, windows-latest]
+        os: [macos-latest, windows-latest, ubuntu-22.04]
     runs-on: ${{ matrix.os }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: actions/setup-node@v4
         with:

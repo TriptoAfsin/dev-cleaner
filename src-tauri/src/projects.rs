@@ -115,15 +115,23 @@ fn project_name(parent: &Path, root: &Path) -> String {
     parent.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
 }
 
-pub fn scan(app: &AppHandle, root: &str, max_depth: u32) -> Vec<Artifact> {
+/// Scan one or more folders (or whole drives). Overlapping roots are fine:
+/// each build folder is listed once.
+pub fn scan(app: &AppHandle, roots: &[String], max_depth: u32) -> Vec<Artifact> {
     CANCEL.store(false, Ordering::Relaxed);
-    let root = PathBuf::from(root);
     let seen = AtomicU64::new(0);
-    let found = walk(&root, 0, max_depth, &seen, app);
+    let mut found: Vec<(PathBuf, Found)> = roots
+        .par_iter()
+        .map(PathBuf::from)
+        .filter(|r| r.is_dir())
+        .flat_map(|root| walk(&root, 0, max_depth, &seen, app).into_iter().map(move |f| (root.clone(), f)).collect::<Vec<_>>())
+        .collect();
+    let mut paths = std::collections::HashSet::new();
+    found.retain(|(_, f)| paths.insert(f.path.to_string_lossy().to_ascii_lowercase()));
     let _ = app.emit("project-found-count", found.len());
     let mut out: Vec<Artifact> = found
         .par_iter()
-        .filter_map(|f| {
+        .filter_map(|(root, f)| {
             if CANCEL.load(Ordering::Relaxed) {
                 return None;
             }
@@ -136,7 +144,7 @@ pub fn scan(app: &AppHandle, root: &str, max_depth: u32) -> Vec<Artifact> {
                 .unwrap_or(0);
             let a = Artifact {
                 path: f.path.to_string_lossy().to_string(),
-                project: project_name(&f.parent, &root),
+                project: project_name(&f.parent, root),
                 project_path: f.parent.to_string_lossy().to_string(),
                 kind: f.kind.into(),
                 label: f.label.into(),

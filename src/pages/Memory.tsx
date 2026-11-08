@@ -4,8 +4,29 @@ import { MemoryStick, X } from "lucide-react"
 import { api, type FreeResult, type ProcGroup } from "@/lib/api"
 import { bytes } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
-import { AnimatedNumber, Button, Card, Dialog, InfoTip, PageHeader, Skeleton, Sparkline, VerdictPill } from "@/components/ui"
+import { AnimatedNumber, Button, Card, Dialog, InfoTip, PageHeader, Skeleton, Sparkline, Tooltip, VerdictPill } from "@/components/ui"
 import { ProcIcon, useKill } from "@/components/shared"
+
+/** Exactly what "Free memory" does on this OS. */
+export function freeMemoryHelp(platform: string): React.ReactNode {
+  if (platform === "macos")
+    return (
+      <>
+        <b>How it works on macOS:</b> runs <code>purge</code>, which writes pending changes to disk and drops the file cache and inactive memory. macOS asks for your admin password. No apps are closed; files are read from disk again the next time they're needed, so things may feel slower for a moment.
+      </>
+    )
+  if (platform === "linux")
+    return (
+      <>
+        <b>How it works on Linux:</b> runs <code>sync</code>, then writes 1 to <code>/proc/sys/vm/drop_caches</code> through pkexec (asks for your password). This frees the page cache only; no apps are closed and no app memory is touched. Files are read from disk again when next needed.
+      </>
+    )
+  return (
+    <>
+      <b>How it works on Windows:</b> asks every process Dev Cleaner may open to give back its idle pages (<code>EmptyWorkingSet</code>). The pages move to the standby list, so “In use” drops right away, and an app gets them back from RAM the moment it touches them. Nothing is closed and nothing is written to the page file. Without admin, services and other users' apps are skipped. Memory a busy app needs comes back within seconds, so this helps most after closing big apps or builds.
+    </>
+  )
+}
 
 /** "Free memory": explain, run, and report before/after. */
 export function useFreeMemory() {
@@ -60,7 +81,7 @@ export function useFreeMemory() {
 }
 
 export function Memory() {
-  const { stats, memHistory } = useStore()
+  const { stats, memHistory, platform } = useStore()
   const procs = usePoll(api.listProcesses, 2500)
   const kill = useKill(procs.refresh)
   const free = useFreeMemory()
@@ -85,9 +106,11 @@ export function Memory() {
         actions={
           <>
           <SnapshotButton name="memory" />
-          <Button variant="primary" icon={<MemoryStick size={15} />} loading={free.busy} onClick={free.run} data-testid="free-memory">
-            Free memory
-          </Button>
+          <Tooltip text={freeMemoryHelp(platform)} wide side="bottom">
+            <Button variant="primary" icon={<MemoryStick size={15} />} loading={free.busy} onClick={free.run} data-testid="free-memory">
+              Free memory
+            </Button>
+          </Tooltip>
           </>
         }
       />

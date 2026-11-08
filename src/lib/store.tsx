@@ -106,7 +106,13 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       setCaches((cs) => [...cs.filter((c) => c.id !== item.id), item].sort((a, b) => b.size - a.size)),
     )
     try {
-      const items = await api.scanCaches()
+      let drives: string[] | null = null
+      try {
+        drives = JSON.parse(localStorage.getItem("dc-settings") || "{}").drives ?? null
+      } catch {
+        /* every drive */
+      }
+      const items = await api.scanCaches(drives)
       setCaches(items)
       setLastScan(Date.now())
       const total = items.reduce((n, c) => n + c.size, 0)

@@ -1,4 +1,5 @@
 mod caches;
+mod junk;
 mod configs;
 mod models;
 mod monitor;
@@ -45,8 +46,8 @@ async fn free_memory(m: State<'_, Arc<Monitor>>) -> R<monitor::FreeResult> {
 }
 
 #[tauri::command]
-async fn scan_caches(app: AppHandle) -> R<Vec<caches::CacheItem>> {
-    blocking(move || caches::scan(&app)).await
+async fn scan_caches(app: AppHandle, drives: Option<Vec<String>>) -> R<Vec<caches::CacheItem>> {
+    blocking(move || caches::scan(&app, drives.as_deref())).await
 }
 
 #[tauri::command]
@@ -65,8 +66,14 @@ async fn system_info() -> R<sysinfo_dev::SystemInfo> {
 }
 
 #[tauri::command]
-async fn scan_projects(app: AppHandle, root: String, depth: Option<u32>) -> R<Vec<projects::Artifact>> {
-    blocking(move || projects::scan(&app, &root, depth.unwrap_or(7))).await
+async fn scan_projects(app: AppHandle, roots: Vec<String>, depth: Option<u32>) -> R<Vec<projects::Artifact>> {
+    blocking(move || projects::scan(&app, &roots, depth.unwrap_or(7))).await
+}
+
+/// Mounted drives, for the Drives setting.
+#[tauri::command]
+async fn list_drives() -> R<Vec<sysinfo_dev::Drive>> {
+    blocking(sysinfo_dev::drives).await
 }
 
 #[tauri::command]
@@ -304,6 +311,7 @@ pub fn run() {
             is_admin,
             relaunch_as_admin,
             platform,
+            list_drives,
             load_settings,
             save_settings,
             save_file,

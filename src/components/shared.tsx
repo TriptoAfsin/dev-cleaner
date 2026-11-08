@@ -161,12 +161,14 @@ export function CacheRow({
               {c.name} <span className="font-normal text-subtle">· {c.eco}</span>
             </span>
             {c.risk === "slow" && <Badge tone="warn">slow rebuild</Badge>}
+            {c.risk === "data" && <Badge tone="danger">your data</Badge>}
+            {c.admin && <Badge tone="accent">admin</Badge>}
             {status?.phase === "running" && <Badge tone="accent">cleaning</Badge>}
             {status?.phase === "done" && <Badge tone="ok">freed {bytes(status.freed)}</Badge>}
           </div>
         </div>
         <Bar value={max ? c.size / max : 0} thin />
-        <span className="mono text-right text-[12.5px]">{c.found ? bytes(c.size) : "not found"}</span>
+        <span className="mono text-right text-[12.5px]">{!c.found ? "not found" : c.measured ? bytes(c.size) : "—"}</span>
         {onExpand ? (
           <ChevronDown size={14} className={cn("text-subtle transition-transform duration-200", expanded && "rotate-180")} aria-hidden />
         ) : (
@@ -186,7 +188,11 @@ export function CacheRow({
               <dt className="text-subtle">What</dt>
               <dd className="m-0">{c.about}</dd>
               <dt className="text-subtle">Risk</dt>
-              <dd className="m-0">{c.risk === "safe" ? "Safe. Rebuilt on demand." : "Safe, but the next build or install is slower or needs a download."}</dd>
+              <dd className="m-0">
+                {c.risk === "safe" ? "Safe. Rebuilt on demand." : c.risk === "slow" ? "Safe, but the next build, launch or install is slower or needs a download." : "Your files. Never selected for you; deleting can't be undone."}
+                {c.admin ? " Needs admin approval." : ""}
+                {!c.measured ? " Size is known only after it runs." : ""}
+              </dd>
               <dt className="text-subtle">Runs</dt>
               <dd className="mono m-0 text-[12px]">{c.method}</dd>
               {c.paths.length > 0 && (

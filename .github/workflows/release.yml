@@ -39,6 +39,7 @@ jobs:
             echo "## Downloads"
             echo '- Windows: `.msi` or `-setup.exe`, or the portable `.zip`'
             echo '- macOS: `.dmg`, separate Apple silicon (aarch64) and Intel (x64) builds'
+            echo '- Linux: `.AppImage` (any distro), `.deb` (Debian/Ubuntu) or `.rpm` (Fedora/openSUSE)'
             echo
             echo "Or install with Homebrew, Scoop or WinGet: see the README."
             echo
@@ -64,9 +65,17 @@ jobs:
             args: '--target x86_64-apple-darwin'
           - platform: windows-latest
             args: ''
+          - platform: ubuntu-22.04
+            args: ''
     runs-on: ${{ matrix.platform }}
     steps:
       - uses: actions/checkout@v4
+
+      - name: Install system dependencies (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgtk-3-dev libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf
 
       - uses: actions/setup-node@v4
         with:

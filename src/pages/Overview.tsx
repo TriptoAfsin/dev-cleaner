@@ -3,27 +3,27 @@ import { MemoryStick, RefreshCw, Trash2 } from "lucide-react"
 import { api } from "@/lib/api"
 import { bytes } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
-import { AnimatedNumber, Button, Card, Gauge, PageHeader, Skeleton } from "@/components/ui"
+import { AnimatedNumber, Button, Card, Gauge, PageHeader, Skeleton, Tooltip } from "@/components/ui"
 import { CacheRow, TopCpu, useKill } from "@/components/shared"
 import type { Page } from "@/components/Shell"
-import { useFreeMemory } from "./Memory"
+import { freeMemoryHelp, useFreeMemory } from "./Memory"
 import { InsightsCard } from "@/components/Insights"
 import { SnapshotButton } from "@/components/Share"
 import { insights } from "@/lib/insights"
 import type { SystemInfo } from "@/lib/api"
-import { CleanDialog } from "./Disk"
+import { CleanDialog, preselect } from "./Disk"
 
 export function Overview({ go }: { go: (p: Page) => void }) {
-  const { stats, caches, scanning, scan, lastScan } = useStore()
+  const { stats, caches, scanning, scan, lastScan, platform } = useStore()
   const procs = usePoll(api.listProcesses, 2500)
   const sys = usePoll(api.systemInfo, 120_000)
   const kill = useKill(procs.refresh)
   const free = useFreeMemory()
   const reclaim = caches.reduce((n, c) => n + c.size, 0)
-  const top = useMemo(() => caches.filter((c) => c.size > 0).slice(0, 5), [caches])
+  const top = useMemo(() => caches.filter((c) => !c.junk && c.size > 0).slice(0, 5), [caches])
   const [sel, setSel] = useState<Set<string> | null>(null)
   // Everything safe and found is selected until the user changes it.
-  const selected = sel ?? new Set(top.filter((c) => c.risk === "safe").map((c) => c.id))
+  const selected = sel ?? new Set(top.filter(preselect).map((c) => c.id))
   const selBytes = top.filter((c) => selected.has(c.id)).reduce((n, c) => n + c.size, 0)
   const [confirm, setConfirm] = useState(false)
 
@@ -47,9 +47,11 @@ export function Overview({ go }: { go: (p: Page) => void }) {
         actions={
           <>
             <SnapshotButton name="overview" />
-            <Button icon={<MemoryStick size={15} />} loading={free.busy} onClick={free.run} data-testid="free-memory">
-              Free memory
-            </Button>
+            <Tooltip text={freeMemoryHelp(platform)} wide side="bottom">
+              <Button icon={<MemoryStick size={15} />} loading={free.busy} onClick={free.run} data-testid="free-memory">
+                Free memory
+              </Button>
+            </Tooltip>
             <Button variant="primary" icon={<RefreshCw size={15} className={scanning ? "spin" : undefined} />} disabled={scanning} onClick={() => void scan()} data-testid="scan">
               {scanning ? "Scanning" : "Scan"}
             </Button>
@@ -76,7 +78,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
       </div>
 
       <div className="grid grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)] gap-3.5">
-        <Card className="flex flex-col overflow-hidden">
+        <Card className="flex flex-col overflow-clip">
           <div className="flex items-center justify-between px-4 py-3">
             <h2 className="m-0 text-[13px] font-semibold">Reclaimable caches</h2>
             <button type="button" className="text-[12px] text-accent hover:underline" onClick={() => go("disk")}>
@@ -105,7 +107,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
                   />
                 ))}
           </ul>
-          <div className="mt-auto flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="tfoot mt-auto flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selected.size} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>

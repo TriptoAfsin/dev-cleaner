@@ -210,3 +210,19 @@ textarea,
 .reduce-motion .pulse-dot {
   animation: none;
 }
+
+/* Table header and footer rows stay visible while the page scrolls. Cards
+   that hold a table use overflow: clip (not hidden), which keeps the rounded
+   corners without turning the card into its own scroll container, so sticky
+   works against the page. */
+.thead {
+  position: sticky;
+  top: 0;
+  z-index: 6;
+  background: var(--surface);
+}
+.tfoot {
+  position: sticky;
+  bottom: 0;
+  z-index: 6;
+}

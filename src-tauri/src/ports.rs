@@ -203,7 +203,79 @@ fn listeners() -> Vec<Listener> {
     out
 }
 
-#[cfg(not(windows))]
+/// Linux: listening sockets from /proc/net/tcp{,6}, matched to processes by
+/// socket inode through /proc/<pid>/fd. No root needed for your own
+/// processes; sockets owned by other users show without a PID.
+#[cfg(target_os = "linux")]
+fn listeners() -> Vec<Listener> {
+    use std::collections::HashMap;
+    let mut by_inode: HashMap<u64, (u16, String)> = HashMap::new();
+    for (file, v6) in [("/proc/net/tcp", false), ("/proc/net/tcp6", true)] {
+        let Ok(text) = std::fs::read_to_string(file) else { continue };
+        for line in text.lines().skip(1) {
+            let f: Vec<&str> = line.split_whitespace().collect();
+            // local_address is HEXIP:HEXPORT; state 0A is LISTEN.
+            if f.len() < 10 || f[3] != "0A" {
+                continue;
+            }
+            let Some((ip, port)) = f[1].split_once(':') else { continue };
+            let Ok(port) = u16::from_str_radix(port, 16) else { continue };
+            let Ok(inode) = f[9].parse::<u64>() else { continue };
+            by_inode.insert(inode, (port, proc_net_addr(ip, v6)));
+        }
+    }
+    let mut out = vec![];
+    let mut seen = std::collections::HashSet::new();
+    if let Ok(procs) = std::fs::read_dir("/proc") {
+        for p in procs.flatten() {
+            let Ok(pid) = p.file_name().to_string_lossy().parse::<u32>() else { continue };
+            let Ok(fds) = std::fs::read_dir(p.path().join("fd")) else { continue };
+            for fd in fds.flatten() {
+                let Ok(target) = std::fs::read_link(fd.path()) else { continue };
+                let t = target.to_string_lossy();
+                let Some(inode) = t.strip_prefix("socket:[").and_then(|s| s.strip_suffix(']')).and_then(|s| s.parse::<u64>().ok()) else { continue };
+                if let Some((port, addr)) = by_inode.get(&inode) {
+                    if seen.insert(inode) {
+                        out.push(Listener { port: *port, addr: addr.clone(), pid });
+                    }
+                }
+            }
+        }
+    }
+    // Listeners we could not attribute (other users' processes) still count.
+    for (inode, (port, addr)) in by_inode {
+        if !seen.contains(&inode) {
+            out.push(Listener { port, addr, pid: 0 });
+        }
+    }
+    out
+}
+
+/// /proc/net/tcp writes addresses as little-endian hex words.
+#[cfg(any(target_os = "linux", test))]
+fn proc_net_addr(hex: &str, v6: bool) -> String {
+    if !v6 {
+        return u32::from_str_radix(hex, 16).map(|n| std::net::Ipv4Addr::from(n.swap_bytes()).to_string()).unwrap_or_default();
+    }
+    let mut bytes = [0u8; 16];
+    for (i, chunk) in hex.as_bytes().chunks(8).enumerate().take(4) {
+        let word = u32::from_str_radix(std::str::from_utf8(chunk).unwrap_or("0"), 16).unwrap_or(0).swap_bytes();
+        bytes[i * 4..i * 4 + 4].copy_from_slice(&word.to_be_bytes());
+    }
+    std::net::Ipv6Addr::from(bytes).to_string()
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn decodes_proc_net_addresses() {
+        assert_eq!(super::proc_net_addr("0100007F", false), "127.0.0.1");
+        assert_eq!(super::proc_net_addr("00000000", false), "0.0.0.0");
+        assert_eq!(super::proc_net_addr("00000000000000000000000001000000", true), "::1");
+    }
+}
+
+#[cfg(target_os = "macos")]
 fn listeners() -> Vec<Listener> {
     let Some(out) = crate::util::run_capture(
         std::path::Path::new("/usr/sbin/lsof"),

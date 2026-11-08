@@ -5,7 +5,7 @@ description = "Reclaim disk and memory from developer caches, processes and port
 authors = ["Tripto Afsin"]
 license = "MIT"
 edition = "2021"
-rust-version = "1.77"
+rust-version = "1.82"
 
 [lib]
 name = "dev_cleaner_lib"

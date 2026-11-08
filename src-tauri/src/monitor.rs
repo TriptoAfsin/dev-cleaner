@@ -331,7 +331,7 @@ fn trim() -> (u32, String) {
 }
 
 /// macOS: `purge` flushes the disk cache. It needs an admin password.
-#[cfg(not(windows))]
+#[cfg(target_os = "macos")]
 fn trim() -> (u32, String) {
     let ok = crate::util::run_ok(
         std::path::Path::new("/usr/bin/osascript"),
@@ -342,6 +342,19 @@ fn trim() -> (u32, String) {
         (1, "Flushed inactive memory with purge.".into())
     } else {
         (0, "purge was cancelled or is unavailable.".into())
+    }
+}
+
+/// Linux: drop the page cache. Needs root, asked for through pkexec.
+#[cfg(target_os = "linux")]
+fn trim() -> (u32, String) {
+    let ok = crate::util::which("pkexec").is_some_and(|pk| {
+        crate::util::run_ok(&pk, &["sh", "-c", "sync; echo 1 > /proc/sys/vm/drop_caches"], std::time::Duration::from_secs(60))
+    });
+    if ok {
+        (1, "Dropped the page cache.".into())
+    } else {
+        (0, "Cancelled, or pkexec is not available.".into())
     }
 }
 

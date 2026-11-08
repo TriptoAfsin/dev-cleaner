@@ -8,6 +8,7 @@ import { on } from "@/lib/api"
 import { ago, bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
+import { useDrives, useSettings } from "@/lib/settings"
 import { lastUsed, loadModelRoots, modelsApi, quantOf, saveModelRoots, type Model, type ModelDeleteEvent } from "@/lib/models"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader, Skeleton } from "@/components/ui"
 
@@ -63,6 +64,8 @@ function SourceIcon({ kind, size = 15, mono }: { kind: string; size?: number; mo
 }
 
 export function Models() {
+  const { settings } = useSettings()
+  const drives = useDrives()
   const store = useStore() as ReturnType<typeof useStore> & { openReport?: (r: Report) => void }
   const { toast, setActivity } = store
   const [roots, setRoots] = useState<string[]>(loadModelRoots)
@@ -97,7 +100,7 @@ export function Models() {
     const offWalk = on<string>("model-walk", setWalking)
     const offFound = on<Model>("model-found", (m) => setItems((xs) => (xs.some((x) => x.id === m.id) ? xs : [...xs, m])))
     try {
-      const all = await modelsApi.scan(roots)
+      const all = await modelsApi.scan(settings.modelDrives ? [...new Set([...roots, ...drives.roots])] : roots)
       setItems(all)
       const total = all.reduce((n, m) => n + m.size, 0)
       setActivity({ kind: "ok", text: `Found ${all.length} models · ${bytes(total)}` })
@@ -272,7 +275,7 @@ export function Models() {
         </div>
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-clip">
         {!scanning && live.length === 0 ? (
           <Empty icon={<BrainCircuit size={28} />} title={scanned.current ? "No AI models found" : "Find downloaded AI models"}>
             {scanned.current
@@ -281,7 +284,7 @@ export function Models() {
           </Empty>
         ) : (
           <>
-            <div className={cn("grid items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle", cols)}>
+            <div className={cn("thead grid items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle", cols)}>
               <Checkbox
                 label="Select all shown"
                 checked={selectable.length > 0 && selectable.every((m) => selected.has(m.id))}
@@ -294,7 +297,7 @@ export function Models() {
               <span className="text-right">Size</span>
               <span />
             </div>
-            <ul className="m-0 max-h-[calc(100vh-420px)] min-h-[120px] list-none overflow-y-auto p-0" data-testid="model-list">
+            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="model-list">
               {scanning && shown.length === 0 &&
                 [0, 1, 2].map((i) => (
                   <li key={`sk${i}`} className={cn("grid h-12 items-center gap-3 border-t border-border px-4 first:border-t-0", cols)}>
@@ -371,7 +374,7 @@ export function Models() {
           </>
         )}
         {live.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>

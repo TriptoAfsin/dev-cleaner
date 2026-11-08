@@ -419,7 +419,7 @@ import { useStore } from "@/lib/store"
 export function Toaster() {
   const { toasts, dismiss } = useStore()
   return (
-    <div className="pointer-events-none fixed bottom-10 right-4 z-50 flex w-[340px] flex-col gap-2" aria-live="polite">
+    <div className="pointer-events-none fixed bottom-[40px] left-[212px] z-50 flex w-[340px] flex-col-reverse gap-2" aria-live="polite">
       <AnimatePresence initial={false}>
         {toasts.map((t) => (
           <motion.div
@@ -427,7 +427,7 @@ export function Toaster() {
             layout
             initial={{ opacity: 0, y: 12, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, x: 24, transition: { duration: 0.16 } }}
+            exit={{ opacity: 0, x: -24, transition: { duration: 0.16 } }}
             transition={{ duration: 0.26, ease: [0.16, 1, 0.3, 1] }}
             className="pointer-events-auto flex items-start gap-2.5 rounded-xl border border-border bg-surface p-3 shadow-float"
             role="status"

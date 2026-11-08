@@ -46,7 +46,7 @@ export function Processes() {
           </div>
           <TopCpu procs={procs.data} limit={6} onKill={(g) => kill.request(g.name, g.pids, g)} />
         </Card>
-        <Card className="flex min-w-0 flex-col overflow-hidden">
+        <Card className="flex min-w-0 flex-col overflow-clip">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
             <label className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2.5 focus-within:border-accent">
               <Search size={14} className="text-subtle" />
@@ -74,14 +74,14 @@ export function Processes() {
               </button>
             ))}
           </div>
-          <div className="grid grid-cols-[minmax(0,1.3fr)_80px_64px_minmax(0,1.5fr)_92px] gap-3 border-y border-border px-4 py-2 text-left text-[11px] text-subtle">
+          <div className="thead grid grid-cols-[minmax(0,1.3fr)_80px_64px_minmax(0,1.5fr)_92px] gap-3 border-y border-border px-4 py-2 text-left text-[11px] text-subtle">
             {head("name", "App")}
             {head("memory", "Memory", true)}
             {head("cpu", "CPU", true)}
             <span className="uppercase tracking-[0.06em]">Verdict</span>
             <span />
           </div>
-          <ul className="m-0 max-h-[calc(100vh-290px)] list-none overflow-y-auto p-0" data-testid="process-list">
+          <ul className="m-0 list-none p-0" data-testid="process-list">
             {procs.data
               ? rows.map((p) => <Row key={p.name} p={p} onKill={() => kill.request(p.name, p.pids, p)} />)
               : Array.from({ length: 8 }).map((_, i) => (

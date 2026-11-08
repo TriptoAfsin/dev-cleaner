@@ -1,4 +1,5 @@
 import { useEffect, useState, type ReactNode } from "react"
+import { motion } from "motion/react"
 import { BatteryCharging, BatteryFull, Copy, HardDrive, RefreshCw, ShieldCheck } from "lucide-react"
 import { api, type SystemInfo, type Tool } from "@/lib/api"
 import { bytes, cn, duration } from "@/lib/format"
@@ -43,6 +44,8 @@ export function SystemPage({ go }: { go: (p: Page) => void }) {
     if (info.data) setS((last = info.data))
   }, [info.data])
   const tips = insights(s, stats, caches, procs.data)
+  const [tab, setTab] = useState<"details" | "tips">("details")
+  const warnings = tips.filter((t) => t.level === "warn").length
 
   const copy = async () => {
     if (!s) return
@@ -68,6 +71,38 @@ export function SystemPage({ go }: { go: (p: Page) => void }) {
         }
       />
 
+      <div className="flex w-fit gap-0.5 rounded-xl border border-border bg-surface p-1" role="tablist" aria-label="System view">
+        {(
+          [
+            ["details", "Details", null],
+            ["tips", "Recommendations", tips.filter((t) => t.level !== "ok").length || null],
+          ] as const
+        ).map(([id, label, count]) => (
+          <button
+            key={id}
+            type="button"
+            role="tab"
+            aria-selected={tab === id}
+            data-testid={`system-tab-${id}`}
+            onClick={() => setTab(id)}
+            className={cn(
+              "relative flex h-8 items-center gap-2 rounded-lg px-3.5 text-[13px] font-medium transition-colors",
+              tab === id ? "text-on-accent" : "text-muted hover:text-text",
+            )}
+          >
+            {tab === id && <motion.span layoutId="system-tab" className="absolute inset-0 rounded-lg bg-accent" transition={{ type: "spring", stiffness: 500, damping: 40 }} />}
+            <span className="relative">{label}</span>
+            {count != null && (
+              <span className={cn("mono relative rounded-full px-1.5 text-[11px]", tab === id ? "bg-white/20" : warnings ? "bg-warn-soft text-warn" : "bg-track")}>{count}</span>
+            )}
+          </button>
+        ))}
+      </div>
+
+      {tab === "tips" ? (
+        <InsightsCard items={tips} go={go} loading={!s} />
+      ) : (
+      <>
       <div className="grid grid-cols-3 items-start gap-3.5">
         <Section title="Processor" sub={s?.arch}>
           <KV k="Model" v={s?.cpuBrand} wrap />
@@ -91,8 +126,6 @@ export function SystemPage({ go }: { go: (p: Page) => void }) {
           <KV k="Running as admin" tip={TIPS.admin} v={s && <AdminValue admin={s.isAdmin} />} />
         </Section>
       </div>
-
-      <InsightsCard items={tips} go={go} limit={4} loading={!s} />
 
       <div className="grid grid-cols-3 items-start gap-3.5">
         {/* Left column stacks so short cards never leave holes. */}
@@ -132,6 +165,8 @@ export function SystemPage({ go }: { go: (p: Page) => void }) {
           <ToolSection title="AI coding CLIs and agents" tip={TIPS.ai} tools={s?.aiTools} cols={2} />
         </div>
       </div>
+      </>
+      )}
     </div>
   )
 }

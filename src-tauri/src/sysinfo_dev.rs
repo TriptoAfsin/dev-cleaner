@@ -158,7 +158,11 @@ fn compression(win_process_found: bool) -> Option<bool> {
         let out = run_capture(Path::new("/usr/sbin/sysctl"), &["-n", "vm.compressor_mode"], T)?;
         Some(out.trim().parse::<u32>().is_ok_and(|m| m >= 2))
     } else {
-        None
+        // Linux compresses memory with zram (a compressed swap device) or
+        // zswap (a compressed cache in front of swap).
+        let zram = std::fs::read_dir("/sys/block").is_ok_and(|rd| rd.flatten().any(|e| e.file_name().to_string_lossy().starts_with("zram")));
+        let zswap = std::fs::read_to_string("/sys/module/zswap/parameters/enabled").is_ok_and(|v| v.trim() == "Y");
+        Some(zram || zswap)
     }
 }
 
@@ -238,7 +242,7 @@ fn editors() -> Vec<Tool> {
         ("Sublime Text", Some("subl"), if win { vec![pf.join("Sublime Text")] } else { vec![apps.join("Sublime Text.app")] }),
         ("Neovim", Some("nvim"), vec![]),
         ("Visual Studio", None, if win { vec![pf.join("Microsoft Visual Studio")] } else { vec![] }),
-        ("JetBrains IDEs", None, if win { vec![pf.join("JetBrains"), local.join("JetBrains/Toolbox")] } else { vec![apps.join("IntelliJ IDEA.app"), apps.join("WebStorm.app"), apps.join("PyCharm.app"), apps.join("RustRover.app"), h.join("Library/Application Support/JetBrains/Toolbox")] }),
+        ("JetBrains IDEs", None, if win { vec![pf.join("JetBrains"), local.join("JetBrains/Toolbox")] } else { vec![apps.join("IntelliJ IDEA.app"), apps.join("WebStorm.app"), apps.join("PyCharm.app"), apps.join("RustRover.app"), h.join("Library/Application Support/JetBrains/Toolbox"), h.join(".local/share/JetBrains/Toolbox")] }),
         ("Android Studio", None, if win { vec![pf.join("Android/Android Studio")] } else { vec![apps.join("Android Studio.app")] }),
         ("Xcode", None, if win { vec![] } else { vec![apps.join("Xcode.app")] }),
         ("Notepad++", None, if win { vec![pf.join("Notepad++")] } else { vec![] }),
@@ -363,7 +367,7 @@ pub fn compressed_now() -> Option<u64> {
     powershell("(Get-Process -Name 'Memory Compression' -ErrorAction SilentlyContinue).WorkingSet64")?.trim().parse().ok()
 }
 
-fn drives() -> Vec<Drive> {
+pub fn drives() -> Vec<Drive> {
     let disks = sysinfo::Disks::new_with_refreshed_list();
     let mut v: Vec<Drive> = disks
         .list()

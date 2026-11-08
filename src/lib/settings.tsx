@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
-import { api } from "./api"
+import { api, type Drive } from "./api"
 
 export type ThemeMode = "light" | "dark" | "system"
 export type Settings = {
@@ -8,8 +8,13 @@ export type Settings = {
   accent: string
   reduceMotion: boolean
   extraPorts: number[]
-  projectRoot: string
+  /** Folders (or whole drives) the Projects page scans. */
+  projectRoots: string[]
   projectDepth: number
+  /** Drives to include in cleanups; null means every fixed drive. */
+  drives: string[] | null
+  /** Also search the chosen drives for AI model files. */
+  modelDrives: boolean
   confirmKills: boolean
 }
 
@@ -28,8 +33,10 @@ const DEFAULTS: Settings = {
   accent: ACCENTS[0].hex,
   reduceMotion: false,
   extraPorts: [],
-  projectRoot: "",
+  projectRoots: [],
   projectDepth: 7,
+  drives: null,
+  modelDrives: false,
   confirmKills: true,
 }
 
@@ -37,7 +44,11 @@ const KEY = "dc-settings"
 
 function load(): Settings {
   try {
-    return { ...DEFAULTS, ...JSON.parse(localStorage.getItem(KEY) || "{}") }
+    const raw = JSON.parse(localStorage.getItem(KEY) || "{}")
+    // Older versions kept a single project folder.
+    if (typeof raw.projectRoot === "string" && raw.projectRoot && !raw.projectRoots) raw.projectRoots = [raw.projectRoot]
+    delete raw.projectRoot
+    return { ...DEFAULTS, ...raw }
   } catch {
     return DEFAULTS
   }
@@ -127,4 +138,25 @@ export function useSettings() {
   const c = useContext(SettingsCtx)
   if (!c) throw new Error("useSettings outside provider")
   return c
+}
+
+/** Fixed drives on this machine and which ones are chosen in Settings. */
+export function useDrives() {
+  const { settings, set } = useSettings()
+  const [all, setAll] = useState<Drive[]>([])
+  useEffect(() => {
+    if (!api.inTauri) return
+    void api
+      .listDrives()
+      .then((ds) => setAll(ds.filter((d) => !d.removable && d.total > 0)))
+      .catch(() => {})
+  }, [])
+  const selected = settings.drives ?? all.map((d) => d.mount)
+  const toggle = (mount: string, on: boolean) => {
+    const next = on ? [...new Set([...selected, mount])] : selected.filter((m) => m !== mount)
+    set("drives", next.length === all.length ? null : next)
+  }
+  /** Drive roots as paths to scan ("T:" becomes "T:\"). */
+  const roots = selected.map((m) => (/^[A-Za-z]:$/.test(m) ? m + "\\" : m))
+  return { all, selected, toggle, roots }
 }

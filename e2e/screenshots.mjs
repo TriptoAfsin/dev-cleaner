@@ -21,7 +21,7 @@ const idle = (ms = 60000) => s.waitFor(async () => !(await s.exec(`return !!docu
 try {
   // A consistent window size for every shot.
   await s.cmd("POST", "/window/rect", { width: 1440, height: 900, x: 60, y: 40 }).catch(() => {})
-  await ctx.settings({ theme: "dark", accent: "#1d4ed8", projectRoot: projectsRoot, projectDepth: 6 })
+  await ctx.settings({ theme: "dark", accent: "#1d4ed8", projectRoots: [projectsRoot], projectDepth: 6 })
 
   await ctx.waitText(/reclaimable|can be rebuilt/, "first scan", 120000)
   await idle(120000)
@@ -32,6 +32,10 @@ try {
   const row = await s.exec(`return document.querySelector('[data-testid=cache-list] li[data-testid^="cache-"] > div')`)
   if (row) await (await s.find('[data-testid=cache-list] li[data-testid^="cache-"] > div')).click()
   await shot("disk-dark")
+
+  await ctx.nav("junk")
+  await idle()
+  await shot("junk-dark")
 
   await ctx.nav("projects")
   await ctx.click("scan-projects")

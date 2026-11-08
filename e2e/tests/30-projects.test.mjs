@@ -10,7 +10,7 @@ let ctx
 before(async () => {
   seedProjects()
   ctx = await launch()
-  await ctx.settings({ projectRoot: PROJECTS })
+  await ctx.settings({ projectRoots: [PROJECTS] })
 })
 after(async () => ctx?.stop())
 

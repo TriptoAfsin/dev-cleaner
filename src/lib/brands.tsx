@@ -6,7 +6,8 @@ import {
   siNextdotjs, siNodedotjs, siNotepadplusplus, siNpm, siNuget, siNuxt, siOllama, siOpenjdk, siPhp, siPnpm,
   siPoetry, siPython, siQwen, siRuby, siRust, siSublimetext, siSvelte, siTurborepo, siUbuntu, siUv, siWindsurf,
   siXcode, siYarn, siZedindustries, siCursor, siOpencode, siPostgresql, siRedis, siMongodb, siMysql, siVite,
-  siLinux, siAmd, siNvidia, siIntel, siDjango, siFlask, siElectron,
+  siLinux, siAmd, siNvidia, siIntel, siDjango, siFlask, siElectron, siGooglechrome, siFirefoxbrowser, siBrave,
+  siSafari, siDiscord, siFlatpak, siSnapcraft, siDebian, siFedora, siArchlinux,
 } from "simple-icons"
 import { cn } from "./format"
 
@@ -32,6 +33,11 @@ const MAP: Record<string, Icon> = {
   // services and hardware
   postgresql: siPostgresql, redis: siRedis, mongodb: siMongodb, mysql: siMysql, django: siDjango, flask: siFlask,
   amd: siAmd, nvidia: siNvidia, intel: siIntel,
+  // system junk
+  "chrome-cache": siGooglechrome, "firefox-cache": siFirefoxbrowser, "brave-cache": siBrave, "safari-cache": siSafari,
+  "chat-caches": siDiscord, "flatpak-unused": siFlatpak, "snap-old": siSnapcraft, "apt-cache": siDebian,
+  "dnf-cache": siFedora, "pacman-cache": siArchlinux, "ios-device-support": siXcode, "xcode-archives": siXcode,
+  "sim-unavailable": siApple, "ios-backups": siApple, "quicklook": siApple,
 }
 
 export function brandFor(key: string): Icon | null {

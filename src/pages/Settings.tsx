@@ -1,12 +1,13 @@
 import { useState, type ReactNode } from "react"
-import { Monitor, Moon, Sun } from "lucide-react"
-import { cn } from "@/lib/format"
-import { ACCENTS, useSettings, type ThemeMode } from "@/lib/settings"
-import { Card, PageHeader, Switch } from "@/components/ui"
+import { HardDrive, Monitor, Moon, Sun } from "lucide-react"
+import { bytes, cn } from "@/lib/format"
+import { ACCENTS, useDrives, useSettings, type ThemeMode } from "@/lib/settings"
+import { Bar, Card, Checkbox, PageHeader, Skeleton, Switch } from "@/components/ui"
 
 export function SettingsPage() {
   const { settings, set } = useSettings()
   const [portsText, setPortsText] = useState(settings.extraPorts.join(", "))
+  const drives = useDrives()
 
   return (
     <div className="flex max-w-[720px] flex-col gap-4">
@@ -75,6 +76,56 @@ export function SettingsPage() {
             className="mono h-8 w-[200px] rounded-lg border border-border-strong bg-surface px-2.5 text-[12.5px] outline-none focus:border-accent"
           />
         </Row>
+      </Card>
+      <Card data-testid="drives-setting">
+        <div className="flex items-start justify-between gap-6 px-4 pb-2 pt-3.5">
+          <div>
+            <div className="text-[13px] font-medium">Drives</div>
+            <div className="mt-0.5 text-[12px] text-muted">
+              Where cleanups look beyond your home folder: pnpm stores and Recycle Bins on each drive, Projects “Add drives”, and AI model files.
+            </div>
+          </div>
+          <button
+            type="button"
+            className="shrink-0 text-[12px] text-accent hover:underline"
+            onClick={() => set("drives", null)}
+          >
+            Select all
+          </button>
+        </div>
+        <ul className="m-0 grid list-none grid-cols-2 gap-x-6 px-4 pb-3 pt-1">
+          {drives.all.length === 0 &&
+            Array.from({ length: 4 }).map((_, i) => (
+              <li key={i} className="py-2">
+                <Skeleton className="h-8" />
+              </li>
+            ))}
+          {drives.all.map((d) => {
+            const on = drives.selected.includes(d.mount)
+            return (
+              <li key={d.mount} className="flex items-center gap-3 border-t border-border py-2 text-[12.5px]">
+                <Checkbox label={`Include ${d.mount}`} checked={on} onChange={(v) => drives.toggle(d.mount, v)} />
+                <HardDrive size={14} className="shrink-0 text-subtle" />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="mono font-medium">{d.mount}</span>
+                    <span className="truncate text-subtle">{d.name}</span>
+                    <span className="ml-auto shrink-0 text-[11px] text-subtle">{d.kind}</span>
+                  </div>
+                  <Bar value={d.total ? 1 - d.free / d.total : 0} thin className="mt-1" />
+                </div>
+                <span className="mono w-[86px] shrink-0 text-right text-[11.5px] text-muted">{bytes(d.free, 0)} free</span>
+              </li>
+            )
+          })}
+        </ul>
+        <div className="flex items-center justify-between gap-6 border-t border-border px-4 py-3.5">
+          <div>
+            <div className="text-[13px] font-medium">Search these drives for AI models</div>
+            <div className="mt-0.5 text-[12px] text-muted">The AI models scan also walks each chosen drive for .gguf, .safetensors and other model files. Slower on big drives.</div>
+          </div>
+          <Switch checked={settings.modelDrives} onChange={(v) => set("modelDrives", v)} label="Search drives for AI models" />
+        </div>
       </Card>
       <p className="m-0 text-[12px] text-subtle">Dev Cleaner never sends anything off your machine.</p>
     </div>

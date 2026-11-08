@@ -2,14 +2,14 @@ import { useMemo, useRef, useState } from "react"
 import { open as openDialog } from "@tauri-apps/plugin-dialog"
 import { revealItemInDir } from "@tauri-apps/plugin-opener"
 import { AnimatePresence, motion } from "motion/react"
-import { FolderOpen, FolderSearch, Search, Square, Trash2 } from "lucide-react"
+import { FolderOpen, FolderSearch, HardDrive, Search, Square, Trash2, X } from "lucide-react"
 import { api, on, type Artifact, type DeleteEvent } from "@/lib/api"
 import { ago, bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
-import { useSettings } from "@/lib/settings"
+import { useDrives, useSettings } from "@/lib/settings"
 import { useStore } from "@/lib/store"
 import { SnapshotButton } from "@/components/Share"
-import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader } from "@/components/ui"
+import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader, Tooltip } from "@/components/ui"
 
 type Sort = "size" | "age"
 const DAY = 86400
@@ -28,16 +28,22 @@ export function Projects() {
   const [gone, setGone] = useState<Set<string>>(new Set())
   const scanned = useRef(false)
 
+  const drives = useDrives()
+  const roots = settings.projectRoots
+  const addRoots = (more: string[]) => {
+    const next = [...new Set([...roots, ...more])]
+    set("projectRoots", next)
+    return next
+  }
   const pick = async () => {
-    const dir = await openDialog({ directory: true, multiple: false, title: "Choose a folder to scan", defaultPath: settings.projectRoot || undefined })
-    if (typeof dir === "string") {
-      set("projectRoot", dir)
-      void scan(dir)
-    }
+    const dir = await openDialog({ directory: true, multiple: true, title: "Choose folders to scan", defaultPath: roots[0] || undefined })
+    const picked = typeof dir === "string" ? [dir] : Array.isArray(dir) ? dir : []
+    if (picked.length) void scan(addRoots(picked))
   }
 
-  const scan = async (root = settings.projectRoot) => {
-    if (!root) return void pick()
+  const scan = async (list = roots) => {
+    if (!list.length) return void pick()
+    const root = list.length === 1 ? list[0] : `${list.length} locations`
     scanned.current = true
     setScanning(true)
     setItems([])
@@ -47,7 +53,7 @@ export function Projects() {
     const offWalk = on<string>("project-walk", setWalking)
     const offFound = on<Artifact>("project-artifact", (a) => setItems((xs) => [...xs, a]))
     try {
-      const all = await api.scanProjects(root, settings.projectDepth)
+      const all = await api.scanProjects(list, settings.projectDepth)
       setItems(all)
       const total = all.reduce((n, a) => n + a.size, 0)
       setActivity({ kind: "ok", text: `Found ${all.length} build folders · ${bytes(total)}` })
@@ -142,8 +148,13 @@ export function Projects() {
           <>
             <SnapshotButton name="projects" />
             <Button icon={<FolderOpen size={15} />} onClick={pick} disabled={scanning}>
-              Choose folder
+              Add folder
             </Button>
+            <Tooltip text={`Add the drives chosen in Settings (${drives.roots.join(" ") || "none"}) and scan them whole.`}>
+              <Button icon={<HardDrive size={15} />} onClick={() => void scan(addRoots(drives.roots))} disabled={scanning || !drives.roots.length} data-testid="add-drives">
+                Add drives
+              </Button>
+            </Tooltip>
             {scanning ? (
               <Button icon={<Square size={13} />} onClick={() => void api.cancelProjectScan()}>
                 Stop
@@ -158,10 +169,26 @@ export function Projects() {
       />
 
       <div className="flex items-center gap-3 rounded-xl border border-border bg-surface px-3.5 py-2.5">
-        <FolderSearch size={15} className="text-subtle" />
-        <span className={cn("mono min-w-0 flex-1 truncate text-[12.5px]", !settings.projectRoot && "text-subtle")} data-testid="project-root">
-          {settings.projectRoot || "No folder chosen"}
-        </span>
+        <FolderSearch size={15} className="shrink-0 text-subtle" />
+        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-1.5" data-testid="project-root">
+          {roots.length === 0 && <span className="text-[12.5px] text-subtle">No folder chosen</span>}
+          {roots.map((r) => (
+            <span key={r} className="mono inline-flex h-6 max-w-[320px] items-center gap-1 rounded-md border border-border bg-surface-2 pl-2 pr-1 text-[12px]">
+              <span className="truncate" title={r}>
+                {r}
+              </span>
+              <button
+                type="button"
+                aria-label={`Remove ${r}`}
+                disabled={scanning}
+                onClick={() => set("projectRoots", roots.filter((x) => x !== r))}
+                className="grid h-4 w-4 place-items-center rounded text-subtle hover:text-text"
+              >
+                <X size={11} />
+              </button>
+            </span>
+          ))}
+        </div>
         <label className="flex items-center gap-2 text-[12px] text-muted">
           Depth
           <InfoTip text="How many folders deep to look. Higher finds more nested projects but takes longer on big drives." />
@@ -197,7 +224,7 @@ export function Projects() {
         </div>
       )}
 
-      <Card className="overflow-hidden">
+      <Card className="overflow-clip">
         {!scanning && items.length === 0 ? (
           <Empty icon={<FolderSearch size={28} />} title={scanned.current ? "No build folders found" : "Scan a folder of projects"}>
             {scanned.current
@@ -206,7 +233,7 @@ export function Projects() {
           </Empty>
         ) : (
           <>
-            <div className="grid grid-cols-[18px_20px_minmax(0,1fr)_130px_110px_84px_28px] items-center gap-3 border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
+            <div className="thead grid grid-cols-[18px_20px_minmax(0,1fr)_130px_110px_84px_28px] items-center gap-3 rounded-t-xl border-b border-border px-4 py-2.5 text-[11px] uppercase tracking-[0.06em] text-subtle">
               <Checkbox
                 label="Select all shown"
                 checked={shown.length > 0 && shown.every((a) => selected.has(a.path))}
@@ -219,7 +246,7 @@ export function Projects() {
               <span className="text-right">Size</span>
               <span />
             </div>
-            <ul className="m-0 max-h-[calc(100vh-470px)] min-h-[120px] list-none overflow-y-auto p-0" data-testid="artifact-list">
+            <ul className="m-0 min-h-[120px] list-none p-0" data-testid="artifact-list">
               <AnimatePresence initial={false}>
                 {shown.map((a) => {
                   const stale = a.modified && Date.now() / 1000 - a.modified > 30 * DAY
@@ -262,7 +289,7 @@ export function Projects() {
           </>
         )}
         {items.length > 0 && (
-          <div className="flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
+          <div className="tfoot flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
             <span className="mono text-[12.5px]">
               {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
             </span>

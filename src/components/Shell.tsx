@@ -1,14 +1,15 @@
 import { motion } from "motion/react"
-import { Activity, ArchiveRestore, BrainCircuit, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Settings } from "lucide-react"
+import { Activity, ArchiveRestore, BrainCircuit, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Settings } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
 import { useStore } from "@/lib/store"
 import type { ReactNode } from "react"
 
-export type Page = "overview" | "disk" | "projects" | "models" | "configs" | "memory" | "processes" | "ports" | "system" | "settings"
+export type Page = "overview" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "ports" | "system" | "settings"
 
 const NAV: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <GaugeIcon size={15} /> },
   { id: "disk", label: "Disk cleanup", icon: <HardDrive size={15} /> },
+  { id: "junk", label: "System junk", icon: <Trash2 size={15} /> },
   { id: "projects", label: "Projects", icon: <FolderSearch size={15} /> },
   { id: "models", label: "AI models", icon: <BrainCircuit size={15} /> },
   { id: "configs", label: "Configs", icon: <ArchiveRestore size={15} /> },
@@ -20,10 +21,12 @@ const NAV: { id: Page; label: string; icon: ReactNode }[] = [
 
 export function Sidebar({ page, go }: { page: Page; go: (p: Page) => void }) {
   const { caches, scanning, portsInUse } = useStore()
-  const reclaim = caches.reduce((n, c) => n + c.size, 0)
+  const reclaim = caches.filter((c) => !c.junk).reduce((n, c) => n + c.size, 0)
+  const junkBytes = caches.filter((c) => c.junk && c.risk !== "data").reduce((n, c) => n + c.size, 0)
   const badge: Partial<Record<Page, ReactNode>> = {
     disk: scanning && !reclaim ? <span className="pulse-dot">…</span> : reclaim ? bytes(reclaim, 0) : null,
     ports: portsInUse.length ? `${portsInUse.length} open` : null,
+    junk: junkBytes ? bytes(junkBytes, 0) : null,
   }
   const item = (n: (typeof NAV)[number]) => {
     const on = n.id === page
