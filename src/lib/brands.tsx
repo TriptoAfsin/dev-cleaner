@@ -7,7 +7,10 @@ import {
   siPoetry, siPython, siQwen, siRuby, siRust, siSublimetext, siSvelte, siTurborepo, siUbuntu, siUv, siWindsurf,
   siXcode, siYarn, siZedindustries, siCursor, siOpencode, siPostgresql, siRedis, siMongodb, siMysql, siVite,
   siLinux, siAmd, siNvidia, siIntel, siDjango, siFlask, siElectron, siGooglechrome, siFirefoxbrowser, siBrave,
-  siSafari, siDiscord, siFlatpak, siSnapcraft, siDebian, siFedora, siArchlinux,
+  siSafari, siDiscord, siFlatpak, siSnapcraft, siDebian, siFedora, siArchlinux, siKotlin, siAndroid, siApachegroovy,
+  siScala, siClojure, siSwift, siHaskell, siElixir, siErlang, siJulia, siR, siPerl, siOcaml, siNim, siCrystal, siD,
+  siGleam, siElm, siLua, siPdm, siTerraform, siPulumi, siBazel, siDart, siZig, siCmake, siComposer, siRubygems,
+  siUnity, siGodotengine, siUnrealengine, siFsharp,
 } from "simple-icons"
 import { cn } from "./format"
 
@@ -38,6 +41,18 @@ const MAP: Record<string, Icon> = {
   "chat-caches": siDiscord, "flatpak-unused": siFlatpak, "snap-old": siSnapcraft, "apt-cache": siDebian,
   "dnf-cache": siFedora, "pacman-cache": siArchlinux, "ios-device-support": siXcode, "xcode-archives": siXcode,
   "sim-unavailable": siApple, "ios-backups": siApple, "quicklook": siApple,
+  // more languages
+  "gradle-wrapper": siGradle, "gradle-daemon": siGradle, "maven-wrapper": siApachemaven, konan: siKotlin, kotlin: siKotlin,
+  "android-cache": siAndroid, android: siAndroid, "groovy-grapes": siApachegroovy, groovy: siApachegroovy,
+  "sbt-boot": siScala, scala: siScala, "clojure-gitlibs": siClojure, clojure: siClojure, "dotnet-workloads": siDotnet,
+  "nuget-scratch": siNuget, dotnet: siDotnet, "f#": siFsharp, "ruby-gems": siRubygems, "bundler-cache": siRuby, bundler: siRuby,
+  "ruby-builds": siRuby, swiftpm: siSwift, swift: siSwift, cabal: siHaskell, stack: siHaskell, "ghcup-cache": siHaskell,
+  haskell: siHaskell, hex: siElixir, elixir: siElixir, rebar3: siErlang, erlang: siErlang, "julia-compiled": siJulia,
+  julia: siJulia, renv: siR, r: siR, cpanm: siPerl, perl: siPerl, "opam-cache": siOcaml, ocaml: siOcaml, nimble: siNim,
+  nim: siNim, "crystal-cache": siCrystal, crystal: siCrystal, dub: siD, d: siD, "gleam-cache": siGleam, gleam: siGleam,
+  elm: siElm, luarocks: siLua, lua: siLua, "python-tools": siPdm, "pyenv-cache": siPython, corepack: siNodedotjs,
+  terraform: siTerraform, pulumi: siPulumi, bazel: siBazel, dart: siDart, zig: siZig, cmake: siCmake,
+  composer: siComposer, unity: siUnity, godot: siGodotengine, unreal: siUnrealengine,
 }
 
 export function brandFor(key: string): Icon | null {

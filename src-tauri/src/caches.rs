@@ -256,16 +256,20 @@ fn base_targets() -> Vec<Target> {
             paths: vec![h.join("go").join("pkg").join("mod")],
             junk: false, how: tool("go", &["clean", "-modcache"]) },
         Target { id: "gradle", name: "Gradle caches", eco: "Java", risk: Risk::Slow,
-            about: "Dependencies and build outputs Gradle caches. Stop Gradle daemons first or some files stay in use.",
+            about: "Dependencies, transforms and build-cache entries Gradle keeps in ~/.gradle/caches. Gradle daemons are stopped first so nothing stays locked; the next build downloads what it needs.",
             paths: vec![h.join(".gradle").join("caches")],
             junk: false, how: How::Delete },
         Target { id: "maven", name: "Maven repository", eco: "Java", risk: Risk::Slow,
             about: "Your local Maven repository. Anything you installed locally with mvn install is lost too.",
             paths: vec![h.join(".m2").join("repository")],
             junk: false, how: How::Delete },
-        Target { id: "nuget", name: "NuGet packages", eco: ".NET", risk: Risk::Slow,
-            about: "Global NuGet package folders and HTTP cache.",
-            paths: vec![h.join(".nuget").join("packages")],
+        Target { id: "nuget", name: "NuGet packages & HTTP cache", eco: ".NET", risk: Risk::Slow,
+            about: "Global NuGet packages plus its HTTP and plugin caches. dotnet restore downloads what a project needs again.",
+            paths: vec![
+                h.join(".nuget").join("packages"),
+                pick(local.join("NuGet").join("v3-cache"), h.join(".local").join("share").join("NuGet").join("http-cache")),
+                pick(local.join("NuGet").join("plugins-cache"), h.join(".local").join("share").join("NuGet").join("plugin-cache")),
+            ],
             junk: false, how: tool("dotnet", &["nuget", "locals", "all", "--clear"]) },
         Target { id: "playwright", name: "Playwright browsers", eco: "Testing", risk: Risk::Slow,
             about: "Browser builds Playwright downloaded for tests. npx playwright install fetches them again.",
@@ -337,6 +341,7 @@ fn base_targets() -> Vec<Target> {
             about: "Hook environments pre-commit builds. Rebuilt the next time hooks run.",
             paths: vec![h.join(".cache").join("pre-commit")], junk: false, how: How::Delete },
     ]);
+    t.extend(crate::langs::targets(&h));
     t.extend(ai_targets(&h, &local, &cache, win));
     if win {
         t.push(Target { id: "scoop", name: "Scoop download cache", eco: "System", risk: Risk::Safe,
@@ -635,6 +640,13 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
             let ev = CleanEvent { id: t.id.into(), phase: if ok { "done" } else { "failed" }.into(), freed, skipped: 0, note: note.into(), ..Default::default() };
             emit(&ev);
             out.push(ev);
+        }
+    }
+
+    // Running Gradle daemons keep caches open; stop them once first.
+    if picked.iter().any(|t| t.id.starts_with("gradle")) {
+        if let Some(g) = which("gradle") {
+            util::run_ok(&g, &["--stop"], Duration::from_secs(60));
         }
     }
 

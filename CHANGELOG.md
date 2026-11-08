@@ -11,6 +11,8 @@ section matching the tag.
 - Flatpak bundle for Linux. Inside the sandbox, tools run on the host through `flatpak-spawn --host`, and processes and ports are read from the host (`ps`, `ss`), so cleaning, ending processes and freeing ports keep working.
 - After a clean, the dialog shows what was freed and what was left behind: files open in other programs are counted, a few are listed, and the programs holding them are named (Windows Restart Manager, /proc on Linux, lsof on macOS), with Clean again and a link to Processes. Files kept on purpose for being too new are counted separately.
 - Live per-item progress while a clean runs.
+- More languages in Disk cleanup: Gradle wrapper distributions and daemon logs (daemons are stopped first), Maven wrapper, Kotlin/Native, Android build cache, Groovy Grape, sbt, Clojure, NuGet HTTP and plugin caches, .NET workload cleanup, RubyGems, Bundler, rbenv/rvm downloads, SwiftPM, Cabal, Stack, GHCup, Hex, rebar3, Julia, renv, cpanm, opam, Nimble, Crystal, dub, Gleam, Elm, LuaRocks, pdm, Hatch, pipx, pyenv, Corepack, Terraform, Pulumi and Bazel.
+- More languages in Projects: Maven, sbt and Leiningen target, Gradle build, .gradle and .kotlin, .NET bin/obj, Composer vendor, Bundler vendor/bundle, Swift .build, Dart/Flutter .dart_tool and build, Mix _build/deps, Stack and Cabal output, Zig cache/out, CMake build trees, tox/nox, and Unity, Godot and Unreal caches. Each matches only beside its project file.
 - Available through Homebrew (`t21dev/tap/dev-cleaner`), Scoop (`t21dev/dev-cleaner`) and WinGet (`TriptoAfsin.DevCleaner`).
 
 ## [0.1.0] - 2026-11-09
