@@ -7,10 +7,24 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
-/// A `Command` that never flashes a console window on Windows.
+/// Running inside a Flatpak sandbox. Tools (npm, docker, ps, pkexec) live on
+/// the host there, so commands go through `flatpak-spawn --host`, and
+/// processes and ports are read from the host.
+pub fn in_flatpak() -> bool {
+    cfg!(target_os = "linux") && (std::env::var_os("FLATPAK_ID").is_some() || Path::new("/.flatpak-info").exists())
+}
+
+/// A `Command` that never flashes a console window on Windows, and runs on
+/// the host when inside a Flatpak.
 pub fn command(program: impl AsRef<std::ffi::OsStr>) -> Command {
     #[allow(unused_mut)]
-    let mut c = Command::new(program);
+    let mut c = if in_flatpak() {
+        let mut h = Command::new("flatpak-spawn");
+        h.arg("--host").arg(program);
+        h
+    } else {
+        Command::new(program)
+    };
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
@@ -23,6 +37,16 @@ pub fn command(program: impl AsRef<std::ffi::OsStr>) -> Command {
 /// Find an executable on PATH, honouring PATHEXT on Windows so `npm` resolves
 /// to `npm.cmd`.
 pub fn which(name: &str) -> Option<PathBuf> {
+    if in_flatpak() {
+        // The sandbox's PATH holds only the runtime; ask the host's shell.
+        let out = Command::new("flatpak-spawn")
+            .args(["--host", "sh", "-c", "command -v \"$1\"", "sh", name])
+            .stdin(Stdio::null())
+            .output()
+            .ok()?;
+        let p = String::from_utf8_lossy(&out.stdout).trim().to_string();
+        return (out.status.success() && p.starts_with('/')).then(|| PathBuf::from(p));
+    }
     let path = std::env::var_os("PATH")?;
     #[cfg(windows)]
     let exts: Vec<String> = std::env::var("PATHEXT")
@@ -250,6 +274,9 @@ pub fn home() -> PathBuf {
 pub fn local_dir() -> PathBuf {
     match fake_home() {
         Some(f) => f.join("local"),
+        // Flatpak points XDG dirs into the sandbox; the caches we clean are
+        // the host's.
+        None if in_flatpak() => home().join(".local").join("share"),
         None => dirs::data_local_dir().unwrap_or_else(home),
     }
 }
@@ -258,6 +285,7 @@ pub fn local_dir() -> PathBuf {
 pub fn cache_dir() -> PathBuf {
     match fake_home() {
         Some(f) => f.join("cache"),
+        None if in_flatpak() => home().join(".cache"),
         None => dirs::cache_dir().unwrap_or_else(|| home().join(".cache")),
     }
 }
@@ -267,6 +295,7 @@ pub fn cache_dir() -> PathBuf {
 pub fn roaming_dir() -> PathBuf {
     match fake_home() {
         Some(f) => f.join("roaming"),
+        None if in_flatpak() => home().join(".config"),
         None => dirs::config_dir().unwrap_or_else(|| home().join(".config")),
     }
 }

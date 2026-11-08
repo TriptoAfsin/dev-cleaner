@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>dev.tripto.dev-cleaner</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>MIT</project_license>
+  <name>Dev Cleaner</name>
+  <summary>Reclaim disk and memory from developer caches</summary>
+  <developer id="io.github.triptoafsin">
+    <name>Tripto Afsin</name>
+  </developer>
+  <description>
+    <p>
+      Dev Cleaner finds what developer machines accumulate, explains each item,
+      and cleans it with the tool's own command where there is one. Nothing is
+      removed until you confirm.
+    </p>
+    <ul>
+      <li>Package-manager, editor and AI/ML caches: npm, pnpm, Yarn, Bun, Cargo, pip, uv, Go, Gradle, Maven, Docker, Hugging Face and more</li>
+      <li>System junk: thumbnails, journal, package caches, old Snap revisions, unused Flatpak runtimes, browser caches and the Trash</li>
+      <li>Project build folders such as node_modules, Python venvs and Rust target</li>
+      <li>Downloaded AI models from Ollama, LM Studio, Hugging Face and loose .gguf files</li>
+      <li>Processes with safe-to-end verdicts, busy ports, and system information</li>
+      <li>Back up and restore editor and AI tool configs</li>
+    </ul>
+  </description>
+  <launchable type="desktop-id">dev.tripto.dev-cleaner.desktop</launchable>
+  <url type="homepage">https://github.com/TriptoAfsin/dev-cleaner</url>
+  <url type="bugtracker">https://github.com/TriptoAfsin/dev-cleaner/issues</url>
+  <url type="vcs-browser">https://github.com/TriptoAfsin/dev-cleaner</url>
+  <content_rating type="oars-1.1"/>
+  <branding>
+    <color type="primary" scheme_preference="light">#f7f8fa</color>
+    <color type="primary" scheme_preference="dark">#0e1014</color>
+  </branding>
+  <supports>
+    <control>pointing</control>
+    <control>keyboard</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">960</display_length>
+  </requires>
+  <screenshots>
+    <screenshot type="default">
+      <caption>Overview</caption>
+      <image>https://raw.githubusercontent.com/TriptoAfsin/dev-cleaner/main/docs/screenshots/overview-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>Disk cleanup</caption>
+      <image>https://raw.githubusercontent.com/TriptoAfsin/dev-cleaner/main/docs/screenshots/disk-dark.png</image>
+    </screenshot>
+    <screenshot>
+      <caption>The light theme</caption>
+      <image>https://raw.githubusercontent.com/TriptoAfsin/dev-cleaner/main/docs/screenshots/overview-light.png</image>
+    </screenshot>
+  </screenshots>
+  <releases>
+    <release version="0.1.0" date="2026-11-09"/>
+  </releases>
+</component>

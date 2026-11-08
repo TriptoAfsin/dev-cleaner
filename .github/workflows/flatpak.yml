@@ -1,0 +1,52 @@
+name: Flatpak
+
+# Builds a .flatpak bundle from source in Flathub's own builder image, the way
+# Flathub builds it. Run by hand to test (the bundle is a workflow artifact),
+# or from release.yml, which also attaches it to the release.
+on:
+  workflow_dispatch:
+  workflow_call:
+    inputs:
+      release_id:
+        description: Draft release to upload the bundle to
+        type: string
+        required: false
+
+jobs:
+  flatpak:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-51
+      options: --privileged
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Offline sources for npm and cargo
+        run: sh flatpak/generate-sources.sh
+
+      - name: Build the Flatpak
+        run: |
+          flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+          flatpak-builder --user --install-deps-from=flathub --repo=repo --force-clean \
+            --disable-rofiles-fuse build-dir flatpak/dev.tripto.dev-cleaner.yml
+          VERSION=$(node -p "require('./package.json').version" 2>/dev/null || grep -m1 '"version"' package.json | sed 's/.*: "\(.*\)".*/\1/')
+          echo "BUNDLE=Dev.Cleaner_${VERSION}_x86_64.flatpak" >> "$GITHUB_ENV"
+          flatpak build-bundle repo "Dev.Cleaner_${VERSION}_x86_64.flatpak" dev.tripto.dev-cleaner
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: flatpak
+          path: ${{ env.BUNDLE }}
+
+      - name: Upload to the release
+        if: inputs.release_id != ''
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          curl -fsS -X POST \
+            -H "Authorization: Bearer $GH_TOKEN" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@$BUNDLE" \
+            "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ inputs.release_id }}/assets?name=$BUNDLE"

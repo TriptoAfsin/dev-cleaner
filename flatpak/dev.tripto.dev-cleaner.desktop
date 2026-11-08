@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Dev Cleaner
+GenericName=Disk and Memory Cleaner
+Comment=Reclaim disk and memory from developer caches, build folders, AI models and ports
+Exec=dev-cleaner
+Icon=dev.tripto.dev-cleaner
+Terminal=false
+Categories=Development;System;Utility;
+Keywords=cleaner;cache;disk;node_modules;npm;docker;ports;memory;junk;
+StartupWMClass=dev-cleaner

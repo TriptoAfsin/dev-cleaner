@@ -206,8 +206,27 @@ fn listeners() -> Vec<Listener> {
 /// Linux: listening sockets from /proc/net/tcp{,6}, matched to processes by
 /// socket inode through /proc/<pid>/fd. No root needed for your own
 /// processes; sockets owned by other users show without a PID.
+/// `ss -ltnpH` on the host: "LISTEN 0 511 127.0.0.1:5173 0.0.0.0:* users:(("node",pid=1234,fd=23))".
+#[cfg(any(target_os = "linux", test))]
+fn parse_ss(out: &str) -> Vec<Listener> {
+    out.lines()
+        .filter_map(|l| {
+            let f: Vec<&str> = l.split_whitespace().collect();
+            let local = *f.get(3)?;
+            let (addr, port) = local.rsplit_once(':')?;
+            let pid = l.split("pid=").nth(1).and_then(|r| r.split([',', ')']).next()).and_then(|p| p.parse().ok()).unwrap_or(0);
+            Some(Listener { port: port.parse().ok()?, addr: addr.trim_matches(['[', ']']).to_string(), pid })
+        })
+        .collect()
+}
+
 #[cfg(target_os = "linux")]
 fn listeners() -> Vec<Listener> {
+    if crate::util::in_flatpak() {
+        return crate::util::run_capture(std::path::Path::new("ss"), &["-ltnpH"], std::time::Duration::from_secs(8))
+            .map(|o| parse_ss(&o))
+            .unwrap_or_default();
+    }
     use std::collections::HashMap;
     let mut by_inode: HashMap<u64, (u16, String)> = HashMap::new();
     for (file, v6) in [("/proc/net/tcp", false), ("/proc/net/tcp6", true)] {
@@ -267,6 +286,13 @@ fn proc_net_addr(hex: &str, v6: bool) -> String {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn parses_ss_output() {
+        let v = super::parse_ss("LISTEN 0 511 127.0.0.1:5173 0.0.0.0:* users:((\"node\",pid=1234,fd=23))\nLISTEN 0 4096 [::1]:5432 [::]:*");
+        assert_eq!((v[0].port, v[0].pid, v[0].addr.as_str()), (5173, 1234, "127.0.0.1"));
+        assert_eq!((v[1].port, v[1].pid, v[1].addr.as_str()), (5432, 0, "::1"));
+    }
+
     #[test]
     fn decodes_proc_net_addresses() {
         assert_eq!(super::proc_net_addr("0100007F", false), "127.0.0.1");

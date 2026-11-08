@@ -7,6 +7,10 @@ section matching the tag.
 
 ## [Unreleased]
 
+### Added
+- Flatpak bundle for Linux. Inside the sandbox, tools run on the host through `flatpak-spawn --host`, and processes and ports are read from the host (`ps`, `ss`), so cleaning, ending processes and freeing ports keep working.
+- Available through Homebrew (`t21dev/tap/dev-cleaner`), Scoop (`t21dev/dev-cleaner`) and WinGet (`TriptoAfsin.DevCleaner`).
+
 ## [0.1.0] - 2026-11-09
 
 First release, for Windows, macOS and Linux.

@@ -16,13 +16,13 @@ cask "dev-cleaner" do
   end
 
   auto_updates false
-  depends_on macos: ">= :big_sur"
+  depends_on :macos
 
   app "Dev Cleaner.app"
 
   # Not notarised yet. Without this, macOS reports the app as damaged.
-  postflight do
-    system_command "/usr/bin/xattr", args: ["-cr", "#{appdir}/Dev Cleaner.app"]
+  postflight_steps do
+    run "/usr/bin/xattr", args: ["-cr", "{{appdir}}/Dev Cleaner.app"]
   end
 
   zap trash: [

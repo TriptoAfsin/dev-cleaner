@@ -1,0 +1,76 @@
+# Flatpak manifest for Dev Cleaner, built from source.
+#
+#   flatpak/generate-sources.sh
+#   flatpak-builder --user --install --force-clean build-dir flatpak/dev.tripto.dev-cleaner.yml
+#   flatpak run dev.tripto.dev-cleaner
+#
+# A cleaner has to see what it cleans, so this sandbox is deliberately wide:
+# - --filesystem=host: caches, build folders and models live all over home
+#   and other drives.
+# - --talk-name=org.freedesktop.Flatpak: tools (npm, docker, ps, ss, kill,
+#   pkexec) run on the host through `flatpak-spawn --host`, and processes and
+#   ports are read from the host, since the sandbox has its own process
+#   namespace. The app detects the sandbox and does this by itself.
+# - --share=network: the host's listening ports are visible, and "Open
+#   localhost" works.
+# Regenerate node-sources.json and cargo-sources.json whenever
+# package-lock.json or Cargo.lock changes.
+
+id: dev.tripto.dev-cleaner
+runtime: org.gnome.Platform
+runtime-version: '51'
+sdk: org.gnome.Sdk
+sdk-extensions:
+  - org.freedesktop.Sdk.Extension.node22
+  - org.freedesktop.Sdk.Extension.rust-stable
+command: dev-cleaner
+
+finish-args:
+  - --socket=wayland
+  - --socket=fallback-x11
+  - --device=dri
+  - --share=ipc
+  - --share=network
+  - --filesystem=host
+  - --talk-name=org.freedesktop.Flatpak
+
+modules:
+  - name: dev-cleaner
+    buildsystem: simple
+    build-options:
+      append-path: /usr/lib/sdk/node22/bin:/usr/lib/sdk/rust-stable/bin
+      env:
+        CARGO_HOME: /run/build/dev-cleaner/cargo
+        CARGO_NET_OFFLINE: 'true'
+        npm_config_cache: /run/build/dev-cleaner/flatpak-node/npm-cache
+        npm_config_offline: 'true'
+        XDG_CACHE_HOME: /run/build/dev-cleaner/flatpak-node/cache
+    sources:
+      - type: dir
+        path: ..
+        skip:
+          - flatpak/build-dir
+          - flatpak/.flatpak-builder
+          - flatpak/.flatpak-builder-tools
+          - flatpak/.venv
+          - node_modules
+          - dist
+          - src-tauri/target
+          - src-tauri/target-e2e
+          - src-tauri/target-check
+          - e2e/.bin
+          - e2e/.artifacts
+      - node-sources.json
+      - cargo-sources.json
+    build-commands:
+      - npm ci --offline
+      # The app binary only; Flatpak is the package.
+      - npx tauri build --no-bundle
+      - install -Dm755 src-tauri/target/release/dev-cleaner /app/bin/dev-cleaner
+      - install -Dm644 flatpak/dev.tripto.dev-cleaner.desktop /app/share/applications/dev.tripto.dev-cleaner.desktop
+      - install -Dm644 flatpak/dev.tripto.dev-cleaner.metainfo.xml /app/share/metainfo/dev.tripto.dev-cleaner.metainfo.xml
+      - install -Dm644 src-tauri/icons/32x32.png /app/share/icons/hicolor/32x32/apps/dev.tripto.dev-cleaner.png
+      - install -Dm644 src-tauri/icons/64x64.png /app/share/icons/hicolor/64x64/apps/dev.tripto.dev-cleaner.png
+      - install -Dm644 src-tauri/icons/128x128.png /app/share/icons/hicolor/128x128/apps/dev.tripto.dev-cleaner.png
+      - install -Dm644 src-tauri/icons/128x128@2x.png /app/share/icons/hicolor/256x256/apps/dev.tripto.dev-cleaner.png
+      - install -Dm644 src-tauri/icons/icon.png /app/share/icons/hicolor/512x512/apps/dev.tripto.dev-cleaner.png

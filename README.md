@@ -44,7 +44,7 @@ Download the installer from [Releases](https://github.com/TriptoAfsin/dev-cleane
 
 - **Windows**: `.msi` or `-setup.exe`, or the portable `.zip` (settings stay in a `data` folder beside the exe).
 - **macOS**: `.dmg`, Apple silicon (`aarch64`) or Intel (`x64`).
-- **Linux**: `.AppImage` (any distro), `.deb` (Debian, Ubuntu) or `.rpm` (Fedora, openSUSE). No Flatpak: its sandbox hides host processes and files, which a cleaner needs to see.
+- **Linux**: `.AppImage` (any distro), `.deb` (Debian, Ubuntu), `.rpm` (Fedora, openSUSE) or `.flatpak` (`flatpak install --user Dev.Cleaner_*_x86_64.flatpak`). The Flatpak needs wide permissions to be useful (host files, and running `ps`, `ss`, `kill` and package tools on the host through `flatpak-spawn`); the AppImage, deb and rpm run without a sandbox.
 
 Or with a package manager:
 
@@ -56,7 +56,7 @@ brew install --cask t21dev/tap/dev-cleaner
 scoop bucket add t21dev https://github.com/t21dev/scoop-bucket
 scoop install t21dev/dev-cleaner
 
-# Windows, WinGet
+# Windows, WinGet (once the first submission is merged)
 winget install TriptoAfsin.DevCleaner
 ```
 

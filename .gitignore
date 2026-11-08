@@ -9,3 +9,10 @@ e2e/.artifacts
 *.log
 .DS_Store
 app-icon.png
+flatpak/build-dir
+flatpak/.flatpak-builder
+flatpak/.flatpak-builder-tools
+flatpak/.venv
+flatpak/node-sources.json
+flatpak/cargo-sources.json
+repo

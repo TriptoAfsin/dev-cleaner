@@ -3,6 +3,7 @@
 
 use serde::Serialize;
 use std::collections::HashMap;
+use std::path::Path;
 use std::sync::Mutex;
 use sysinfo::{Disks, Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
@@ -134,7 +135,39 @@ fn display_name(raw: &str) -> String {
     n.to_string()
 }
 
+/// Inside a Flatpak, sysinfo sees only the sandbox; list the host's
+/// processes with `ps` instead. CPU here is ps's lifetime average.
+fn host_processes() -> Vec<ProcGroup> {
+    let Some(out) = crate::util::run_capture(Path::new("ps"), &["-eo", "pid=,rss=,pcpu=,comm="], std::time::Duration::from_secs(8)) else {
+        return vec![];
+    };
+    let ncpu = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1) as f32;
+    let mut groups: HashMap<String, ProcGroup> = HashMap::new();
+    for line in out.lines() {
+        let mut it = line.split_whitespace();
+        let (Some(pid), Some(rss), Some(cpu)) = (it.next(), it.next(), it.next()) else { continue };
+        let name: String = it.collect::<Vec<_>>().join(" ");
+        let (Ok(pid), Ok(rss), Ok(cpu)) = (pid.parse::<u32>(), rss.parse::<u64>(), cpu.parse::<f32>()) else { continue };
+        if name.is_empty() {
+            continue;
+        }
+        let g = groups.entry(name.to_ascii_lowercase()).or_insert_with(|| {
+            let (verdict, reason) = classify(&name, pid);
+            ProcGroup { protected: verdict == Verdict::System, name: name.clone(), pids: vec![], memory: 0, cpu: 0.0, verdict, reason: reason.into(), exe: None }
+        });
+        g.pids.push(pid);
+        g.memory += rss * 1024;
+        g.cpu += cpu / ncpu;
+    }
+    let mut out: Vec<ProcGroup> = groups.into_values().collect();
+    out.sort_by_key(|g| std::cmp::Reverse(g.memory));
+    out
+}
+
 pub fn processes(m: &Monitor) -> Vec<ProcGroup> {
+    if crate::util::in_flatpak() {
+        return host_processes();
+    }
     let mut sys = m.sys.lock().unwrap();
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, kind());
     let ncpu = sys.cpus().len().max(1) as f32;
@@ -249,7 +282,31 @@ pub struct KillResult {
 }
 
 /// End the given processes, refusing anything protected.
+/// Inside a Flatpak, end host processes with the host's `kill`.
+fn host_kill(pids: &[u32]) -> KillResult {
+    let groups = host_processes();
+    let mut res = KillResult { ended: 0, failed: 0, freed: 0 };
+    for &pid in pids {
+        let Some(g) = groups.iter().find(|g| g.pids.contains(&pid)) else { continue };
+        if g.protected {
+            res.failed += 1;
+            continue;
+        }
+        let ok = crate::util::run_ok(Path::new("kill"), &["-TERM", &pid.to_string()], std::time::Duration::from_secs(5));
+        if ok {
+            res.ended += 1;
+            res.freed += g.memory / g.pids.len().max(1) as u64;
+        } else {
+            res.failed += 1;
+        }
+    }
+    res
+}
+
 pub fn kill(m: &Monitor, pids: &[u32]) -> KillResult {
+    if crate::util::in_flatpak() {
+        return host_kill(pids);
+    }
     let mut sys = m.sys.lock().unwrap();
     sys.refresh_processes_specifics(ProcessesToUpdate::All, true, kind());
     let me = std::process::id();
