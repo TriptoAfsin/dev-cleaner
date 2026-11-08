@@ -175,12 +175,71 @@ pub fn dir_size(path: &Path) -> (u64, u64) {
 
 /// Remove a folder tree. Read-only files (Go's module cache marks every file
 /// read-only) are made writable and the removal retried once.
+/// Live counters for the deletion in progress: bytes and files removed so
+/// far. The clean dialog reads them several times a second to draw a real
+/// progress bar. Items are cleaned one at a time, so one set is enough.
+pub mod progress {
+    use std::sync::atomic::{AtomicU64, Ordering};
+    pub static BYTES: AtomicU64 = AtomicU64::new(0);
+    pub static FILES: AtomicU64 = AtomicU64::new(0);
+
+    pub fn reset() {
+        BYTES.store(0, Ordering::Relaxed);
+        FILES.store(0, Ordering::Relaxed);
+    }
+
+    pub fn add(bytes: u64) {
+        BYTES.fetch_add(bytes, Ordering::Relaxed);
+        FILES.fetch_add(1, Ordering::Relaxed);
+    }
+
+    pub fn get() -> (u64, u64) {
+        (BYTES.load(Ordering::Relaxed), FILES.load(Ordering::Relaxed))
+    }
+}
+
+/// Delete one file, clearing the read-only flag if that's what blocks it
+/// (Go's module cache marks every file read-only). Counts it on success.
+fn remove_file_counted(p: &Path, meta: &std::fs::Metadata) -> std::io::Result<()> {
+    let len = meta.len();
+    let r = std::fs::remove_file(p).or_else(|e| {
+        let mut perm = meta.permissions();
+        if !perm.readonly() {
+            return Err(e);
+        }
+        #[allow(clippy::permissions_set_readonly_false)]
+        perm.set_readonly(false);
+        let _ = std::fs::set_permissions(p, perm);
+        std::fs::remove_file(p)
+    });
+    if r.is_ok() {
+        progress::add(len);
+    }
+    r
+}
+
+/// Remove a folder tree file by file, in parallel, counting progress as it
+/// goes. Symlinks and junctions are removed as links, never followed.
 pub fn remove_tree(path: &Path) -> std::io::Result<()> {
-    match std::fs::remove_dir_all(path) {
+    let meta = std::fs::symlink_metadata(path)?;
+    if meta.file_type().is_symlink() {
+        return std::fs::remove_file(path).or_else(|_| std::fs::remove_dir(path));
+    }
+    if !meta.is_dir() {
+        return remove_file_counted(path, &meta);
+    }
+    let entries: Vec<_> = std::fs::read_dir(path)?.flatten().collect();
+    let failed = entries
+        .par_iter()
+        .map(|e| remove_tree(&e.path()).is_err())
+        .filter(|f| *f)
+        .count();
+    match std::fs::remove_dir(path) {
         Ok(()) => Ok(()),
-        Err(first) => {
+        Err(e) if failed > 0 => Err(e),
+        Err(e) => {
             clear_readonly(path);
-            std::fs::remove_dir_all(path).map_err(|_| first)
+            std::fs::remove_dir(path).map_err(|_| e)
         }
     }
 }
@@ -244,17 +303,7 @@ pub fn empty_dir_report(path: &Path, min_age: Option<Duration>) -> EmptyReport {
                     return EmptyReport { kept: 1, ..Default::default() };
                 }
             }
-            let res = if meta.is_dir() {
-                remove_tree(&p)
-            } else {
-                std::fs::remove_file(&p).or_else(|_| {
-                    let mut perm = meta.permissions();
-                    #[allow(clippy::permissions_set_readonly_false)]
-                    perm.set_readonly(false);
-                    let _ = std::fs::set_permissions(&p, perm);
-                    std::fs::remove_file(&p)
-                })
-            };
+            let res = if meta.is_dir() { remove_tree(&p) } else { remove_file_counted(&p, &meta) };
             if res.is_ok() {
                 EmptyReport { removed: 1, ..Default::default() }
             } else {

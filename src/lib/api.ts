@@ -58,8 +58,11 @@ export type Privileges = {
   inFlatpak: boolean
 }
 export type Holder = { name: string; pid: number; files: number }
+/** Live progress for the item being cleaned. */
+export type CleanTick = { id: string; stage: string; bytes: number; files: number; elapsedMs: number }
 export type CleanEvent = {
   id: string
+  elapsedMs?: number
   phase: "running" | "done" | "failed"
   freed: number
   skipped: number

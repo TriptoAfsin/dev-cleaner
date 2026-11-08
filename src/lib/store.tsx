@@ -2,7 +2,7 @@
 // the status bar, and toasts. Pages read from here so switching pages never
 // throws away a scan or a clean in progress.
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react"
-import { api, on, type CacheItem, type CleanEvent, type LiveStats } from "./api"
+import { api, on, type CacheItem, type CleanEvent, type CleanTick, type LiveStats } from "./api"
 import { bytes } from "./format"
 
 export type Activity = { kind: "idle" | "busy" | "ok" | "error"; text: string }
@@ -25,6 +25,7 @@ type Ctx = {
   lastScan: number | null
   scan: () => Promise<void>
   cleaning: Record<string, CleanEvent>
+  ticks: Record<string, CleanTick>
   clean: (ids: string[]) => Promise<CleanEvent[]>
   activity: Activity
   setActivity: (a: Activity) => void
@@ -52,6 +53,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const [scanTotal, setScanTotal] = useState(0)
   const [lastScan, setLastScan] = useState<number | null>(null)
   const [cleaning, setCleaning] = useState<Record<string, CleanEvent>>({})
+  const [ticks, setTicks] = useState<Record<string, CleanTick>>({})
   const [activity, setActivity] = useState<Activity>({ kind: "idle", text: "Ready" })
   const [toasts, setToasts] = useState<Toast[]>([])
   const [admin, setAdmin] = useState(false)
@@ -130,7 +132,9 @@ export function StoreProvider({ children }: { children: ReactNode }) {
   const clean = useCallback(
     async (ids: string[]) => {
       setCleaning({})
+      setTicks({})
       setActivity({ kind: "busy", text: `Cleaning ${ids.length} item${ids.length === 1 ? "" : "s"}` })
+      const offTick = on<CleanTick>("clean-tick", (t) => setTicks((x) => ({ ...x, [t.id]: t })))
       const off = on<CleanEvent>("clean-progress", (e) => {
         setCleaning((c) => ({ ...c, [e.id]: e }))
         if (e.phase === "running") setActivity({ kind: "busy", text: e.note })
@@ -162,6 +166,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         return [] as CleanEvent[]
       } finally {
         off()
+        offTick()
       }
     },
     [scan, toast, caches],
@@ -187,6 +192,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         lastScan,
         scan,
         cleaning,
+        ticks,
         clean,
         activity,
         setActivity,

@@ -1,8 +1,8 @@
 import { SnapshotButton } from "@/components/Share"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { AppWindow, Check, Loader2, RefreshCw, Trash2 } from "lucide-react"
 import type { CacheItem, CleanEvent } from "@/lib/api"
-import { bytes, cn } from "@/lib/format"
+import { bytes, cn, took } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
 import { useDrives } from "@/lib/settings"
@@ -159,11 +159,12 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
         holders.set(k, e)
       }
     const samples = result.flatMap((r) => r.inUseSample ?? []).slice(0, 6)
+    const slowest = [...result].sort((a, b) => (b.elapsedMs ?? 0) - (a.elapsedMs ?? 0))[0]
     return (
       <Dialog
         open={open}
         onClose={close}
-        title={`Freed ${bytes(freed)}`}
+        title={`Freed ${bytes(freed)} in ${took(result.reduce((n, r) => n + (r.elapsedMs ?? 0), 0))}`}
         actions={
           <>
             {inUse > 0 && (
@@ -189,6 +190,9 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
                 ) : (
                   <>
                     {(r.inUse ?? 0) > 0 && <span className="text-[11.5px] text-warn">{r.inUse} in use</span>}
+                    <span className={cn("mono w-14 text-right text-[11.5px]", r.id === slowest?.id && result.length > 1 ? "text-warn" : "text-subtle")} title="Time taken">
+                      {took(r.elapsedMs ?? 0)}
+                    </span>
                     <span className="mono w-16 text-right">{bytes(r.freed)}</span>
                   </>
                 )}
@@ -238,17 +242,25 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
             </div>
           </div>
         )}
+        {result.length > 1 && slowest && (slowest.elapsedMs ?? 0) > 2000 && (
+          <p className="m-0 mb-2" data-testid="slowest">
+            Slowest: {items.find((x) => x.id === slowest.id)?.name ?? slowest.id}, {took(slowest.elapsedMs ?? 0)}
+            {slowest.note.startsWith("Ran ") ? `: its own command (${slowest.note.slice(4)}) sets the pace` : ": lots of small files to delete"}.
+          </p>
+        )}
         {kept > 0 && <p className="m-0 mb-2">{kept.toLocaleString()} newer item{kept === 1 ? " was" : "s were"} kept on purpose; installers and running apps may still need them.</p>}
         {failed.length > 0 && <p className="m-0 text-danger">{failed.map((f) => items.find((x) => x.id === f.id)?.name ?? f.id).join(", ")}: {failed[0].note}</p>}
       </Dialog>
     )
   }
 
+  if (busy) return <CleanProgress open={open} items={items} total={total} />
+
   return (
     <Dialog
       open={open}
       onClose={close}
-      title={busy ? `Cleaning ${items.length} item${items.length === 1 ? "" : "s"}…` : `Clean ${items.length} cache${items.length === 1 ? "" : "s"} · ${bytes(total)}?`}
+      title={`Clean ${items.length} cache${items.length === 1 ? "" : "s"} · ${bytes(total)}?`}
       actions={
         <>
           <Button onClick={close} disabled={busy}>
@@ -293,6 +305,95 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
         </div>
       )}
       <p className="m-0">Each tool's own clean command runs first; if it is missing, the folder's contents are deleted. Files open in other programs are left alone, and you'll see which programs hold them.</p>
+    </Dialog>
+  )
+}
+
+/** While a clean runs: overall progress, what is happening now, and a bar
+    and timer for the item being cleaned. Tool commands can't report
+    progress, so their bar is indeterminate and shows the time running. */
+function CleanProgress({ open, items, total }: { open: boolean; items: CacheItem[]; total: number }) {
+  const { cleaning, ticks } = useStore()
+  const [now, setNow] = useState(Date.now())
+  const [started] = useState(Date.now())
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 250)
+    return () => clearInterval(t)
+  }, [])
+  const done = items.filter((c) => cleaning[c.id]?.phase === "done" || cleaning[c.id]?.phase === "failed")
+  const current = items.find((c) => cleaning[c.id]?.phase === "running")
+  const tick = current ? ticks[current.id] : undefined
+  const counted = (c: CacheItem) => c.measured && !/^Running /.test(ticks[c.id]?.stage ?? "")
+  // Done items count their full size; the current one counts what's deleted so far.
+  const doneBytes = done.reduce((n, c) => n + c.size, 0)
+  const currentBytes = current && tick && counted(current) ? Math.min(tick.bytes, current.size) : 0
+  const overall = total ? Math.min(1, (doneBytes + currentBytes) / total) : done.length / Math.max(1, items.length)
+
+  return (
+    <Dialog
+      open={open}
+      onClose={() => {}}
+      title={`Cleaning ${Math.min(done.length + 1, items.length)} of ${items.length} · ${took(now - started)}`}
+      actions={
+        <Button variant="primary" icon={<Loader2 size={14} className="spin" />} disabled>
+          Cleaning
+        </Button>
+      }
+    >
+      <div className="mb-3 flex flex-col gap-1.5" data-testid="clean-progress">
+        <div className="h-2 overflow-hidden rounded-full bg-track">
+          <div className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out" style={{ width: `${overall * 100}%` }} />
+        </div>
+        <div className="mono flex justify-between text-[11.5px] text-subtle">
+          <span data-testid="clean-stage">{tick?.stage ?? (current ? "Starting" : "Finishing")}</span>
+          <span>{Math.round(overall * 100)}%</span>
+        </div>
+      </div>
+      <ul className="m-0 flex list-none flex-col gap-2 p-0">
+        {items.map((c) => {
+          const ev = cleaning[c.id]
+          const t = ticks[c.id]
+          const running = ev?.phase === "running"
+          const fraction = t && c.size ? Math.min(1, t.bytes / c.size) : 0
+          const indeterminate = running && (!counted(c) || !t)
+          return (
+            <li key={c.id} className="flex flex-col gap-1">
+              <div className="flex items-center gap-2.5 text-text">
+                <BrandIcon name={c.id} size={14} />
+                <span className="flex-1">{c.name}</span>
+                {ev?.phase === "done" ? (
+                  <span className="mono flex items-center gap-1.5 text-[11.5px] text-subtle">
+                    <Check size={13} className="text-ok" />
+                    {bytes(ev.freed)} · {took(ev.elapsedMs ?? 0)}
+                  </span>
+                ) : ev?.phase === "failed" ? (
+                  <span className="text-[11.5px] text-danger">failed</span>
+                ) : running ? (
+                  <span className="mono text-[11.5px] text-accent">{took(t?.elapsedMs ?? 0)}</span>
+                ) : (
+                  <span className="text-[11.5px] text-subtle">waiting</span>
+                )}
+              </div>
+              {running && (
+                <div className="ml-[24px] flex flex-col gap-1">
+                  <div className="relative h-1 overflow-hidden rounded-full bg-track">
+                    {indeterminate ? (
+                      <div className="indeterminate absolute inset-y-0 w-2/5 rounded-full bg-accent" />
+                    ) : (
+                      <div className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out" style={{ width: `${fraction * 100}%` }} />
+                    )}
+                  </div>
+                  <span className="mono text-[11px] text-subtle">
+                    {indeterminate
+                      ? `${t?.stage ?? "Starting"}… the tool doesn't report progress`
+                      : `${bytes(t?.bytes ?? 0)} of ${bytes(c.size)} · ${(t?.files ?? 0).toLocaleString()} files`}
+                  </span>
+                </div>
+              )}
+            </li>
+          )
+        })}
+      </ul>
     </Dialog>
   )
 }

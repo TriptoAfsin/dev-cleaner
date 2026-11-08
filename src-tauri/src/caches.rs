@@ -532,6 +532,70 @@ fn measure(t: &Target) -> CacheItem {
 
 /// Measure every target in parallel, emitting each as soon as it is done so
 /// the list fills in live.
+/// Sizes from the last scan. A clean starts from these instead of measuring
+/// every folder again first, which took seconds on big caches.
+static LAST_SIZES: std::sync::Mutex<Option<std::collections::HashMap<String, (u64, u64)>>> = std::sync::Mutex::new(None);
+
+/// A live progress line for the item being cleaned, sent several times a
+/// second: what is happening and how far it has got.
+#[derive(Serialize, Clone)]
+#[serde(rename_all = "camelCase")]
+struct Tick {
+    id: String,
+    stage: String,
+    bytes: u64,
+    files: u64,
+    elapsed_ms: u64,
+}
+
+/// Sends ticks while an item is being cleaned; stops when dropped.
+struct Ticker {
+    stage: std::sync::Arc<std::sync::Mutex<String>>,
+    stop: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    started: std::time::Instant,
+}
+
+impl Ticker {
+    fn start(app: &AppHandle, id: &str, stage: &str) -> Self {
+        use std::sync::atomic::{AtomicBool, Ordering};
+        util::progress::reset();
+        let stage = std::sync::Arc::new(std::sync::Mutex::new(stage.to_string()));
+        let stop = std::sync::Arc::new(AtomicBool::new(false));
+        let started = std::time::Instant::now();
+        let (app, id, s2, stop2) = (app.clone(), id.to_string(), stage.clone(), stop.clone());
+        std::thread::spawn(move || {
+            while !stop2.load(Ordering::Relaxed) {
+                let (bytes, files) = util::progress::get();
+                let stage = s2.lock().map(|s| s.clone()).unwrap_or_default();
+                let _ = app.emit("clean-tick", Tick { id: id.clone(), stage, bytes, files, elapsed_ms: started.elapsed().as_millis() as u64 });
+                std::thread::sleep(Duration::from_millis(250));
+            }
+        });
+        Ticker { stage, stop, started }
+    }
+
+    fn stage(&self, s: &str) {
+        if let Ok(mut g) = self.stage.lock() {
+            *g = s.to_string();
+        }
+    }
+
+    fn elapsed_ms(&self) -> u64 {
+        self.started.elapsed().as_millis() as u64
+    }
+}
+
+impl Drop for Ticker {
+    fn drop(&mut self) {
+        self.stop.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+}
+
+/// Size before cleaning: the last scan's figure when there is one.
+fn size_before(t: &Target) -> u64 {
+    LAST_SIZES.lock().ok().and_then(|m| m.as_ref().and_then(|m| m.get(t.id).map(|s| s.0))).unwrap_or_else(|| measure(t).size)
+}
+
 pub fn scan(app: &AppHandle, drives: Option<&[String]>) -> Vec<CacheItem> {
     if let Ok(mut d) = LAST_DRIVES.lock() {
         *d = drives.map(|x| x.to_vec());
@@ -547,6 +611,9 @@ pub fn scan(app: &AppHandle, drives: Option<&[String]>) -> Vec<CacheItem> {
         })
         .collect();
     items.sort_by_key(|i| std::cmp::Reverse(i.size));
+    if let Ok(mut m) = LAST_SIZES.lock() {
+        *m = Some(items.iter().map(|i| (i.id.clone(), (i.size, i.files))).collect());
+    }
     items
 }
 
@@ -554,6 +621,9 @@ pub fn scan(app: &AppHandle, drives: Option<&[String]>) -> Vec<CacheItem> {
 #[serde(rename_all = "camelCase")]
 pub struct CleanEvent {
     pub id: String,
+    /// How long cleaning this item took.
+    #[serde(default)]
+    pub elapsed_ms: u64,
     /// "running", "done" or "failed".
     pub phase: String,
     pub freed: u64,
@@ -629,15 +699,18 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
     // Admin items first, all in one elevated run: one prompt, not one each.
     let admin: Vec<&Target> = picked.iter().copied().filter(|t| matches!(t.how, How::Admin { .. })).collect();
     if !admin.is_empty() {
-        let before: Vec<u64> = admin.iter().map(|t| measure(t).size).collect();
+        let before: Vec<u64> = admin.iter().map(|t| size_before(t)).collect();
         for t in &admin {
             emit(&CleanEvent { id: t.id.into(), phase: "running".into(), freed: 0, skipped: 0, note: "Waiting for admin approval".into(), ..Default::default() });
         }
+        let ticker = Ticker::start(app, admin[0].id, "Waiting for admin approval, then running as admin");
         let ok = crate::junk::run_admin(&admin);
+        ticker.stage("Checking what's left");
+        let elapsed_ms = ticker.elapsed_ms();
         for (t, b) in admin.iter().zip(before) {
             let freed = b.saturating_sub(measure(t).size);
             let note = if ok { "Cleaned as admin" } else { "Admin approval was cancelled or failed" };
-            let ev = CleanEvent { id: t.id.into(), phase: if ok { "done" } else { "failed" }.into(), freed, skipped: 0, note: note.into(), ..Default::default() };
+            let ev = CleanEvent { id: t.id.into(), phase: if ok { "done" } else { "failed" }.into(), freed, skipped: 0, note: note.into(), elapsed_ms, ..Default::default() };
             emit(&ev);
             out.push(ev);
         }
@@ -653,7 +726,13 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
     for t in picked.into_iter().filter(|t| !matches!(t.how, How::Admin { .. })) {
         let id = t.id.to_string();
         emit(&CleanEvent { id: id.clone(), phase: "running".into(), freed: 0, skipped: 0, note: method(&t.how), ..Default::default() });
-        let before = measure(t).size;
+        let ticker = Ticker::start(app, &id, &match &t.how {
+            How::Tool { tool, args } | How::Command { tool, args } => format!("Running {tool} {}", args.join(" ")),
+            How::Docker => "Running docker system prune -af".into(),
+            How::RecycleBin => "Emptying the Recycle Bin".into(),
+            _ => "Deleting files".into(),
+        });
+        let before = size_before(t);
         let mut cleared = Cleared::default();
         let mut note: String;
         match &t.how {
@@ -674,6 +753,7 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
                 if ran {
                     note = format!("Ran {tool} {}", args.join(" "));
                 } else {
+                    ticker.stage(&format!("{tool} unavailable: deleting files"));
                     // A missing or failing tool falls back to deleting.
                     for p in &t.paths {
                         cleared.add(clear(p, None));
@@ -706,13 +786,19 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
             }
             How::Admin { .. } => unreachable!("admin items run above"),
         }
+        ticker.stage("Checking what's left");
         let after = measure(t).size;
         let freed = before.saturating_sub(after);
+        if !cleared.failed.is_empty() {
+            ticker.stage("Finding which programs hold the files left behind");
+        }
         let (kept, in_use, in_use_sample, held_by) = explain(cleared);
+        let elapsed_ms = ticker.elapsed_ms();
+        drop(ticker);
         if in_use > 0 {
             note = format!("{note} · {in_use} in use, left alone");
         }
-        let ev = CleanEvent { id, phase: "done".into(), freed, skipped: kept + in_use, note, kept, in_use, in_use_sample, held_by };
+        let ev = CleanEvent { id, phase: "done".into(), freed, skipped: kept + in_use, note, kept, in_use, in_use_sample, held_by, elapsed_ms };
         emit(&ev);
         out.push(ev);
     }

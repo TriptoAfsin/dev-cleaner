@@ -176,6 +176,19 @@ textarea,
   border-radius: 6px;
 }
 
+/* A bar for steps that can't report progress (a tool's own clean command). */
+@keyframes indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+.indeterminate {
+  animation: indeterminate 1.3s var(--ease-in-out) infinite;
+}
+
 @keyframes spin {
   to {
     transform: rotate(360deg);

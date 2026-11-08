@@ -34,6 +34,14 @@ export function ago(epochSecs: number): string {
   return mo < 24 ? `${mo} months ago` : `${Math.round(d / 365)} years ago`
 }
 
+/** 0.4s, 12.3s, 1m 23s */
+export function took(ms: number): string {
+  if (ms < 60_000) return `${(ms / 1000).toFixed(ms < 10_000 ? 1 : 0)}s`
+  const m = Math.floor(ms / 60_000)
+  const s = Math.round((ms % 60_000) / 1000)
+  return `${m}m ${s.toString().padStart(2, "0")}s`
+}
+
 export function cn(...xs: (string | false | null | undefined)[]): string {
   return xs.filter(Boolean).join(" ")
 }
