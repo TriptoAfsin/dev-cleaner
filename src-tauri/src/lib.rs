@@ -2,6 +2,7 @@ mod caches;
 mod holders;
 mod junk;
 mod langs;
+mod privileges;
 mod configs;
 mod models;
 mod monitor;
@@ -155,11 +156,25 @@ fn is_admin() -> bool {
 
 #[tauri::command]
 fn relaunch_as_admin(app: AppHandle) -> bool {
-    let ok = sysinfo_dev::relaunch_as_admin();
+    // Save where the window is first, so the elevated copy opens in place.
+    if let Some(w) = app.get_webview_window("main") {
+        save_now(&w.as_ref().window());
+    }
+    let ok = privileges::relaunch_elevated();
     if ok {
         app.exit(0);
     }
     ok
+}
+
+#[tauri::command]
+async fn privileges_info() -> R<privileges::Privileges> {
+    blocking(privileges::get).await
+}
+
+#[tauri::command]
+fn open_full_disk_access() -> bool {
+    privileges::open_full_disk_access()
 }
 
 /// Write a PNG (or any file) the user picked a path for in the save dialog.
@@ -222,6 +237,7 @@ const SAVE_DEBOUNCE: Duration = Duration::from_millis(400);
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    privileges::wait_for_parent();
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_dialog::init())
@@ -312,6 +328,8 @@ pub fn run() {
             run_migration,
             is_admin,
             relaunch_as_admin,
+            privileges_info,
+            open_full_disk_access,
             platform,
             list_drives,
             load_settings,

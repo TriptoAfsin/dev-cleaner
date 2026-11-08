@@ -2,6 +2,7 @@ import { motion } from "motion/react"
 import { Activity, ArchiveRestore, BrainCircuit, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Settings } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
 import { useStore } from "@/lib/store"
+import { PrivilegeStatus } from "./Privileges"
 import type { ReactNode } from "react"
 
 export type Page = "overview" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "ports" | "system" | "settings"
@@ -65,7 +66,7 @@ export function Sidebar({ page, go }: { page: Page; go: (p: Page) => void }) {
 }
 
 export function StatusBar() {
-  const { activity, stats, admin, portsInUse } = useStore()
+  const { activity, stats, portsInUse } = useStore()
   const color = { idle: "text-accent", busy: "text-accent", ok: "text-ok", error: "text-danger" }[activity.kind]
   return (
     <footer data-testid="statusbar" className="mono flex h-7 shrink-0 items-center gap-4 overflow-hidden whitespace-nowrap border-t border-border bg-surface-2 px-3.5 text-[11.5px] text-muted">
@@ -88,7 +89,7 @@ export function StatusBar() {
         </>
       )}
       {portsInUse.length > 0 && <span className="hidden xl:inline">{portsInUse.map((p) => `:${p}`).join(" ")}</span>}
-      <span className={admin ? "text-ok" : "text-warn"}>admin: {admin ? "yes" : "no"}</span>
+      <PrivilegeStatus />
     </footer>
   )
 }

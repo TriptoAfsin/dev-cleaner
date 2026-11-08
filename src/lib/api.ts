@@ -49,6 +49,14 @@ export type CacheItem = {
   /** False when the size is only known after cleaning. */
   measured: boolean
 }
+export type Privileges = {
+  os: string
+  isAdmin: boolean
+  canRelaunch: boolean
+  fullDiskAccess: boolean | null
+  pkexec: boolean
+  inFlatpak: boolean
+}
 export type Holder = { name: string; pid: number; files: number }
 export type CleanEvent = {
   id: string
@@ -156,6 +164,8 @@ export const api = {
   deleteArtifacts: (paths: string[]) => invoke<DeleteEvent[]>("delete_artifacts", { paths }),
   isAdmin: () => invoke<boolean>("is_admin"),
   relaunchAsAdmin: () => invoke<boolean>("relaunch_as_admin"),
+  privilegesInfo: () => invoke<Privileges>("privileges_info"),
+  openFullDiskAccess: () => invoke<boolean>("open_full_disk_access"),
   platform: () => invoke<string>("platform"),
   loadSettings: () => invoke<Record<string, unknown> | null>("load_settings"),
   saveSettings: (settings: unknown) => invoke<void>("save_settings", { settings }),

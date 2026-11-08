@@ -19,7 +19,7 @@ const STATE: Record<PortState, { label: string; cls: string }> = {
 
 export function Ports() {
   const { settings } = useSettings()
-  const { setPortsInUse, admin } = useStore()
+  const { setPortsInUse, admin, platform } = useStore()
   const [all, setAll] = useState(false)
   const ports = usePoll(() => api.listPorts(all, settings.extraPorts), 2000, [all, settings.extraPorts.join(",")])
   const kill = useKill(ports.refresh)
@@ -236,7 +236,7 @@ export function Ports() {
               Select a port in use to see what holds it.
             </Empty>
           )}
-          {!admin && <p className="m-0 text-[11.5px] text-subtle">Not running as admin: ports held by services can't be freed.</p>}
+          {!admin && platform === "windows" && <p className="m-0 text-[11.5px] text-subtle">Not running as admin: ports held by services can't be freed.</p>}
         </Card>
       </div>
       {kill.dialog}

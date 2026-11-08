@@ -9,6 +9,7 @@ import { usePoll, useStore } from "@/lib/store"
 import { Badge, Bar, Button, Card, IconButton, InfoTip, PageHeader, Skeleton } from "@/components/ui"
 import { InsightsCard } from "@/components/Insights"
 import { SnapshotButton } from "@/components/Share"
+import { RelaunchDialog } from "@/components/Privileges"
 import type { Page } from "@/components/Shell"
 
 const TIPS: Record<string, string> = {
@@ -123,7 +124,7 @@ export function SystemPage({ go }: { go: (p: Page) => void }) {
           {s?.devDrive != null && <KV k="Dev Drive" tip={TIPS.devdrive} v={<Badge tone={s.devDrive ? "ok" : "muted"}>{s.devDrive ? "Yes" : "None"}</Badge>} />}
           {s?.powerPlan && <KV k="Power plan" tip={TIPS.power} v={s.powerPlan} />}
           <KV k="Uptime" tip={TIPS.uptime} v={s && duration(s.uptime)} />
-          <KV k="Running as admin" tip={TIPS.admin} v={s && <AdminValue admin={s.isAdmin} />} />
+          {s && /windows/i.test(s.osName) && <KV k="Running as admin" tip={TIPS.admin} v={<AdminValue admin={s.isAdmin} />} />}
         </Section>
       </div>
 
@@ -252,11 +253,15 @@ function DrivesSection({ s }: { s: SystemInfo | null }) {
 }
 
 function AdminValue({ admin }: { admin: boolean }) {
+  const [ask, setAsk] = useState(false)
   if (admin) return <Badge tone="ok">Yes</Badge>
   return (
-    <button type="button" onClick={() => void api.relaunchAsAdmin()} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline">
-      <ShieldCheck size={13} /> Relaunch as admin
-    </button>
+    <>
+      <button type="button" onClick={() => setAsk(true)} className="inline-flex items-center gap-1 text-[12.5px] text-accent hover:underline">
+        <ShieldCheck size={13} /> Restart as admin
+      </button>
+      <RelaunchDialog open={ask} onClose={() => setAsk(false)} />
+    </>
   )
 }
 

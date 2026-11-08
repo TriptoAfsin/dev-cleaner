@@ -460,13 +460,3 @@ pub fn is_admin() -> bool {
     std::env::var("USER").is_ok_and(|u| u == "root")
 }
 
-/// Start a second, elevated copy of the app. The caller exits on success.
-pub fn relaunch_as_admin() -> bool {
-    let Ok(exe) = std::env::current_exe() else { return false };
-    if cfg!(windows) {
-        let script = format!("Start-Process -FilePath '{}' -Verb RunAs", exe.to_string_lossy().replace('\'', "''"));
-        which("powershell").is_some_and(|ps| util::run_ok(&ps, &["-NoProfile", "-Command", &script], Duration::from_secs(60)))
-    } else {
-        false
-    }
-}

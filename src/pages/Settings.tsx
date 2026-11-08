@@ -3,6 +3,7 @@ import { HardDrive, Monitor, Moon, Sun } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
 import { ACCENTS, useDrives, useSettings, type ThemeMode } from "@/lib/settings"
 import { Bar, Card, Checkbox, PageHeader, Skeleton, Switch } from "@/components/ui"
+import { PermissionsCard } from "@/components/Privileges"
 
 export function SettingsPage() {
   const { settings, set } = useSettings()
@@ -127,6 +128,7 @@ export function SettingsPage() {
           <Switch checked={settings.modelDrives} onChange={(v) => set("modelDrives", v)} label="Search drives for AI models" />
         </div>
       </Card>
+      <PermissionsCard />
       <p className="m-0 text-[12px] text-subtle">Dev Cleaner never sends anything off your machine.</p>
     </div>
   )
