@@ -2,7 +2,7 @@
 //! they are, and how to clean them. A tool's own clean command is preferred;
 //! deleting the folder is the fallback.
 
-use crate::util::{self, dir_size, empty_dir, home};
+use crate::util::{self, dir_size, home};
 use rayon::prelude::*;
 use serde::Serialize;
 use std::path::PathBuf;
@@ -545,7 +545,7 @@ pub fn scan(app: &AppHandle, drives: Option<&[String]>) -> Vec<CacheItem> {
     items
 }
 
-#[derive(Serialize, Clone)]
+#[derive(Serialize, Clone, Default)]
 #[serde(rename_all = "camelCase")]
 pub struct CleanEvent {
     pub id: String,
@@ -554,24 +554,63 @@ pub struct CleanEvent {
     pub freed: u64,
     pub skipped: u64,
     pub note: String,
+    /// Left alone on purpose: newer than the age limit.
+    #[serde(default)]
+    pub kept: u64,
+    /// Could not be removed, usually because a program has it open.
+    #[serde(default)]
+    pub in_use: u64,
+    /// A few of those paths, to show.
+    #[serde(default)]
+    pub in_use_sample: Vec<String>,
+    /// Programs holding them.
+    #[serde(default)]
+    pub held_by: Vec<crate::holders::Holder>,
+}
+
+/// What clearing one target did.
+#[derive(Default)]
+struct Cleared {
+    kept: u64,
+    failed: Vec<PathBuf>,
+}
+
+impl Cleared {
+    fn add(&mut self, o: Cleared) {
+        self.kept += o.kept;
+        self.failed.extend(o.failed);
+    }
 }
 
 /// Delete what is in a path: a folder's contents, or a single file.
-fn clear(p: &std::path::Path, age: Option<Duration>) -> u64 {
+fn clear(p: &std::path::Path, age: Option<Duration>) -> Cleared {
     if p.is_dir() {
-        empty_dir(p, age).1
+        let r = util::empty_dir_report(p, age);
+        Cleared { kept: r.kept, failed: r.failed }
     } else if p.is_file() {
         let young = age.is_some_and(|a| {
             std::fs::metadata(p).and_then(|m| m.modified()).ok().and_then(|m| m.elapsed().ok()).is_some_and(|e| e < a)
         });
-        if young || std::fs::remove_file(p).is_err() {
-            1
+        if young {
+            Cleared { kept: 1, failed: vec![] }
+        } else if std::fs::remove_file(p).is_err() {
+            Cleared { kept: 0, failed: vec![p.to_path_buf()] }
         } else {
-            0
+            Cleared::default()
         }
     } else {
-        0
+        Cleared::default()
     }
+}
+
+/// Turn what a clean left behind into counts, sample paths and the
+/// programs holding the files.
+fn explain(c: Cleared) -> (u64, u64, Vec<String>, Vec<crate::holders::Holder>) {
+    let in_use = c.failed.len() as u64;
+    let sample = c.failed.iter().take(6).map(|p| p.to_string_lossy().to_string()).collect();
+    // A folder that failed holds the files that are actually open.
+    let files: Vec<PathBuf> = c.failed.iter().flat_map(|p| crate::holders::leftovers(p, 50)).take(400).collect();
+    (c.kept, in_use, sample, crate::holders::holders(&files))
 }
 
 pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
@@ -587,13 +626,13 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
     if !admin.is_empty() {
         let before: Vec<u64> = admin.iter().map(|t| measure(t).size).collect();
         for t in &admin {
-            emit(&CleanEvent { id: t.id.into(), phase: "running".into(), freed: 0, skipped: 0, note: "Waiting for admin approval".into() });
+            emit(&CleanEvent { id: t.id.into(), phase: "running".into(), freed: 0, skipped: 0, note: "Waiting for admin approval".into(), ..Default::default() });
         }
         let ok = crate::junk::run_admin(&admin);
         for (t, b) in admin.iter().zip(before) {
             let freed = b.saturating_sub(measure(t).size);
             let note = if ok { "Cleaned as admin" } else { "Admin approval was cancelled or failed" };
-            let ev = CleanEvent { id: t.id.into(), phase: if ok { "done" } else { "failed" }.into(), freed, skipped: 0, note: note.into() };
+            let ev = CleanEvent { id: t.id.into(), phase: if ok { "done" } else { "failed" }.into(), freed, skipped: 0, note: note.into(), ..Default::default() };
             emit(&ev);
             out.push(ev);
         }
@@ -601,9 +640,9 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
 
     for t in picked.into_iter().filter(|t| !matches!(t.how, How::Admin { .. })) {
         let id = t.id.to_string();
-        emit(&CleanEvent { id: id.clone(), phase: "running".into(), freed: 0, skipped: 0, note: method(&t.how) });
+        emit(&CleanEvent { id: id.clone(), phase: "running".into(), freed: 0, skipped: 0, note: method(&t.how), ..Default::default() });
         let before = measure(t).size;
-        let mut skipped = 0;
+        let mut cleared = Cleared::default();
         let mut note: String;
         match &t.how {
             How::Tool { tool, args } => {
@@ -625,20 +664,20 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
                 } else {
                     // A missing or failing tool falls back to deleting.
                     for p in &t.paths {
-                        skipped += clear(p, None);
+                        cleared.add(clear(p, None));
                     }
                     note = format!("{tool} unavailable, deleted the folder");
                 }
             }
             How::Delete => {
                 for p in &t.paths {
-                    skipped += clear(p, None);
+                    cleared.add(clear(p, None));
                 }
                 note = "Deleted".into();
             }
             How::OlderThan(hours) => {
                 for p in &t.paths {
-                    skipped += clear(p, Some(Duration::from_secs(hours * 3600)));
+                    cleared.add(clear(p, Some(Duration::from_secs(hours * 3600))));
                 }
                 note = method(&t.how).replace("Delete", "Removed");
             }
@@ -657,10 +696,11 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
         }
         let after = measure(t).size;
         let freed = before.saturating_sub(after);
-        if skipped > 0 {
-            note = format!("{note} · {skipped} in use, skipped");
+        let (kept, in_use, in_use_sample, held_by) = explain(cleared);
+        if in_use > 0 {
+            note = format!("{note} · {in_use} in use, left alone");
         }
-        let ev = CleanEvent { id, phase: "done".into(), freed, skipped, note };
+        let ev = CleanEvent { id, phase: "done".into(), freed, skipped: kept + in_use, note, kept, in_use, in_use_sample, held_by };
         emit(&ev);
         out.push(ev);
     }

@@ -207,8 +207,23 @@ fn clear_readonly(path: &Path) {
 /// Empty a folder but keep the folder itself. Entries newer than `min_age`
 /// are left alone, and anything in use is skipped. Returns (removed, skipped).
 pub fn empty_dir(path: &Path, min_age: Option<Duration>) -> (u64, u64) {
+    let r = empty_dir_report(path, min_age);
+    (r.removed, r.kept + r.failed.len() as u64)
+}
+
+/// What emptying a folder did: removed entries, entries kept on purpose
+/// (newer than `min_age`), and entries that could not be removed (usually
+/// open in another program).
+#[derive(Default)]
+pub struct EmptyReport {
+    pub removed: u64,
+    pub kept: u64,
+    pub failed: Vec<PathBuf>,
+}
+
+pub fn empty_dir_report(path: &Path, min_age: Option<Duration>) -> EmptyReport {
     let Ok(entries) = std::fs::read_dir(path) else {
-        return (0, 0);
+        return EmptyReport::default();
     };
     let now = std::time::SystemTime::now();
     let entries: Vec<_> = entries.flatten().collect();
@@ -217,7 +232,7 @@ pub fn empty_dir(path: &Path, min_age: Option<Duration>) -> (u64, u64) {
         .map(|e| {
             let p = e.path();
             let Ok(meta) = std::fs::symlink_metadata(&p) else {
-                return (0, 1);
+                return EmptyReport { failed: vec![p], ..Default::default() };
             };
             if let Some(age) = min_age {
                 let young = meta
@@ -226,7 +241,7 @@ pub fn empty_dir(path: &Path, min_age: Option<Duration>) -> (u64, u64) {
                     .and_then(|m| now.duration_since(m).ok())
                     .is_some_and(|d| d < age);
                 if young {
-                    return (0, 1);
+                    return EmptyReport { kept: 1, ..Default::default() };
                 }
             }
             let res = if meta.is_dir() {
@@ -240,9 +255,18 @@ pub fn empty_dir(path: &Path, min_age: Option<Duration>) -> (u64, u64) {
                     std::fs::remove_file(&p)
                 })
             };
-            if res.is_ok() { (1, 0) } else { (0, 1) }
+            if res.is_ok() {
+                EmptyReport { removed: 1, ..Default::default() }
+            } else {
+                EmptyReport { failed: vec![p], ..Default::default() }
+            }
         })
-        .reduce(|| (0, 0), |a, b| (a.0 + b.0, a.1 + b.1))
+        .reduce(EmptyReport::default, |mut a, b| {
+            a.removed += b.removed;
+            a.kept += b.kept;
+            a.failed.extend(b.failed);
+            a
+        })
 }
 
 /// Pull the first version-looking token (digits and dots) out of tool output.

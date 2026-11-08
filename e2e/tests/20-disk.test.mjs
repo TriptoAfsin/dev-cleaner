@@ -47,6 +47,7 @@ test("confirming a clean empties only the selected cache", async () => {
   assert.doesNotMatch(dialogText, /Cargo registry/, "only the selection is in the dialog")
   await ctx.click("confirm-clean")
   await ctx.waitText(/Freed 488 KB/, "freed toast", 15000)
+  await ctx.click("clean-done")
   const npmDir = path.join(FAKE_HOME, "local", "npm-cache")
   assert.ok(existsSync(npmDir), "the cache folder itself is kept")
   assert.deepEqual(readdirSync(npmDir), [])

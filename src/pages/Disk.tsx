@@ -1,7 +1,7 @@
 import { SnapshotButton } from "@/components/Share"
 import { useMemo, useState } from "react"
-import { RefreshCw, Trash2 } from "lucide-react"
-import type { CacheItem } from "@/lib/api"
+import { AppWindow, Check, Loader2, RefreshCw, Trash2 } from "lucide-react"
+import type { CacheItem, CleanEvent } from "@/lib/api"
 import { bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
@@ -124,47 +124,163 @@ export function Disk({ junk = false }: { junk?: boolean }) {
   )
 }
 
-/** Confirmation that lists exactly what will be cleaned and how. */
+/** Confirmation that lists exactly what will be cleaned and how; shows
+    live progress while it runs, then what was freed and what was left
+    behind, and which programs hold the files that couldn't be removed. */
 export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: () => void; items: CacheItem[] }) {
-  const { clean } = useStore()
+  const { clean, cleaning } = useStore()
   const [busy, setBusy] = useState(false)
+  const [result, setResult] = useState<CleanEvent[] | null>(null)
   const total = items.reduce((n, c) => n + c.size, 0)
+  const close = () => {
+    if (busy) return
+    setResult(null)
+    onClose()
+  }
+  const run = async () => {
+    setBusy(true)
+    setResult(null)
+    const r = await clean(items.map((c) => c.id))
+    setBusy(false)
+    setResult(r)
+  }
+
+  if (result) {
+    const freed = result.reduce((n, r) => n + r.freed, 0)
+    const inUse = result.reduce((n, r) => n + (r.inUse ?? 0), 0)
+    const kept = result.reduce((n, r) => n + (r.kept ?? 0), 0)
+    const failed = result.filter((r) => r.phase === "failed")
+    const holders = new Map<string, { name: string; pids: Set<number> }>()
+    for (const r of result)
+      for (const h of r.heldBy ?? []) {
+        const k = h.name.toLowerCase()
+        const e = holders.get(k) ?? { name: h.name, pids: new Set<number>() }
+        e.pids.add(h.pid)
+        holders.set(k, e)
+      }
+    const samples = result.flatMap((r) => r.inUseSample ?? []).slice(0, 6)
+    return (
+      <Dialog
+        open={open}
+        onClose={close}
+        title={`Freed ${bytes(freed)}`}
+        actions={
+          <>
+            {inUse > 0 && (
+              <Button icon={<RefreshCw size={14} />} onClick={run} data-testid="clean-again">
+                Clean again
+              </Button>
+            )}
+            <Button variant="primary" onClick={close} data-testid="clean-done">
+              Done
+            </Button>
+          </>
+        }
+      >
+        <ul className="m-0 mb-3 flex list-none flex-col gap-1.5 p-0" data-testid="clean-result">
+          {result.map((r) => {
+            const c = items.find((x) => x.id === r.id)
+            return (
+              <li key={r.id} className="flex items-center gap-2.5 text-text">
+                <BrandIcon name={r.id} size={14} />
+                <span className="flex-1">{c?.name ?? r.id}</span>
+                {r.phase === "failed" ? (
+                  <span className="text-[11.5px] text-danger">{r.note}</span>
+                ) : (
+                  <>
+                    {(r.inUse ?? 0) > 0 && <span className="text-[11.5px] text-warn">{r.inUse} in use</span>}
+                    <span className="mono w-16 text-right">{bytes(r.freed)}</span>
+                  </>
+                )}
+              </li>
+            )
+          })}
+        </ul>
+        {inUse > 0 && (
+          <div className="mb-2 flex flex-col gap-2 rounded-lg bg-warn-soft px-3 py-2.5 text-[12px] leading-[1.5] text-warn" data-testid="in-use">
+            <div>
+              {inUse.toLocaleString()} item{inUse === 1 ? " is" : "s are"} open in other programs and {inUse === 1 ? "was" : "were"} left alone.
+              {holders.size > 0 ? " Held by:" : " Windows didn't say which program holds them; closing apps you aren't using and cleaning again usually frees them."}
+            </div>
+            {holders.size > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {[...holders.values()].slice(0, 12).map((h) => (
+                  <span key={h.name} className="inline-flex h-6 items-center gap-1.5 rounded-md bg-surface px-2 text-text">
+                    <AppWindow size={12} className="text-subtle" />
+                    {h.name}
+                    {h.pids.size > 1 && <span className="text-subtle">×{h.pids.size}</span>}
+                  </span>
+                ))}
+              </div>
+            )}
+            {samples.length > 0 && (
+              <details className="text-muted">
+                <summary className="cursor-pointer text-warn">Show files</summary>
+                <ul className="mono m-0 mt-1 list-none break-all p-0 text-[11px]">
+                  {samples.map((p) => (
+                    <li key={p}>{p}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+            <div className="flex items-center gap-3">
+              <span>Close those programs and clean again, or end them from Processes.</span>
+              <button
+                type="button"
+                className="shrink-0 font-medium underline"
+                onClick={() => {
+                  close()
+                  window.dispatchEvent(new CustomEvent("dc-go", { detail: "processes" }))
+                }}
+              >
+                Open Processes
+              </button>
+            </div>
+          </div>
+        )}
+        {kept > 0 && <p className="m-0 mb-2">{kept.toLocaleString()} newer item{kept === 1 ? " was" : "s were"} kept on purpose; installers and running apps may still need them.</p>}
+        {failed.length > 0 && <p className="m-0 text-danger">{failed.map((f) => items.find((x) => x.id === f.id)?.name ?? f.id).join(", ")}: {failed[0].note}</p>}
+      </Dialog>
+    )
+  }
+
   return (
     <Dialog
       open={open}
-      onClose={() => !busy && onClose()}
-      title={`Clean ${items.length} cache${items.length === 1 ? "" : "s"} · ${bytes(total)}?`}
+      onClose={close}
+      title={busy ? `Cleaning ${items.length} item${items.length === 1 ? "" : "s"}…` : `Clean ${items.length} cache${items.length === 1 ? "" : "s"} · ${bytes(total)}?`}
       actions={
         <>
-          <Button onClick={onClose} disabled={busy}>
+          <Button onClick={close} disabled={busy}>
             Cancel
           </Button>
-          <Button
-            variant="primary"
-            icon={<Trash2 size={14} />}
-            loading={busy}
-            data-testid="confirm-clean"
-            onClick={async () => {
-              setBusy(true)
-              await clean(items.map((c) => c.id))
-              setBusy(false)
-              onClose()
-            }}
-          >
+          <Button variant="primary" icon={<Trash2 size={14} />} loading={busy} data-testid="confirm-clean" onClick={run}>
             {busy ? "Cleaning" : "Clean"}
           </Button>
         </>
       }
     >
       <ul className="m-0 mb-3 flex list-none flex-col gap-1.5 p-0">
-        {items.map((c) => (
-          <li key={c.id} className="flex items-center gap-2.5 text-text">
-            <BrandIcon name={c.id} size={14} />
-            <span className="flex-1">{c.name}</span>
-            <span className="mono max-w-[200px] truncate text-[11.5px] text-subtle">{c.method}</span>
-            <span className="mono w-16 text-right">{bytes(c.size)}</span>
-          </li>
-        ))}
+        {items.map((c) => {
+          const st = busy ? cleaning[c.id] : undefined
+          return (
+            <li key={c.id} className="flex items-center gap-2.5 text-text">
+              <BrandIcon name={c.id} size={14} />
+              <span className="flex-1">{c.name}</span>
+              {busy ? (
+                <span className="flex items-center gap-1.5 text-[11.5px] text-subtle">
+                  {st?.phase === "done" ? <Check size={13} className="text-ok" /> : st?.phase === "running" ? <Loader2 size={13} className="spin text-accent" /> : <span className="h-1.5 w-1.5 rounded-full bg-border-strong" />}
+                  {st?.phase === "done" ? bytes(st.freed) : st?.phase === "running" ? "cleaning" : "waiting"}
+                </span>
+              ) : (
+                <>
+                  <span className="mono max-w-[200px] truncate text-[11.5px] text-subtle">{c.method}</span>
+                  <span className="mono w-16 text-right">{bytes(c.size)}</span>
+                </>
+              )}
+            </li>
+          )
+        })}
       </ul>
       {items.some((c) => c.risk === "data") && (
         <div className="mb-2 rounded-lg bg-danger-soft px-3 py-2.5 text-[12px] leading-[1.5] text-danger">
@@ -176,7 +292,7 @@ export function CleanDialog({ open, onClose, items }: { open: boolean; onClose: 
           {items.filter((c) => c.admin).length} item{items.filter((c) => c.admin).length === 1 ? " needs" : "s need"} admin rights. You'll be asked to approve once, for all of them.
         </div>
       )}
-      <p className="m-0">Each tool's own clean command runs first; if it is missing, the folder's contents are deleted. Files in use are skipped.</p>
+      <p className="m-0">Each tool's own clean command runs first; if it is missing, the folder's contents are deleted. Files open in other programs are left alone, and you'll see which programs hold them.</p>
     </Dialog>
   )
 }

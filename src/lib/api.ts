@@ -49,7 +49,20 @@ export type CacheItem = {
   /** False when the size is only known after cleaning. */
   measured: boolean
 }
-export type CleanEvent = { id: string; phase: "running" | "done" | "failed"; freed: number; skipped: number; note: string }
+export type Holder = { name: string; pid: number; files: number }
+export type CleanEvent = {
+  id: string
+  phase: "running" | "done" | "failed"
+  freed: number
+  skipped: number
+  note: string
+  /** Left alone on purpose: newer than the age limit. */
+  kept?: number
+  /** Could not be removed, usually open in another program. */
+  inUse?: number
+  inUseSample?: string[]
+  heldBy?: Holder[]
+}
 
 export type PortState = "inUse" | "free" | "system"
 export type PortEntry = {

@@ -56,6 +56,7 @@ test("cleaning removes the junk and leaves real downloads and the Trash", async 
   await ctx.click("clean-selected")
   await ctx.click("confirm-clean")
   await ctx.waitText(/Freed/, "freed toast", 20000)
+  await ctx.click("clean-done")
   assert.equal(existsSync(f("Downloads", "movie.mkv.crdownload")), false)
   assert.equal(existsSync(f("Downloads", "report.pdf")), true)
   assert.equal(existsSync(f("trash", "old-notes.txt")), true, "Trash is never emptied unless picked")
@@ -78,4 +79,5 @@ test("picking the Trash warns that it can't be undone, then empties it", async (
   await s.waitFor(() => s.byText("[role=dialog]", "can't be undone"), "your-data warning")
   await ctx.click("confirm-clean")
   await s.waitFor(() => readdirSync(f("trash")).length === 0, "trash emptied", { timeout: 15000 })
+  await ctx.click("clean-done")
 })

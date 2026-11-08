@@ -9,6 +9,8 @@ section matching the tag.
 
 ### Added
 - Flatpak bundle for Linux. Inside the sandbox, tools run on the host through `flatpak-spawn --host`, and processes and ports are read from the host (`ps`, `ss`), so cleaning, ending processes and freeing ports keep working.
+- After a clean, the dialog shows what was freed and what was left behind: files open in other programs are counted, a few are listed, and the programs holding them are named (Windows Restart Manager, /proc on Linux, lsof on macOS), with Clean again and a link to Processes. Files kept on purpose for being too new are counted separately.
+- Live per-item progress while a clean runs.
 - Available through Homebrew (`t21dev/tap/dev-cleaner`), Scoop (`t21dev/dev-cleaner`) and WinGet (`TriptoAfsin.DevCleaner`).
 
 ## [0.1.0] - 2026-11-09

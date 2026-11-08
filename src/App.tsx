@@ -26,6 +26,13 @@ export function App() {
     sessionStorage.setItem("dc-page", page)
   }, [page])
 
+  // Deep components (a dialog) can ask to open a section.
+  useEffect(() => {
+    const go = (e: Event) => setPage((e as CustomEvent<Page>).detail)
+    window.addEventListener("dc-go", go)
+    return () => window.removeEventListener("dc-go", go)
+  }, [])
+
   // Ctrl/Cmd + 1..9 jumps between sections.
   useEffect(() => {
     const k = (e: KeyboardEvent) => {

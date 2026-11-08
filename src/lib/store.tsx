@@ -25,7 +25,7 @@ type Ctx = {
   lastScan: number | null
   scan: () => Promise<void>
   cleaning: Record<string, CleanEvent>
-  clean: (ids: string[]) => Promise<number>
+  clean: (ids: string[]) => Promise<CleanEvent[]>
   activity: Activity
   setActivity: (a: Activity) => void
   toasts: Toast[]
@@ -155,11 +155,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         })
         // Re-measure what was cleaned, so sizes reflect reality.
         void scan()
-        return freed
+        return results
       } catch (e) {
         setActivity({ kind: "error", text: "Clean failed" })
         toast({ kind: "error", title: "Clean failed", detail: String(e) })
-        return 0
+        return [] as CleanEvent[]
       } finally {
         off()
       }

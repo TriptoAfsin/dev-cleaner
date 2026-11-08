@@ -30,6 +30,7 @@ test("after a clean, the toast offers Share and the card shows what was freed", 
   await (await s.find('[aria-label="Select Cargo registry"]')).click()
   await ctx.click("clean-selected")
   await ctx.click("confirm-clean")
+  await ctx.click("clean-done")
   await ctx.click("toast-action")
   await s.waitFor(async () => /Caches cleaned[\s\S]*117 KB[\s\S]*Cargo registry/.test(await s.exec(`return document.querySelector('[data-testid=report-card]')?.innerText ?? ''`)), "report card")
 })
