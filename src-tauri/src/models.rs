@@ -73,35 +73,20 @@ fn lmstudio_roots() -> Vec<PathBuf> {
     vec![h.join(".lmstudio").join("models"), h.join(".cache").join("lm-studio").join("models")]
 }
 
-/// Folders apps keep models in. Each is walked for model files.
+/// Folders apps keep models in (definitions/models.json). Each is walked for
+/// model files.
 fn app_roots() -> Vec<(PathBuf, &'static str, &'static str)> {
-    let h = util::home();
-    let local = util::local_dir();
-    let roaming = util::roaming_dir();
-    let mut v = vec![
-        (h.join("Documents").join("ComfyUI").join("models"), "comfyui", "ComfyUI"),
-        (h.join("ComfyUI").join("models"), "comfyui", "ComfyUI"),
-        (roaming.join("ComfyUI"), "comfyui", "ComfyUI"),
-        (h.join("stable-diffusion-webui").join("models"), "a1111", "Stable Diffusion WebUI"),
-        (h.join("jan").join("models"), "jan", "Jan"),
-        (roaming.join("Jan").join("data").join("models"), "jan", "Jan"),
-        (local.join("nomic.ai").join("GPT4All"), "gpt4all", "GPT4All"),
-        (h.join("Library").join("Application Support").join("nomic.ai").join("GPT4All"), "gpt4all", "GPT4All"),
-        (h.join(".cache").join("whisper"), "whisper", "Whisper"),
-        (h.join(".cache").join("modelscope"), "modelscope", "ModelScope"),
-        (h.join(".cache").join("lm-studio"), "lmstudio", "LM Studio"),
-        (local.join("llama.cpp"), "llamacpp", "llama.cpp"),
-        (h.join("Library").join("Caches").join("llama.cpp"), "llamacpp", "llama.cpp"),
-    ];
-    if let Some(p) = env_dir("LLAMA_CACHE") {
-        v.push((p, "llamacpp", "llama.cpp"));
-    }
-    v
+    crate::defs::get()
+        .models
+        .app_roots
+        .iter()
+        .filter_map(|r| Some((crate::defs::expand(&r.path)?, r.app.as_str(), r.label.as_str())))
+        .collect()
 }
 
+/// Everyday folders people drop downloaded models into.
 fn loose_roots() -> Vec<PathBuf> {
-    let h = util::home();
-    ["Downloads", "Desktop", "Documents", "models", "AI", "ai"].iter().map(|d| h.join(d)).collect()
+    crate::defs::get().models.loose_roots.iter().filter_map(|t| crate::defs::expand(t)).collect()
 }
 
 /// Comparable form of a path: forward slashes, no trailing slash, and

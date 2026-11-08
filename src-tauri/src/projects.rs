@@ -29,84 +29,18 @@ pub struct Artifact {
     pub modified: u64,
 }
 
-/// Folders never worth walking into.
-const SKIP: &[&str] = &[
-    ".git", ".hg", ".svn", "$recycle.bin", "system volume information", "windows", "program files",
-    "program files (x86)", "appdata", "library", ".cache", ".cargo", ".rustup", ".npm", ".pnpm-store",
-];
-
 /// Decide whether `dir` (named `name`, inside `parent`) is a build artifact,
-/// returning (kind, label, how to restore it).
+/// returning (kind, label, how to restore it). The first rule in
+/// definitions/projects.json that matches wins.
 fn classify(name: &str, dir: &Path, parent: &Path) -> Option<(&'static str, &'static str, &'static str)> {
-    match name {
-        "node_modules" if parent.join("package.json").is_file() => {
-            Some(("node_modules", "node_modules", "npm / pnpm / yarn / bun install"))
-        }
-        ".venv" | "venv" | "env" | ".env" if dir.join("pyvenv.cfg").is_file() => {
-            Some(("venv", "Python venv", "python -m venv, then reinstall requirements"))
-        }
-        "target" if parent.join("Cargo.toml").is_file() => Some(("target", "Rust target", "cargo build")),
-        ".next" if parent.join("package.json").is_file() => Some(("next", "Next.js build", "next build / next dev")),
-        ".nuxt" | ".output" if parent.join("nuxt.config.ts").is_file() || parent.join("nuxt.config.js").is_file() => {
-            Some(("nuxt", "Nuxt build", "nuxt build / nuxt dev"))
-        }
-        ".svelte-kit" => Some(("svelte", "SvelteKit build", "vite dev / vite build")),
-        ".turbo" => Some(("turbo", "Turborepo cache", "turbo run")),
-        ".parcel-cache" => Some(("parcel", "Parcel cache", "parcel build")),
-        ".angular" if parent.join("angular.json").is_file() => Some(("angular", "Angular cache", "ng build")),
-        "unsloth_compiled_cache" => Some(("unsloth", "Unsloth compile cache", "re-created on the next training run")),
-        ".mypy_cache" | ".ruff_cache" | ".pytest_cache" => Some(("pycache", "Python tool cache", "re-created on the next run")),
-        ".tox" | ".nox" => Some(("pycache", "Python test envs", "tox / nox")),
-        // JVM
-        "target" if parent.join("pom.xml").is_file() => Some(("maven", "Maven target", "mvn package")),
-        "target" if parent.join("build.sbt").is_file() => Some(("scala", "sbt target", "sbt compile")),
-        "target" if parent.join("project.clj").is_file() => Some(("clojure", "Leiningen target", "lein compile")),
-        "build" if gradle_project(parent) => Some(("gradle", "Gradle build", "./gradlew build")),
-        ".gradle" if gradle_project(parent) => Some(("gradle", "Gradle project cache", "./gradlew build")),
-        ".kotlin" if gradle_project(parent) => Some(("gradle", "Kotlin build cache", "./gradlew build")),
-        // .NET: only beside a project file, so a bin folder of scripts is safe.
-        "bin" | "obj" if has_ext(parent, &["csproj", "fsproj", "vbproj"]) => Some(("dotnet", ".NET bin/obj", "dotnet build")),
-        // PHP, Ruby
-        "vendor" if parent.join("composer.json").is_file() => Some(("composer", "Composer vendor", "composer install")),
-        "bundle" if parent.file_name().is_some_and(|n| n == "vendor") && parent.parent().is_some_and(|g| g.join("Gemfile").is_file()) => {
-            Some(("bundler", "Bundler vendor/bundle", "bundle install"))
-        }
-        // Swift, Dart / Flutter
-        ".build" if parent.join("Package.swift").is_file() => Some(("swift", "Swift build", "swift build")),
-        ".dart_tool" if parent.join("pubspec.yaml").is_file() => Some(("dart", "Dart tool cache", "dart pub get")),
-        "build" if parent.join("pubspec.yaml").is_file() => Some(("dart", "Flutter build", "flutter build")),
-        // Elixir, Haskell, Zig
-        "_build" | "deps" if parent.join("mix.exs").is_file() => Some(("elixir", "Mix build / deps", "mix deps.get && mix compile")),
-        ".stack-work" if parent.join("stack.yaml").is_file() || parent.join("package.yaml").is_file() => Some(("haskell", "Stack build", "stack build")),
-        "dist-newstyle" if has_ext(parent, &["cabal"]) || parent.join("cabal.project").is_file() => Some(("haskell", "Cabal build", "cabal build")),
-        ".zig-cache" | "zig-cache" | "zig-out" if parent.join("build.zig").is_file() => Some(("zig", "Zig build", "zig build")),
-        // C / C++: a CMake build tree always has a CMakeCache.txt.
-        "build" | "cmake-build-debug" | "cmake-build-release" | "out" if dir.join("CMakeCache.txt").is_file() => {
-            Some(("cmake", "CMake build", "cmake -B build && cmake --build build"))
-        }
-        // Game engines
-        "Library" if parent.join("ProjectSettings").is_dir() && parent.join("Assets").is_dir() => {
-            Some(("unity", "Unity Library", "reopen the project in Unity"))
-        }
-        ".godot" if parent.join("project.godot").is_file() => Some(("godot", "Godot import cache", "reopen the project in Godot")),
-        "Intermediate" | "DerivedDataCache" if has_ext(parent, &["uproject"]) => Some(("unreal", "Unreal build cache", "rebuild in Unreal Editor")),
-        "__pycache__" => None, // tiny and everywhere; not worth listing
-        _ => None,
-    }
-}
-
-fn gradle_project(dir: &Path) -> bool {
-    ["build.gradle", "build.gradle.kts", "settings.gradle", "settings.gradle.kts"].iter().any(|f| dir.join(f).is_file())
-}
-
-/// Whether `dir` holds a file with one of these extensions (a .csproj, a .cabal).
-fn has_ext(dir: &Path, exts: &[&str]) -> bool {
-    std::fs::read_dir(dir).is_ok_and(|rd| {
-        rd.flatten().any(|e| {
-            let n = e.file_name().to_string_lossy().to_ascii_lowercase();
-            exts.iter().any(|x| n.ends_with(&format!(".{x}")))
-        })
-    })
+    let r = crate::defs::get().projects.rules.iter().find(|r| {
+        r.names.iter().any(|n| n == name)
+            && r.parent.as_ref().is_none_or(|h| h.holds(parent))
+            && r.inside.as_ref().is_none_or(|h| h.holds(dir))
+            && r.parent_name.as_ref().is_none_or(|n| parent.file_name().is_some_and(|p| p.to_string_lossy() == n.as_str()))
+            && r.grandparent.as_ref().is_none_or(|h| parent.parent().is_some_and(|g| h.holds(g)))
+    })?;
+    Some((r.kind.as_str(), r.label.as_str(), r.restore.as_str()))
 }
 
 struct Found {
@@ -138,7 +72,7 @@ fn walk(dir: &Path, depth: u32, max: u32, seen: &AtomicU64, app: &AppHandle) -> 
                 return vec![Found { path: path.clone(), parent: dir.to_path_buf(), kind, label, restore }];
             }
             let lower = name.to_ascii_lowercase();
-            if SKIP.contains(&lower.as_str()) || name == "node_modules" {
+            if crate::defs::get().projects.skip.contains(&lower) || name == "node_modules" {
                 return vec![];
             }
             walk(path, depth + 1, max, seen, app)

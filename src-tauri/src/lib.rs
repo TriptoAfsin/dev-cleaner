@@ -1,7 +1,7 @@
 mod caches;
+mod defs;
 mod holders;
 mod junk;
-mod langs;
 mod privileges;
 mod configs;
 mod models;
@@ -214,6 +214,26 @@ async fn check_update(app: AppHandle) -> R<updates::UpdateInfo> {
 }
 
 #[tauri::command]
+async fn definitions_info() -> R<defs::Info> {
+    blocking(defs::info).await
+}
+
+/// Read the definitions again from disk. The next scan uses them.
+#[tauri::command]
+async fn reload_definitions() -> R<defs::Info> {
+    blocking(defs::reload).await
+}
+
+/// Open the folder a newer set of definitions is read from, creating it.
+#[tauri::command]
+fn open_definitions_folder(app: AppHandle) -> R<()> {
+    use tauri_plugin_opener::OpenerExt;
+    let dir = defs::folder().ok_or("no data folder")?;
+    std::fs::create_dir_all(dir).map_err(|e| e.to_string())?;
+    app.opener().open_path(dir.to_string_lossy(), None::<&str>).map_err(|e| e.to_string())
+}
+
+#[tauri::command]
 fn platform() -> &'static str {
     std::env::consts::OS
 }
@@ -255,6 +275,10 @@ pub fn run() {
         .plugin(tauri_plugin_dialog::init())
         .manage(Arc::new(Monitor::new()))
         .setup(|app| {
+            // A newer set of definitions may sit in the data folder.
+            if let Some(dir) = winstate::data_dir(app.handle()) {
+                defs::init(&dir);
+            }
             // Built here rather than from the config file so portable mode can
             // keep the webview's storage beside the exe. Still created hidden.
             let config = app
@@ -317,6 +341,9 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_info,
             check_update,
+            definitions_info,
+            reload_definitions,
+            open_definitions_folder,
             live_stats,
             list_processes,
             kill_processes,

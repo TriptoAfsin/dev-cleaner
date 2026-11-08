@@ -5,13 +5,6 @@ use serde::Serialize;
 use std::collections::{BTreeMap, HashMap};
 use sysinfo::{Pid, ProcessRefreshKind, ProcessesToUpdate, System};
 
-/// Ports developers reach for most, checked even when nothing listens on them
-/// so the list can say "free".
-pub const COMMON: &[u16] = &[
-    3000, 3001, 4200, 4321, 5000, 5001, 5173, 5174, 5432, 6006, 6379, 8000, 8080, 8081, 8443, 8888, 9000,
-    9229, 27017, 3306, 1420, 11434,
-];
-
 #[derive(Serialize, Clone, Copy, PartialEq, Eq)]
 #[serde(rename_all = "camelCase")]
 pub enum PortState {
@@ -58,7 +51,8 @@ pub fn list(all: bool, extra: &[u16]) -> Vec<PortEntry> {
         }
     }
 
-    let wanted: Vec<u16> = COMMON.iter().chain(extra.iter()).copied().collect();
+    // Ports developers reach for most are listed even when free.
+    let wanted: Vec<u16> = crate::defs::get().ports.common.iter().chain(extra.iter()).copied().collect();
     let mut out: HashMap<u16, PortEntry> = HashMap::new();
     for (&port, (pid, addrs)) in &by_port {
         let common = wanted.contains(&port);
@@ -117,37 +111,15 @@ pub fn list(all: bool, extra: &[u16]) -> Vec<PortEntry> {
     v
 }
 
-/// A friendly guess at what is behind a port ("vite", "Postgres").
+/// A friendly guess at what is behind a port ("vite", "Postgres"), from
+/// definitions/ports.json.
 fn hint(name: &str, cmd: &str, port: u16) -> Option<String> {
+    let h = &crate::defs::get().ports;
     let c = cmd.to_ascii_lowercase();
-    for (needle, label) in [
-        ("vite", "Vite"), ("next", "Next.js"), ("nuxt", "Nuxt"), ("astro", "Astro"), ("webpack", "webpack"),
-        ("storybook", "Storybook"), ("tauri", "Tauri"), ("uvicorn", "uvicorn"), ("flask", "Flask"),
-        ("manage.py", "Django"), ("rails", "Rails"), ("jupyter", "Jupyter"), ("--inspect", "Node debugger"),
-    ] {
-        if c.contains(needle) {
-            return Some(label.into());
-        }
+    if let Some((_, label)) = h.command_hints.iter().find(|(needle, _)| c.contains(needle.as_str())) {
+        return Some(label.clone());
     }
-    let n = name.to_ascii_lowercase();
-    let by_name = match n.as_str() {
-        "postgres" => Some("PostgreSQL"),
-        "mysqld" => Some("MySQL"),
-        "mongod" => Some("MongoDB"),
-        "redis-server" => Some("Redis"),
-        "ollama" => Some("Ollama"),
-        "com.docker.backend" | "docker desktop" | "wslrelay" => Some("Docker / WSL forward"),
-        _ => None,
-    };
-    by_name.or(match port {
-        5432 => Some("PostgreSQL port"),
-        6379 => Some("Redis port"),
-        27017 => Some("MongoDB port"),
-        3306 => Some("MySQL port"),
-        11434 => Some("Ollama port"),
-        _ => None,
-    })
-    .map(String::from)
+    h.process_hints.get(&name.to_ascii_lowercase()).or_else(|| h.port_hints.get(&port.to_string())).cloned()
 }
 
 #[cfg(windows)]

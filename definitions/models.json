@@ -1,0 +1,83 @@
+{
+  "$comment": "Folders AI apps keep downloaded models in, walked for model files. Ollama, Hugging Face and LM Studio are read by their own parsers in the app.",
+  "appRoots": [
+    {
+      "path": "{home}/Documents/ComfyUI/models",
+      "app": "comfyui",
+      "label": "ComfyUI"
+    },
+    {
+      "path": "{home}/ComfyUI/models",
+      "app": "comfyui",
+      "label": "ComfyUI"
+    },
+    {
+      "path": "{roaming}/ComfyUI",
+      "app": "comfyui",
+      "label": "ComfyUI"
+    },
+    {
+      "path": "{home}/stable-diffusion-webui/models",
+      "app": "a1111",
+      "label": "Stable Diffusion WebUI"
+    },
+    {
+      "path": "{home}/jan/models",
+      "app": "jan",
+      "label": "Jan"
+    },
+    {
+      "path": "{roaming}/Jan/data/models",
+      "app": "jan",
+      "label": "Jan"
+    },
+    {
+      "path": "{local}/nomic.ai/GPT4All",
+      "app": "gpt4all",
+      "label": "GPT4All"
+    },
+    {
+      "path": "{home}/Library/Application Support/nomic.ai/GPT4All",
+      "app": "gpt4all",
+      "label": "GPT4All"
+    },
+    {
+      "path": "{home}/.cache/whisper",
+      "app": "whisper",
+      "label": "Whisper"
+    },
+    {
+      "path": "{home}/.cache/modelscope",
+      "app": "modelscope",
+      "label": "ModelScope"
+    },
+    {
+      "path": "{home}/.cache/lm-studio",
+      "app": "lmstudio",
+      "label": "LM Studio"
+    },
+    {
+      "path": "{local}/llama.cpp",
+      "app": "llamacpp",
+      "label": "llama.cpp"
+    },
+    {
+      "path": "{home}/Library/Caches/llama.cpp",
+      "app": "llamacpp",
+      "label": "llama.cpp"
+    },
+    {
+      "path": "{env:LLAMA_CACHE|}",
+      "app": "llamacpp",
+      "label": "llama.cpp"
+    }
+  ],
+  "looseRoots": [
+    "{home}/Downloads",
+    "{home}/Desktop",
+    "{home}/Documents",
+    "{home}/models",
+    "{home}/AI",
+    "{home}/ai"
+  ]
+}

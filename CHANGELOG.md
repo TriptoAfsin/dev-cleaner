@@ -8,6 +8,7 @@ section matching the tag.
 ## [Unreleased]
 
 ### Added
+- Definitions: what the app knows about caches, language and AI caches, system junk, project build folders, process verdicts, port hints, AI model folders and config files now lives as data in `definitions/*.json` instead of code. Settings shows the version in use, its source (built-in or the definitions folder), the folder path and what it holds, with a Refresh button. A set in the data folder replaces the built-in one when it is complete and valid; otherwise the built-in set is used and the reason is shown. Groundwork for updating definitions without a new release.
 - About, in Settings and from the title bar: version, how it was installed, links, and update checks against GitHub releases (on launch, then daily; can be turned off). A dot on the title-bar button marks an update, with release notes and the right upgrade command for Scoop, WinGet, Homebrew or Flatpak.
 - Flatpak bundle for Linux. Inside the sandbox, tools run on the host through `flatpak-spawn --host`, and processes and ports are read from the host (`ps`, `ss`), so cleaning, ending processes and freeing ports keep working.
 - After a clean, the dialog shows what was freed and what was left behind: files open in other programs are counted, a few are listed, and the programs holding them are named (Windows Restart Manager, /proc on Linux, lsof on macOS), with Clean again and a link to Processes. Files kept on purpose for being too new are counted separately.

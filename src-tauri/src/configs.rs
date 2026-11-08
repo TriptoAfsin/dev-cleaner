@@ -345,40 +345,15 @@ pub enum Kind {
     Extensions,
 }
 
-const TOOLS: &[(&str, &str)] = &[
-    ("vscode", "VS Code"),
-    ("cursor", "Cursor"),
-    ("windsurf", "Windsurf"),
-    ("vscodium", "VSCodium"),
-    ("zed", "Zed"),
-    ("sublime", "Sublime Text"),
-    ("neovim", "Neovim"),
-    ("jetbrains", "JetBrains IDEs"),
-    ("wt", "Windows Terminal"),
-    ("git", "Git"),
-    ("ssh", "SSH"),
-    ("pwsh", "PowerShell"),
-    ("shell", "Shell"),
-    ("claude", "Claude Code"),
-    ("codex", "Codex"),
-    ("gemini", "Gemini CLI"),
-    ("copilot", "GitHub Copilot CLI"),
-    ("opencode", "OpenCode"),
-    ("aider", "Aider"),
-    ("continue", "Continue"),
-    ("amp", "Amp"),
-    ("goose", "Goose"),
-    ("claude-desktop", "Claude Desktop"),
-    ("agents", "Shared agent skills"),
-];
 
-fn tool_name(id: &str) -> String {
-    TOOLS.iter().find(|(t, _)| *t == id).map(|(_, n)| n.to_string()).unwrap_or_else(|| id.to_string())
+/// Tools in the order the Configs page lists them (definitions/configs.json).
+fn tools() -> &'static [(String, String)] {
+    &crate::defs::get().configs.tools
 }
 
-const MCP_SECRET: &str = "MCP server definitions often carry API keys or tokens in their env or headers.";
-const LOGIN: &str = "A login token. Anyone with this file can use your account.";
-const API_KEYS: &str = "Usually holds model provider API keys.";
+fn tool_name(id: &str) -> String {
+    tools().iter().find(|(t, _)| t == id).map(|(_, n)| n.clone()).unwrap_or_else(|| id.to_string())
+}
 
 #[derive(Clone)]
 struct Def {
@@ -432,129 +407,32 @@ fn both(tool: &'static str, slug: &str, label: &str, kind: Kind, t: &str) -> Def
     d(tool, slug, label, kind, t, t)
 }
 
+/// Config files from definitions/configs.json. Extension lists use the
+/// editor's own CLI, which stays in code.
 fn static_defs() -> Vec<Def> {
-    use Kind::*;
-    let mut v = Vec::new();
-    for (tool, dir) in [("vscode", "Code"), ("cursor", "Cursor"), ("windsurf", "Windsurf"), ("vscodium", "VSCodium")] {
-        let u = format!("%APPDATA%/{dir}/User");
-        v.push(both(tool, "settings", "settings.json", File, &format!("{u}/settings.json")));
-        v.push(both(tool, "keybindings", "keybindings.json", File, &format!("{u}/keybindings.json")));
-        v.push(both(tool, "snippets", "snippets", Dir, &format!("{u}/snippets")));
-        if tool == "vscode" {
-            v.push(both(tool, "profiles", "profiles", Dir, &format!("{u}/profiles")));
-            v.push(both(tool, "mcp", "mcp.json", File, &format!("{u}/mcp.json")).secret(MCP_SECRET));
-        }
-        let mut e = d(tool, "extensions", "Extensions", Extensions, "", "");
-        e.cli = editor_cli(tool);
-        v.push(e);
-    }
-    v.push(both("cursor", "mcp", "mcp.json", File, "~/.cursor/mcp.json").secret(MCP_SECRET));
-    v.push(both("cursor", "rules", "rules", Dir, "~/.cursor/rules"));
-    v.push(both("cursor", "skills", "skills", Dir, "~/.cursor/skills"));
-    v.push(both("windsurf", "mcp", "mcp_config.json", File, "~/.codeium/windsurf/mcp_config.json").secret(MCP_SECRET));
-    v.push(both("windsurf", "global-rules", "global_rules.md", File, "~/.codeium/windsurf/memories/global_rules.md"));
-    v.push(d("zed", "settings", "settings.json", File, "%APPDATA%/Zed/settings.json", "~/.config/zed/settings.json"));
-    v.push(d("zed", "keymap", "keymap.json", File, "%APPDATA%/Zed/keymap.json", "~/.config/zed/keymap.json"));
-    v.push(both("sublime", "user", "Packages/User", Dir, "%APPDATA%/Sublime Text/Packages/User"));
-    v.push(d("neovim", "config", "nvim", Dir, "%LOCALAPPDATA%/nvim", "~/.config/nvim"));
-    v.push(d(
-        "wt",
-        "settings",
-        "settings.json",
-        File,
-        "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json",
-        "",
-    ));
-    v.push(both("git", "gitconfig", ".gitconfig", File, "~/.gitconfig"));
-    v.push(both("git", "ignore", "global ignore", File, "~/.config/git/ignore"));
-    v.push(
-        both("ssh", "config", "config", File, "~/.ssh/config")
-            .secret("Host names, user names and which key opens which server. No keys themselves."),
-    );
-    v.push(d(
-        "pwsh",
-        "profile",
-        "Microsoft.PowerShell_profile.ps1",
-        File,
-        "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1",
-        "~/.config/powershell/Microsoft.PowerShell_profile.ps1",
-    ));
-    v.push(d(
-        "pwsh",
-        "profile-legacy",
-        "Windows PowerShell profile",
-        File,
-        "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1",
-        "",
-    ));
-    for f in [".zshrc", ".bashrc", ".bash_profile", ".zprofile"] {
-        v.push(both("shell", f.trim_start_matches('.'), f, File, &format!("~/{f}")));
-    }
-
-    // Claude Code: only settings and authored content. projects/, history,
-    // debug/, cache/, todos/, statsig/, logs/ and shell snapshots are
-    // transcripts and caches and are never listed.
-    v.push(both("claude", "settings", "settings.json", File, "~/.claude/settings.json"));
-    v.push(both("claude", "claude-md", "CLAUDE.md", File, "~/.claude/CLAUDE.md"));
-    for dir in ["rules", "skills", "agents", "commands", "output-styles"] {
-        v.push(both("claude", dir, dir, Dir, &format!("~/.claude/{dir}")));
-    }
-    v.push(both("claude", "keybindings", "keybindings.json", File, "~/.claude/keybindings.json"));
-    v.push(both("claude", "plugins", "installed_plugins.json", File, "~/.claude/plugins/installed_plugins.json"));
-    v.push(
-        both("claude", "claude-json", ".claude.json", File, "~/.claude.json")
-            .secret("Your MCP servers (with any API keys in their env) and account details."),
-    );
-    v.push(both("claude", "credentials", ".credentials.json", File, "~/.claude/.credentials.json").secret(LOGIN));
-
-    v.push(
-        both("codex", "config", "config.toml", File, "~/.codex/config.toml")
-            .secret("MCP servers in here can carry API keys in their env."),
-    );
-    v.push(both("codex", "agents-md", "AGENTS.md", File, "~/.codex/AGENTS.md"));
-    v.push(both("codex", "skills", "skills", Dir, "~/.codex/skills"));
-    v.push(both("codex", "prompts", "prompts", Dir, "~/.codex/prompts"));
-    v.push(both("codex", "auth", "auth.json", File, "~/.codex/auth.json").secret(LOGIN));
-
-    v.push(both("gemini", "settings", "settings.json", File, "~/.gemini/settings.json"));
-    v.push(both("gemini", "gemini-md", "GEMINI.md", File, "~/.gemini/GEMINI.md"));
-    v.push(both("gemini", "commands", "commands", Dir, "~/.gemini/commands"));
-    v.push(both("gemini", "extensions", "extensions", Dir, "~/.gemini/extensions"));
-    v.push(both("gemini", "env", ".env", File, "~/.gemini/.env").secret(API_KEYS));
-    v.push(both("gemini", "oauth", "oauth_creds.json", File, "~/.gemini/oauth_creds.json").secret(LOGIN));
-    v.push(
-        both("gemini", "accounts", "google_accounts.json", File, "~/.gemini/google_accounts.json")
-            .secret("The Google accounts you signed in with."),
-    );
-
-    v.push(both("copilot", "settings", "settings.json", File, "~/.copilot/settings.json"));
-    v.push(both("copilot", "mcp", "mcp-config.json", File, "~/.copilot/mcp-config.json").secret(MCP_SECRET));
-    v.push(both("copilot", "agents", "agents", Dir, "~/.copilot/agents"));
-    v.push(both("copilot", "skills", "skills", Dir, "~/.copilot/skills"));
-    v.push(both("copilot", "instructions", "copilot-instructions.md", File, "~/.copilot/copilot-instructions.md"));
-    v.push(both("copilot", "config", "config.json", File, "~/.copilot/config.json").secret(LOGIN));
-
-    v.push(both("opencode", "config", "opencode.json", File, "~/.config/opencode/opencode.json"));
-    v.push(both("opencode", "configc", "opencode.jsonc", File, "~/.config/opencode/opencode.jsonc"));
-    v.push(both("opencode", "agents-md", "AGENTS.md", File, "~/.config/opencode/AGENTS.md"));
-    v.push(both("opencode", "agents", "agents", Dir, "~/.config/opencode/agents"));
-    v.push(both("opencode", "commands", "commands", Dir, "~/.config/opencode/commands"));
-
-    v.push(both("aider", "conf", ".aider.conf.yml", File, "~/.aider.conf.yml").secret(API_KEYS));
-    v.push(both("continue", "yaml", "config.yaml", File, "~/.continue/config.yaml").secret(API_KEYS));
-    v.push(both("continue", "json", "config.json", File, "~/.continue/config.json").secret(API_KEYS));
-    v.push(both("amp", "settings", "settings.json", File, "~/.config/amp/settings.json"));
-    v.push(d("goose", "config", "config.yaml", File, "%APPDATA%/Block/goose/config/config.yaml", "~/.config/goose/config.yaml"));
-    v.push(
-        d("goose", "secrets", "secrets.yaml", File, "%APPDATA%/Block/goose/config/secrets.yaml", "~/.config/goose/secrets.yaml")
-            .secret(API_KEYS),
-    );
-    v.push(
-        both("claude-desktop", "config", "claude_desktop_config.json", File, "%APPDATA%/Claude/claude_desktop_config.json")
-            .secret(MCP_SECRET),
-    );
-    v.push(both("agents", "skills", "skills", Dir, "~/.agents/skills"));
-    v
+    let c = &crate::defs::get().configs;
+    c.items
+        .iter()
+        .map(|i| {
+            let secret: Option<&'static str> = i.secret.as_deref().map(|s| match s.strip_prefix('@') {
+                Some(k) => c.secrets.get(k).map(String::as_str).unwrap_or(""),
+                None => s,
+            });
+            let both = i.path.clone();
+            Def {
+                id: format!("{}:{}", i.tool, i.slug),
+                tool: i.tool.as_str(),
+                label: i.label.clone(),
+                kind: i.kind,
+                win: both.clone().or_else(|| i.windows.clone()),
+                mac: both.or_else(|| i.unix.clone()),
+                cli: if i.kind == Kind::Extensions { editor_cli(&i.tool) } else { None },
+                sensitive: secret.is_some(),
+                secret: secret.unwrap_or(""),
+                default_on: !i.off,
+            }
+        })
+        .collect()
 }
 
 fn jetbrains_def(dir: &str) -> Option<Def> {
@@ -719,7 +597,7 @@ pub fn list_sources() -> Vec<ConfigTool> {
     let b = Bases::current();
     let defs = all_defs(&b);
     let items: Vec<ConfigItem> = defs.par_iter().filter_map(|d| probe(d, &b)).collect();
-    TOOLS
+    tools()
         .iter()
         .filter_map(|(id, name)| {
             let items: Vec<ConfigItem> = items.iter().filter(|i| i.tool == *id).cloned().collect();
@@ -1954,33 +1832,34 @@ impl Plan {
     }
 }
 
-const EDITORS: [(&str, &str, &str); 4] = [
-    ("vscode", "VS Code", "%APPDATA%/Code/User"),
-    ("cursor", "Cursor", "%APPDATA%/Cursor/User"),
-    ("windsurf", "Windsurf", "%APPDATA%/Windsurf/User"),
-    ("vscodium", "VSCodium", "%APPDATA%/VSCodium/User"),
-];
-const INSTRUCTIONS: [(&str, &str, &str); 5] = [
-    ("claude", "Claude Code", "~/.claude/CLAUDE.md"),
-    ("codex", "Codex", "~/.codex/AGENTS.md"),
-    ("gemini", "Gemini CLI", "~/.gemini/GEMINI.md"),
-    ("copilot", "GitHub Copilot CLI", "~/.copilot/copilot-instructions.md"),
-    ("opencode", "OpenCode", "~/.config/opencode/AGENTS.md"),
-];
-const SKILL_TARGETS: [(&str, &str, &str); 3] = [
-    ("agents", "Shared (Codex, OpenCode)", "~/.agents/skills"),
-    ("copilot", "GitHub Copilot CLI", "~/.copilot/skills"),
-    ("cursor", "Cursor", "~/.cursor/skills"),
-];
-const COMMAND_TARGETS: [(&str, &str, &str); 3] = [
-    ("gemini", "Gemini CLI", "~/.gemini/commands"),
-    ("opencode", "OpenCode", "~/.config/opencode/commands"),
-    ("claude-skills", "Claude Code skills", "~/.claude/skills"),
-];
-const AGENT_TARGETS: [(&str, &str, &str); 2] =
-    [("opencode", "OpenCode", "~/.config/opencode/agents"), ("copilot", "GitHub Copilot CLI", "~/.copilot/agents")];
+/// Where cross-tool copies read and write (definitions/configs.json).
+type Table = Vec<(&'static str, &'static str, &'static str)>;
 
-fn tpl_of<'a>(table: &'a [(&str, &str, &'a str)], id: &str) -> Option<&'a str> {
+fn table(v: &'static [crate::defs::Endpoint]) -> Table {
+    v.iter().map(|e| (e.id.as_str(), e.name.as_str(), e.path.as_str())).collect()
+}
+
+fn editors() -> Table {
+    table(&crate::defs::get().configs.copy_targets.editors)
+}
+
+fn instruction_table() -> Table {
+    table(&crate::defs::get().configs.copy_targets.instructions)
+}
+
+fn skill_targets() -> Table {
+    table(&crate::defs::get().configs.copy_targets.skills)
+}
+
+fn command_targets() -> Table {
+    table(&crate::defs::get().configs.copy_targets.commands)
+}
+
+fn agent_targets() -> Table {
+    table(&crate::defs::get().configs.copy_targets.agents)
+}
+
+fn tpl_of(table: &[(&str, &str, &'static str)], id: &str) -> Option<&'static str> {
     table.iter().find(|(i, _, _)| *i == id).map(|(_, _, t)| *t)
 }
 
@@ -2031,7 +1910,7 @@ fn target_eps(table: &[(&str, &str, &str)], b: &Bases) -> Vec<Endpoint> {
 }
 
 fn migrations(b: &Bases) -> Vec<Migration> {
-    let editors: Vec<Endpoint> = EDITORS
+    let editors: Vec<Endpoint> = editors()
         .iter()
         .map(|(id, name, t)| {
             let p = expand(t, b);
@@ -2049,7 +1928,7 @@ fn migrations(b: &Bases) -> Vec<Migration> {
     let agent_dir = expand("~/.claude/agents", b);
     let agents = md_files(&agent_dir).len();
 
-    let instructions: Vec<Endpoint> = INSTRUCTIONS
+    let instructions: Vec<Endpoint> = instruction_table()
         .iter()
         .map(|(id, name, t)| {
             let p = expand(t, b);
@@ -2058,7 +1937,7 @@ fn migrations(b: &Bases) -> Vec<Migration> {
             endpoint(id, name, p, found, detail)
         })
         .collect();
-    let instruction_targets: Vec<Endpoint> = INSTRUCTIONS
+    let instruction_targets: Vec<Endpoint> = instruction_table()
         .iter()
         .map(|(id, name, t)| {
             let p = expand(t, b);
@@ -2103,7 +1982,7 @@ fn migrations(b: &Bases) -> Vec<Migration> {
             title: "Skills".into(),
             about: "Claude Code skill folders into the folders other agents read. ~/.agents/skills is shared by Codex and OpenCode.".into(),
             sources: claude(skills_dir, skills, "skill"),
-            targets: target_eps(&SKILL_TARGETS, b),
+            targets: target_eps(&skill_targets(), b),
             extensions: false,
         },
         Migration {
@@ -2111,7 +1990,7 @@ fn migrations(b: &Bases) -> Vec<Migration> {
             title: "Slash commands".into(),
             about: "Claude Code commands converted to Gemini TOML commands, copied to OpenCode, or turned into Claude skills.".into(),
             sources: claude(cmd_dir, commands, "command"),
-            targets: target_eps(&COMMAND_TARGETS, b),
+            targets: target_eps(&command_targets(), b),
             extensions: false,
         },
         Migration {
@@ -2119,7 +1998,7 @@ fn migrations(b: &Bases) -> Vec<Migration> {
             title: "Subagents".into(),
             about: "Claude Code subagents as OpenCode subagents and Copilot custom agents. Tool lists are dropped; each tool names tools differently.".into(),
             sources: claude(agent_dir, agents, "agent"),
-            targets: target_eps(&AGENT_TARGETS, b),
+            targets: target_eps(&agent_targets(), b),
             extensions: false,
         },
         Migration {
@@ -2166,7 +2045,7 @@ fn build_plan(id: &str, o: &MigrateOptions) -> Res<(String, Plan)> {
     let mut p = Plan { b: b.clone(), steps: vec![], ops: vec![] };
     match id {
         "editor" => {
-            let root = |id: &str| expand(tpl_of(&EDITORS, id).unwrap_or(""), &b);
+            let root = |id: &str| expand(tpl_of(&editors(), id).unwrap_or(""), &b);
             let src = root(&from);
             let exts = if o.extensions { editor_cli(&from).and_then(cli).and_then(|c| list_extensions(&c)) } else { None };
             for t in &to {
@@ -2199,7 +2078,7 @@ fn build_plan(id: &str, o: &MigrateOptions) -> Res<(String, Plan)> {
         "skills" => {
             for (name, dir) in subdirs(&expand("~/.claude/skills", &b)) {
                 for t in &to {
-                    let root = expand(tpl_of(&SKILL_TARGETS, t).unwrap_or(""), &b);
+                    let root = expand(tpl_of(&skill_targets(), t).unwrap_or(""), &b);
                     p.copy(&dir, &root.join(&name), o.overwrite, true);
                 }
             }
@@ -2209,7 +2088,7 @@ fn build_plan(id: &str, o: &MigrateOptions) -> Res<(String, Plan)> {
                 let Ok(text) = fs::read_to_string(&file) else { continue };
                 let from_disp = p.disp(&file);
                 for t in &to {
-                    let root = expand(tpl_of(&COMMAND_TARGETS, t).unwrap_or(""), &b);
+                    let root = expand(tpl_of(&command_targets(), t).unwrap_or(""), &b);
                     match t.as_str() {
                         "gemini" => {
                             let Some(dest) = safe_join(&root, &format!("{rel}.toml")) else { continue };
@@ -2239,7 +2118,7 @@ fn build_plan(id: &str, o: &MigrateOptions) -> Res<(String, Plan)> {
                 let n = rel.replace('/', "-");
                 let from_disp = p.disp(&file);
                 for t in &to {
-                    let root = expand(tpl_of(&AGENT_TARGETS, t).unwrap_or(""), &b);
+                    let root = expand(tpl_of(&agent_targets(), t).unwrap_or(""), &b);
                     let (dest, content) = if t == "opencode" {
                         (root.join(format!("{n}.md")), agent_to_opencode(&n, &text))
                     } else {
@@ -2250,13 +2129,13 @@ fn build_plan(id: &str, o: &MigrateOptions) -> Res<(String, Plan)> {
             }
         }
         "instructions" => {
-            let src = expand(tpl_of(&INSTRUCTIONS, &from).unwrap_or(""), &b);
+            let src = expand(tpl_of(&instruction_table(), &from).unwrap_or(""), &b);
             let text = fs::read_to_string(&src).map_err(es)?;
             let (content, n) = inline_imports(&text, src.parent().unwrap_or(&b.home), &b.home);
             let detail = if n > 0 { format!("{} inlined", plural(n, "@import")) } else { String::new() };
             let from_disp = p.disp(&src);
             for t in &to {
-                let dest = expand(tpl_of(&INSTRUCTIONS, t).unwrap_or(""), &b);
+                let dest = expand(tpl_of(&instruction_table(), t).unwrap_or(""), &b);
                 p.write(from_disp.clone(), &dest, content.clone(), o.overwrite, "copy", &detail);
             }
         }
@@ -2611,3 +2490,5 @@ mod tests {
         assert!(doc.contains("Back up the existing file"));
     }
 }
+
+

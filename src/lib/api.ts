@@ -159,6 +159,19 @@ export type AppInfo = {
 }
 export type UpdateInfo = { current: string; latest: string; newer: boolean; url: string; publishedAt: string; notes: string }
 
+export type DefinitionsInfo = {
+  version: string
+  builtinVersion: string
+  schema: number
+  source: "built-in" | "folder"
+  folder: string | null
+  folderExists: boolean
+  files: string[]
+  loadedAt: number
+  error: string | null
+  counts: { caches: number; junk: number; projects: number; processes: number; ports: number; models: number; configs: number }
+}
+
 const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 
 export const api = {
@@ -182,6 +195,9 @@ export const api = {
   platform: () => invoke<string>("platform"),
   appInfo: () => invoke<AppInfo>("app_info"),
   checkUpdate: () => invoke<UpdateInfo>("check_update"),
+  definitionsInfo: () => invoke<DefinitionsInfo>("definitions_info"),
+  reloadDefinitions: () => invoke<DefinitionsInfo>("reload_definitions"),
+  openDefinitionsFolder: () => invoke<void>("open_definitions_folder"),
   loadSettings: () => invoke<Record<string, unknown> | null>("load_settings"),
   saveSettings: (settings: unknown) => invoke<void>("save_settings", { settings }),
   saveFile: (path: string, base64: string) => invoke<void>("save_file", { path, base64 }),

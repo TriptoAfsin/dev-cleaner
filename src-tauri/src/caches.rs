@@ -2,14 +2,15 @@
 //! they are, and how to clean them. A tool's own clean command is preferred;
 //! deleting the folder is the fallback.
 
-use crate::util::{self, dir_size, home};
+use crate::defs;
+use crate::util::{self, dir_size};
 use rayon::prelude::*;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
 use std::time::Duration;
 use tauri::{AppHandle, Emitter};
 
-#[derive(Serialize, Clone, Copy, PartialEq, Eq)]
+#[derive(Serialize, Deserialize, Clone, Copy, PartialEq, Eq, Debug)]
 #[serde(rename_all = "camelCase")]
 pub enum Risk {
     /// Rebuilt on demand, nothing of yours is lost.
@@ -21,20 +22,11 @@ pub enum Risk {
     Data,
 }
 
-/// Sub-folders of `dir` whose names pass `keep`, each joined with `tail`.
-pub(crate) fn children(dir: &std::path::Path, keep: impl Fn(&str) -> bool, tail: &[&str]) -> Vec<PathBuf> {
-    let Ok(rd) = std::fs::read_dir(dir) else { return vec![] };
-    rd.flatten()
-        .filter(|e| e.file_type().is_ok_and(|t| t.is_dir()))
-        .filter(|e| keep(&e.file_name().to_string_lossy()))
-        .flat_map(|e| tail.iter().map(move |t| e.path().join(t)).collect::<Vec<_>>())
-        .collect()
-}
-
 #[derive(Clone)]
 pub(crate) enum How {
-    /// Run the tool's own command; delete the folders if it is missing or fails.
-    Tool { tool: &'static str, args: &'static [&'static str] },
+    /// Run the tool's own command; delete the folders if it is missing or
+    /// fails. With `per_path`, run once per existing path, `{path}` replaced.
+    Tool { tool: &'static str, args: Vec<&'static str>, per_path: Vec<&'static str> },
     /// Delete the folders' contents.
     Delete,
     /// Delete entries older than this many hours (temp folders: installers
@@ -49,9 +41,10 @@ pub(crate) enum How {
     /// single elevated script (one UAC / password prompt). `days` deletes
     /// only entries older than that in each path; `pre`/`post` stop and
     /// restart services; `cmd` runs a command (DISM, journalctl, apt-get).
+    /// The commands come from the app's own list (junk::admin_action).
     Admin { days: Option<u32>, pre: &'static str, cmd: &'static str, post: &'static str },
     /// A command that measures nothing up front (qlmanage, flatpak).
-    Command { tool: &'static str, args: &'static [&'static str] },
+    Command { tool: &'static str, args: Vec<&'static str> },
 }
 
 #[derive(Clone)]
@@ -65,6 +58,10 @@ pub(crate) struct Target {
     pub how: How,
     /// Listed on the System junk page rather than Disk cleanup.
     pub junk: bool,
+    /// Tool queries for where the cache really is.
+    pub ask: &'static [defs::Ask],
+    /// An engine step to run before cleaning (stop Gradle daemons).
+    pub before: Option<&'static str>,
 }
 
 #[derive(Serialize, Clone)]
@@ -90,48 +87,23 @@ pub struct CacheItem {
 
 /// Where each tool says its cache is. Tools move caches with config and env
 /// vars (npm `cache`, `PNPM_STORE_DIR`, `GOCACHE`...), so the default paths
-/// below are only a starting point.
-fn reported(id: &str, drives: Option<&[String]>) -> Vec<PathBuf> {
-    let ask: &[(&str, &[&str])] = match id {
-        "npm" => &[("npm", &["config", "get", "cache"])],
-        "pnpm" => &[("pnpm", &["store", "path"])],
-        "yarn" => &[("yarn", &["cache", "dir"])],
-        "bun" => &[("bun", &["pm", "cache"])],
-        "pip" => &[("pip", &["cache", "dir"])],
-        "uv" => &[("uv", &["cache", "dir"])],
-        "go-build" => &[("go", &["env", "GOCACHE"])],
-        "go-mod" => &[("go", &["env", "GOMODCACHE"])],
-        _ => &[],
-    };
+/// are only a starting point.
+fn reported(t: &Target) -> Vec<PathBuf> {
     let mut out = vec![];
-    for (tool, args) in ask {
-        let Some(exe) = which(tool) else { continue };
-        let Some(text) = util::run_capture(&exe, args, Duration::from_secs(8)) else { continue };
+    for a in t.ask {
+        let Some(exe) = which(&a.tool) else { continue };
+        let args: Vec<&str> = a.args.iter().map(String::as_str).collect();
+        let Some(text) = util::run_capture(&exe, &args, Duration::from_secs(8)) else { continue };
         let line = text.lines().map(str::trim).find(|l| !l.is_empty()).unwrap_or("");
         let p = PathBuf::from(line.trim_end_matches(['/', '\\']));
         if p.is_absolute() && p.is_dir() {
-            // pnpm and npm print the versioned folder (store\v10, _cacache's
-            // parent); keep pnpm's store root so every version is counted.
-            let p = if id == "pnpm" && p.file_name().is_some_and(|n| n.to_string_lossy().starts_with('v')) {
-                p.parent().map(PathBuf::from).unwrap_or(p)
-            } else {
-                p
-            };
-            out.push(p);
-        }
-    }
-    // pnpm keeps one store per drive (hard links cannot cross drives), at the
-    // drive root: T:\.pnpm-store. Look on every drive.
-    if id == "pnpm" && cfg!(windows) && util::fake_home().is_none() {
-        for d in sysinfo::Disks::new_with_refreshed_list().list() {
-            let mount = d.mount_point().to_string_lossy().trim_end_matches(['\\', '/']).to_ascii_lowercase();
-            if drives.is_some_and(|ds| !ds.iter().any(|x| x.trim_end_matches(['\\', '/']).to_ascii_lowercase() == mount)) {
-                continue;
-            }
-            let p = d.mount_point().join(".pnpm-store");
-            if p.is_dir() {
-                out.push(p);
-            }
+            // Some tools print a versioned folder (pnpm's store\v10); keep the
+            // root so every version is counted.
+            let versioned = p.file_name().is_some_and(|n| {
+                let n = n.to_string_lossy();
+                n.len() > 1 && n.starts_with('v') && n[1..].chars().all(|c| c.is_ascii_digit())
+            });
+            out.push(if versioned { p.parent().map(PathBuf::from).unwrap_or(p) } else { p });
         }
     }
     out
@@ -156,8 +128,6 @@ fn dedupe(paths: Vec<PathBuf>) -> Vec<PathBuf> {
     out
 }
 
-/// `drives` limits per-drive locations (pnpm stores) to the drives chosen in
-/// Settings; None means every drive.
 /// The drives chosen in Settings for the last scan. A clean uses the same
 /// set, so it never reaches a drive the scan didn't show.
 static LAST_DRIVES: std::sync::Mutex<Option<Vec<String>>> = std::sync::Mutex::new(None);
@@ -166,8 +136,9 @@ pub(crate) fn chosen_drives() -> Option<Vec<String>> {
     LAST_DRIVES.lock().ok().and_then(|d| d.clone())
 }
 
-/// `walk` re-walks the chosen drives for per-drive junk; without it the last
-/// walk's results are reused (a clean right after a scan).
+/// `drives` limits per-drive locations (pnpm stores, the drive walk) to the
+/// drives chosen in Settings; None means every drive. Without `walk` the
+/// last walk's results are reused (a clean right after a scan).
 fn targets(drives: Option<&[String]>) -> Vec<Target> {
     targets_with(drives, false)
 }
@@ -175,214 +146,115 @@ fn targets(drives: Option<&[String]>) -> Vec<Target> {
 fn targets_with(drives: Option<&[String]>, walk: bool) -> Vec<Target> {
     let remembered = chosen_drives();
     let drives = drives.or(remembered.as_deref());
-    let mut t = base_targets();
-    for x in t.iter_mut().filter(|x| matches!(x.id, "temp" | "crashdumps")) {
-        x.junk = true;
-    }
-    t.extend(crate::junk::targets(drives, walk));
-    if util::fake_home().is_none() {
-        let extra: Vec<Vec<PathBuf>> = t.par_iter().map(|x| reported(x.id, drives)).collect();
-        for (x, e) in t.iter_mut().zip(extra) {
-            x.paths.extend(e);
-            x.paths = dedupe(std::mem::take(&mut x.paths));
-        }
-    }
-    t
+    let fake = util::fake_home().is_some();
+    let found = crate::junk::drive_junk(drives, walk);
+    let rules: Vec<&'static defs::CacheRule> = defs::get()
+        .caches
+        .iter()
+        .filter(|r| defs::applies(r))
+        .filter(|r| !(r.real_only && fake))
+        .filter(|r| r.requires.as_deref().is_none_or(|t| which(t).is_some()))
+        .collect();
+    rules
+        .par_iter()
+        .filter_map(|r| {
+            let mut t = target(r, drives, &found)?;
+            if !fake {
+                t.paths.extend(reported(&t));
+            }
+            t.paths = dedupe(std::mem::take(&mut t.paths));
+            Some(t)
+        })
+        .collect()
 }
 
-fn base_targets() -> Vec<Target> {
-    let h = home();
-    let local = util::local_dir();
-    let cache = util::cache_dir();
-    let win = cfg!(windows);
-    let pick = |w: PathBuf, m: PathBuf| if win { w } else { m };
-    let tool = |tool, args| How::Tool { tool, args };
-    let mut t = vec![
-        Target { id: "npm", name: "npm cache", eco: "Node", risk: Risk::Safe,
-            about: "Package tarballs npm keeps after every install. Nothing in your projects points here; the next install downloads what it needs.",
-            paths: vec![pick(local.join("npm-cache"), h.join(".npm"))],
-            junk: false, how: tool("npm", &["cache", "clean", "--force"]) },
-        Target { id: "pnpm", name: "pnpm store", eco: "Node", risk: Risk::Safe,
-            about: "pnpm's content-addressed store. Pruning removes packages no project links to any more.",
-            // Windows %LOCALAPPDATA%\pnpm\store, Linux ~/.local/share/pnpm/store, macOS ~/Library/pnpm/store.
-            paths: vec![local.join("pnpm").join("store"), h.join("Library/pnpm/store")],
-            junk: false, how: tool("pnpm", &["store", "prune"]) },
-        Target { id: "yarn", name: "Yarn cache", eco: "Node", risk: Risk::Safe,
-            about: "Downloaded package archives for Yarn classic and Yarn Berry's global cache.",
-            paths: vec![pick(local.join("Yarn").join("Cache"), cache.join("Yarn")), h.join(".yarn").join("berry").join("cache")],
-            junk: false, how: tool("yarn", &["cache", "clean"]) },
-        Target { id: "bun", name: "Bun install cache", eco: "Bun", risk: Risk::Safe,
-            about: "Packages Bun has downloaded. Bun fetches them again on the next install.",
-            paths: vec![h.join(".bun").join("install").join("cache")],
-            junk: false, how: tool("bun", &["pm", "cache", "rm"]) },
-        Target { id: "deno", name: "Deno cache", eco: "Deno", risk: Risk::Safe,
-            about: "Remote modules and compiled code Deno has cached.",
-            paths: vec![pick(local.join("deno"), cache.join("deno"))],
-            junk: false, how: How::Delete },
-        Target { id: "node-gyp", name: "node-gyp headers", eco: "Node", risk: Risk::Safe,
-            about: "Node headers downloaded to build native addons. Fetched again when an addon is compiled.",
-            paths: vec![pick(local.join("node-gyp").join("Cache"), cache.join("node-gyp"))],
-            junk: false, how: How::Delete },
-        Target { id: "cargo", name: "Cargo registry", eco: "Rust", risk: Risk::Safe,
-            about: "Downloaded crate archives and their unpacked sources. Cargo restores what a build needs.",
-            paths: vec![h.join(".cargo").join("registry").join("cache"), h.join(".cargo").join("registry").join("src")],
-            junk: false, how: How::Delete },
-        Target { id: "cargo-git", name: "Cargo git checkouts", eco: "Rust", risk: Risk::Safe,
-            about: "Git dependencies Cargo has cloned. Cloned again on the next build that uses them.",
-            paths: vec![h.join(".cargo").join("git")],
-            junk: false, how: How::Delete },
-        Target { id: "pip", name: "pip cache", eco: "Python", risk: Risk::Safe,
-            about: "Wheels and downloads pip keeps between installs.",
-            paths: vec![pick(local.join("pip").join("Cache"), cache.join("pip"))],
-            junk: false, how: tool("pip", &["cache", "purge"]) },
-        Target { id: "uv", name: "uv cache", eco: "Python", risk: Risk::Safe,
-            about: "uv's package cache. Virtual envs that hard-link from it keep working.",
-            paths: vec![pick(local.join("uv").join("cache"), h.join(".cache").join("uv"))],
-            junk: false, how: tool("uv", &["cache", "clean"]) },
-        Target { id: "poetry", name: "Poetry cache", eco: "Python", risk: Risk::Safe,
-            about: "Packages and metadata Poetry has downloaded.",
-            paths: vec![pick(local.join("pypoetry").join("Cache"), cache.join("pypoetry"))],
-            junk: false, how: How::Delete },
-        Target { id: "conda", name: "Conda packages", eco: "Python", risk: Risk::Slow,
-            about: "Package tarballs and unused packages Conda keeps. conda clean removes only what no environment uses.",
-            paths: vec![h.join("miniconda3").join("pkgs"), h.join("anaconda3").join("pkgs"), h.join("miniforge3").join("pkgs")],
-            junk: false, how: tool("conda", &["clean", "--all", "-y"]) },
-        Target { id: "go-build", name: "Go build cache", eco: "Go", risk: Risk::Safe,
-            about: "Compiled packages Go reuses between builds. The next build is slower once.",
-            paths: vec![pick(local.join("go-build"), cache.join("go-build"))],
-            junk: false, how: tool("go", &["clean", "-cache"]) },
-        Target { id: "go-mod", name: "Go module cache", eco: "Go", risk: Risk::Slow,
-            about: "Every module version Go has downloaded. Downloaded again by the next build that needs it.",
-            paths: vec![h.join("go").join("pkg").join("mod")],
-            junk: false, how: tool("go", &["clean", "-modcache"]) },
-        Target { id: "gradle", name: "Gradle caches", eco: "Java", risk: Risk::Slow,
-            about: "Dependencies, transforms and build-cache entries Gradle keeps in ~/.gradle/caches. Gradle daemons are stopped first so nothing stays locked; the next build downloads what it needs.",
-            paths: vec![h.join(".gradle").join("caches")],
-            junk: false, how: How::Delete },
-        Target { id: "maven", name: "Maven repository", eco: "Java", risk: Risk::Slow,
-            about: "Your local Maven repository. Anything you installed locally with mvn install is lost too.",
-            paths: vec![h.join(".m2").join("repository")],
-            junk: false, how: How::Delete },
-        Target { id: "nuget", name: "NuGet packages & HTTP cache", eco: ".NET", risk: Risk::Slow,
-            about: "Global NuGet packages plus its HTTP and plugin caches. dotnet restore downloads what a project needs again.",
-            paths: vec![
-                h.join(".nuget").join("packages"),
-                pick(local.join("NuGet").join("v3-cache"), h.join(".local").join("share").join("NuGet").join("http-cache")),
-                pick(local.join("NuGet").join("plugins-cache"), h.join(".local").join("share").join("NuGet").join("plugin-cache")),
-            ],
-            junk: false, how: tool("dotnet", &["nuget", "locals", "all", "--clear"]) },
-        Target { id: "playwright", name: "Playwright browsers", eco: "Testing", risk: Risk::Slow,
-            about: "Browser builds Playwright downloaded for tests. npx playwright install fetches them again.",
-            paths: vec![pick(local.join("ms-playwright"), cache.join("ms-playwright"))],
-            junk: false, how: How::Delete },
-        Target { id: "docker", name: "Docker unused data", eco: "Docker", risk: Risk::Slow,
-            about: "Stopped containers, images no container uses, unused networks and build cache. Running containers and all volumes are kept; images are pulled again when needed.",
-            paths: vec![],
-            junk: false, how: How::Docker },
-    ];
-    // Editors: their own HTTP, GPU and extension-download caches. Files in use
-    // while the editor runs are skipped.
-    let editor_cache = |app: &str| -> Vec<PathBuf> {
-        let base = util::roaming_dir().join(app);
-        ["Cache", "CachedData", "CachedExtensionVSIXs", "Code Cache", "GPUCache", "logs"].iter().map(|d| base.join(d)).collect()
+/// A rule as something the engine can measure and clean.
+fn target(r: &'static defs::CacheRule, drives: Option<&[String]>, walk: &crate::junk::DriveJunk) -> Option<Target> {
+    let strs = |v: &'static [String]| v.iter().map(String::as_str).collect::<Vec<&'static str>>();
+    let how = match &r.how {
+        defs::HowDef::Delete => How::Delete,
+        defs::HowDef::OlderThan { hours } => How::OlderThan(*hours),
+        defs::HowDef::Tool { tool, args, per_path_args } => How::Tool { tool, args: strs(args), per_path: strs(per_path_args) },
+        defs::HowDef::Command { tool, args } => How::Command { tool, args: strs(args) },
+        defs::HowDef::Docker => How::Docker,
+        defs::HowDef::RecycleBin => How::RecycleBin,
+        defs::HowDef::Admin { days, action } => {
+            let (pre, cmd, post) = match action {
+                Some(a) => crate::junk::admin_action(a)?,
+                None => ("", "", ""),
+            };
+            How::Admin { days: *days, pre, cmd, post }
+        }
     };
-    let jetbrains = if win {
-        children(&local.join("JetBrains"), |n| n != "Toolbox" && n.chars().any(|c| c.is_ascii_digit()), &["caches", "index", "log"])
-    } else {
-        children(&cache.join("JetBrains"), |n| n.chars().any(|c| c.is_ascii_digit()), &["caches", "index"])
-    };
-    t.extend([
-        Target { id: "vscode-cache", name: "VS Code caches", eco: "Editors", risk: Risk::Safe,
-            about: "VS Code's web cache, compiled-code cache, downloaded extension packages and logs. Settings and extensions are untouched. Close VS Code first for the most space.",
-            paths: editor_cache("Code"), junk: false, how: How::Delete },
-        Target { id: "cursor-cache", name: "Cursor caches", eco: "Editors", risk: Risk::Safe,
-            about: "Cursor's web cache, compiled-code cache, downloaded extension packages and logs. Settings and chats are untouched.",
-            paths: editor_cache("Cursor"), junk: false, how: How::Delete },
-        Target { id: "jetbrains", name: "JetBrains IDE caches", eco: "Editors", risk: Risk::Slow,
-            about: "Caches, indexes and logs of every JetBrains IDE version. The IDE re-indexes on next open. Settings, plugins and Local History are kept.",
-            paths: jetbrains, junk: false, how: How::Delete },
-        Target { id: "cypress", name: "Cypress binaries", eco: "Testing", risk: Risk::Slow,
-            about: "Cypress app binaries for every version you have installed. npm install downloads the one a project needs.",
-            paths: vec![pick(local.join("Cypress").join("Cache"), cache.join("Cypress"))], junk: false, how: How::Delete },
-        Target { id: "puppeteer", name: "Puppeteer browsers", eco: "Testing", risk: Risk::Slow,
-            about: "Chrome for Testing builds Puppeteer downloaded. Fetched again on the next install.",
-            paths: vec![h.join(".cache").join("puppeteer")], junk: false, how: How::Delete },
-        Target { id: "electron", name: "Electron downloads", eco: "Desktop", risk: Risk::Slow,
-            about: "Electron and electron-builder downloads (runtimes, NSIS, code-sign tools). Fetched again by the next install or build.",
-            paths: vec![pick(local.join("electron").join("Cache"), cache.join("electron")), pick(local.join("electron-builder").join("Cache"), cache.join("electron-builder")), h.join(".electron")],
-            junk: false, how: How::Delete },
-        Target { id: "composer", name: "Composer cache", eco: "PHP", risk: Risk::Safe,
-            about: "Package archives and repository metadata Composer caches.",
-            paths: vec![pick(local.join("Composer"), cache.join("composer"))], junk: false, how: tool("composer", &["clear-cache"]) },
-        Target { id: "pub", name: "Dart / Flutter pub cache", eco: "Dart", risk: Risk::Slow,
-            about: "Every Dart and Flutter package version pub has downloaded. Also removes globally activated packages; reactivate them with dart pub global activate.",
-            paths: vec![pick(local.join("Pub").join("Cache"), h.join(".pub-cache"))], junk: false, how: How::Delete },
-        Target { id: "coursier", name: "Coursier / Ivy cache", eco: "Scala", risk: Risk::Slow,
-            about: "Artifacts downloaded by sbt, Mill and scala-cli through Coursier and Ivy.",
-            paths: vec![pick(local.join("Coursier").join("Cache"), cache.join("Coursier")), h.join(".coursier").join("cache"), h.join(".ivy2").join("cache")],
-            junk: false, how: How::Delete },
-        Target { id: "zig", name: "Zig global cache", eco: "Zig", risk: Risk::Safe,
-            about: "Zig's global build and package cache. Rebuilt by the next zig build.",
-            paths: vec![pick(local.join("zig"), cache.join("zig")), h.join(".cache").join("zig")], junk: false, how: How::Delete },
-        Target { id: "vcpkg", name: "vcpkg binary cache", eco: "C/C++", risk: Risk::Slow,
-            about: "Prebuilt C/C++ libraries vcpkg reuses. Without them, packages build from source again.",
-            paths: vec![pick(local.join("vcpkg").join("archives"), h.join(".cache").join("vcpkg").join("archives"))], junk: false, how: How::Delete },
-        Target { id: "conan", name: "Conan package cache", eco: "C/C++", risk: Risk::Slow,
-            about: "Conan 2's package storage. Profiles and remotes in ~/.conan2 are kept.",
-            paths: vec![h.join(".conan2").join("p")], junk: false, how: How::Delete },
-        Target { id: "ccache", name: "ccache / sccache", eco: "C/C++", risk: Risk::Safe,
-            about: "Compiler output caches. The next build is slower once.",
-            paths: vec![h.join(".ccache"), pick(local.join("ccache"), cache.join("ccache")), pick(local.join("Mozilla").join("sccache"), cache.join("Mozilla.sccache"))],
-            junk: false, how: How::Delete },
-        Target { id: "rustup-tmp", name: "rustup downloads", eco: "Rust", risk: Risk::Safe,
-            about: "Leftover toolchain downloads and temp files. Installed toolchains are kept.",
-            paths: vec![h.join(".rustup").join("downloads"), h.join(".rustup").join("tmp")], junk: false, how: How::Delete },
-        Target { id: "pre-commit", name: "pre-commit environments", eco: "Python", risk: Risk::Safe,
-            about: "Hook environments pre-commit builds. Rebuilt the next time hooks run.",
-            paths: vec![h.join(".cache").join("pre-commit")], junk: false, how: How::Delete },
-    ]);
-    t.extend(crate::langs::targets(&h));
-    t.extend(ai_targets(&h, &local, &cache, win));
-    if win {
-        t.push(Target { id: "scoop", name: "Scoop download cache", eco: "System", risk: Risk::Safe,
-            about: "Installers Scoop downloaded. Installed apps are kept.",
-            paths: vec![h.join("scoop").join("cache")], junk: false, how: How::Delete });
-        t.push(Target { id: "temp", name: "Temp files", eco: "System", risk: Risk::Safe,
-            about: "Your user temp folder. Only items older than a day are removed, and anything in use is skipped.",
-            paths: vec![util::temp_dir()],
-            junk: false, how: How::OlderThan(24) });
-        t.push(Target { id: "crashdumps", name: "Crash dumps", eco: "System", risk: Risk::Safe,
-            about: "Memory dumps written when apps crashed. Only useful when reporting that crash.",
-            paths: vec![local.join("CrashDumps")],
-            junk: false, how: How::Delete });
-    } else if cfg!(target_os = "macos") {
-        t.push(Target { id: "xcode", name: "Xcode DerivedData", eco: "Apple", risk: Risk::Safe,
-            about: "Build products and indexes for every Xcode project. Rebuilt on the next build.",
-            paths: vec![h.join("Library/Developer/Xcode/DerivedData")],
-            junk: false, how: How::Delete });
-        t.push(Target { id: "cocoapods", name: "CocoaPods cache", eco: "Apple", risk: Risk::Slow,
-            about: "Pod specs and sources CocoaPods caches. pod install fetches them again.",
-            paths: vec![cache.join("CocoaPods")], junk: false, how: tool("pod", &["cache", "clean", "--all"]) });
-        t.push(Target { id: "simulator", name: "Simulator caches", eco: "Apple", risk: Risk::Safe,
-            about: "Caches for iOS simulators. Your simulator devices are kept.",
-            paths: vec![h.join("Library/Developer/CoreSimulator/Caches")],
-            junk: false, how: How::Delete });
-        t.push(Target { id: "homebrew", name: "Homebrew cache", eco: "System", risk: Risk::Safe,
-            about: "Downloaded bottles and source archives. brew cleanup removes the old ones.",
-            paths: vec![cache.join("Homebrew")],
-            junk: false, how: tool("brew", &["cleanup", "-s", "--prune=all"]) });
-    } else {
-        // Linux
-        t.push(Target { id: "temp", name: "Temp files", eco: "System", risk: Risk::Safe,
-            about: "Your files in /tmp. Only items older than a day are removed, and anything in use is skipped.",
-            paths: vec![util::temp_dir()],
-            junk: false, how: How::OlderThan(24) });
-        t.push(Target { id: "homebrew", name: "Homebrew cache", eco: "System", risk: Risk::Safe,
-            about: "Downloaded bottles and source archives from Homebrew on Linux. brew cleanup removes the old ones.",
-            paths: vec![cache.join("Homebrew")],
-            junk: false, how: tool("brew", &["cleanup", "-s", "--prune=all"]) });
+    let mut paths = vec![];
+    for e in &r.paths {
+        expand_entry(e, drives, walk, &mut paths);
     }
-    t
+    Some(Target { id: &r.id, name: &r.name, eco: &r.eco, about: &r.about, risk: r.risk, paths, how, junk: r.junk, ask: &r.ask, before: r.before.as_deref() })
+}
+
+fn expand_entry(e: &defs::PathEntry, drives: Option<&[String]>, walk: &crate::junk::DriveJunk, out: &mut Vec<PathBuf>) {
+    use defs::PathEntry;
+    match e {
+        PathEntry::Template(t) => out.extend(defs::expand(t)),
+        PathEntry::PerOs(p) => {
+            if let Some(x) = p.pick() {
+                expand_entry(x, drives, walk, out);
+            }
+        }
+        PathEntry::Expand(x) => {
+            let dir = || defs::expand(&x.dir);
+            match x.expand.as_str() {
+                "children" => {
+                    let Some(d) = dir() else { return };
+                    let versioned = x.matching.as_deref() == Some("versioned");
+                    let keep = |n: &str| {
+                        (!versioned || n.chars().any(|c| c.is_ascii_digit()))
+                            && !x.except.iter().any(|e| e == n)
+                            && !x.except_prefix.iter().any(|p| n.starts_with(p.as_str()))
+                    };
+                    let Ok(rd) = std::fs::read_dir(&d) else { return };
+                    for e in rd.flatten().filter(|e| e.file_type().is_ok_and(|t| t.is_dir())) {
+                        if !keep(&e.file_name().to_string_lossy()) {
+                            continue;
+                        }
+                        for tail in &x.tail {
+                            out.push(if tail.is_empty() { e.path() } else { e.path().join(tail) });
+                        }
+                    }
+                }
+                "chromium-profiles" => out.extend(dir().map(|d| crate::junk::chromium(&d)).unwrap_or_default()),
+                "files" => {
+                    let ext: Vec<&str> = x.ext.iter().map(String::as_str).collect();
+                    let prefix: Vec<&str> = x.prefix.iter().map(String::as_str).collect();
+                    let prefix = (!prefix.is_empty()).then_some(prefix.as_slice());
+                    out.extend(dir().map(|d| crate::junk::files_with(&d, &ext, prefix)).unwrap_or_default());
+                }
+                "drive-walk" => out.extend(match x.find.as_deref() {
+                    Some("partials") => walk.partials.clone(),
+                    Some("thumbs") => walk.thumbs.clone(),
+                    Some("shader-caches") => walk.shader_caches.clone(),
+                    _ => vec![],
+                }),
+                // One folder per drive root (pnpm keeps a store per drive, since
+                // hard links can't cross drives). Never under the fake home.
+                "drive-roots" if util::fake_home().is_none() => {
+                    for d in sysinfo::Disks::new_with_refreshed_list().list() {
+                        if !crate::junk::drive_chosen(d.mount_point(), drives) {
+                            continue;
+                        }
+                        for tail in &x.tail {
+                            let p = d.mount_point().join(tail);
+                            if p.is_dir() {
+                                out.push(p);
+                            }
+                        }
+                    }
+                }
+                _ => {}
+            }
+        }
+    }
 }
 
 /// A cache tool on PATH. Under the e2e fake home, none: the real `npm cache
@@ -394,68 +266,9 @@ pub(crate) fn which(name: &str) -> Option<std::path::PathBuf> {
     util::which(name)
 }
 
-/// AI and machine-learning caches: things rebuilt or re-downloaded on demand.
-/// Downloaded models live on the AI models page instead, and the Hugging Face
-/// folder is cleaned by named sub-folder only, because it also holds the
-/// `token` credential.
-fn ai_targets(h: &std::path::Path, local: &std::path::Path, cache: &std::path::Path, win: bool) -> Vec<Target> {
-    let env_dir = |k: &str| std::env::var_os(k).map(PathBuf::from).filter(|_| util::fake_home().is_none());
-    let hf = env_dir("HF_HOME").unwrap_or_else(|| h.join(".cache").join("huggingface"));
-    let user = std::env::var("USERNAME").or_else(|_| std::env::var("USER")).unwrap_or_default();
-    let tmp = util::temp_dir();
-    let mut gpu = vec![];
-    if win {
-        let nv = local.join("NVIDIA");
-        let amd = local.join("AMD");
-        gpu.extend([nv.join("DXCache"), nv.join("GLCache"), local.join("NVIDIA Corporation").join("NV_Cache"), util::roaming_dir().join("NVIDIA").join("ComputeCache")]);
-        gpu.extend(["DxCache", "DxcCache", "VkCache", "GLCache"].iter().map(|d| amd.join(d)));
-        gpu.push(local.join("D3DSCache"));
-        if let Some(parent) = local.parent() {
-            gpu.push(parent.join("LocalLow").join("Intel").join("ShaderCache"));
-        }
-    }
-    vec![
-        Target { id: "hf-datasets", name: "Hugging Face datasets cache", eco: "AI / ML", risk: Risk::Slow,
-            about: "Arrow files and map() results from load_dataset. Rebuilt from the Hub the next time a script loads the dataset. Your token and models are not touched.",
-            paths: vec![env_dir("HF_DATASETS_CACHE").unwrap_or_else(|| hf.join("datasets"))], junk: false, how: How::Delete },
-        Target { id: "hf-misc", name: "Hugging Face assets & legacy cache", eco: "AI / ML", risk: Risk::Safe,
-            about: "Library assets, remote-code modules, the xet shard cache and the pre-2022 transformers cache that newer versions no longer read.",
-            paths: vec![hf.join("assets"), hf.join("modules"), hf.join("xet"), hf.join("transformers")], junk: false, how: How::Delete },
-        Target { id: "torch-compile", name: "torch.compile / Triton / vLLM caches", eco: "AI / ML", risk: Risk::Safe,
-            about: "Kernels compiled by torch.compile (Inductor), Triton, torch C++ extensions (DeepSpeed ops) and vLLM. Recompiled on the next run; only the first run is slower.",
-            paths: vec![
-                env_dir("TORCHINDUCTOR_CACHE_DIR").unwrap_or_else(|| tmp.join(format!("torchinductor_{user}"))),
-                env_dir("TRITON_CACHE_DIR").unwrap_or_else(|| h.join(".triton").join("cache")),
-                if win { local.join("torch_extensions") } else { cache.join("torch_extensions") },
-                h.join(".cache").join("torch_extensions"),
-                env_dir("VLLM_CACHE_ROOT").unwrap_or_else(|| h.join(".cache").join("vllm")).join("torch_compile_cache"),
-            ],
-            junk: false, how: How::Delete },
-        Target { id: "torch-hub", name: "PyTorch hub & checkpoints", eco: "AI / ML", risk: Risk::Slow,
-            about: "Pretrained weights fetched by torch.hub, torchvision and older timm. Downloaded again on first use.",
-            paths: vec![env_dir("TORCH_HOME").unwrap_or_else(|| h.join(".cache").join("torch")).join("hub")], junk: false, how: How::Delete },
-        Target { id: "keras", name: "Keras / TF Hub downloads", eco: "AI / ML", risk: Risk::Slow,
-            about: "Datasets and weights from keras.utils.get_file and keras.applications, and TensorFlow Hub modules. Downloaded again on demand.",
-            paths: vec![h.join(".keras").join("datasets"), h.join(".keras").join("models"), env_dir("TFHUB_CACHE_DIR").unwrap_or_else(|| tmp.join("tfhub_modules"))],
-            junk: false, how: How::Delete },
-        Target { id: "tfds-downloads", name: "TensorFlow Datasets downloads", eco: "AI / ML", risk: Risk::Slow,
-            about: "Raw archives TFDS downloaded before preparing datasets. Prepared datasets and files you placed in downloads/manual are kept.",
-            paths: vec![h.join("tensorflow_datasets").join("downloads").join("extracted")], junk: false, how: How::Delete },
-        Target { id: "wandb-cache", name: "Weights & Biases cache", eco: "AI / ML", risk: Risk::Safe,
-            about: "Artifact and media cache W&B keeps locally. Runs on wandb.ai and local run folders are not touched.",
-            paths: vec![env_dir("WANDB_CACHE_DIR").unwrap_or_else(|| h.join(".cache").join("wandb"))], junk: false, how: How::Delete },
-        Target { id: "gradio", name: "Gradio temp files", eco: "AI / ML", risk: Risk::Safe,
-            about: "Uploads and outputs Gradio apps wrote to temp. Only items older than a day are removed.",
-            paths: vec![env_dir("GRADIO_TEMP_DIR").unwrap_or_else(|| tmp.join("gradio"))], junk: false, how: How::OlderThan(24) },
-        Target { id: "gpu-shaders", name: "GPU shader caches", eco: "System", risk: Risk::Safe,
-            about: "Compiled shaders and CUDA kernels cached by NVIDIA, AMD, Intel and DirectX. Rebuilt as apps run; the first launch after is a little slower. Close games and GPU apps first.",
-            paths: gpu, junk: false, how: How::Delete },
-    ]
-}
-
 fn method(how: &How) -> String {
     match how {
-        How::Tool { tool, args } => {
+        How::Tool { tool, args, .. } => {
             if which(tool).is_some() {
                 format!("{tool} {}", args.join(" "))
             } else {
@@ -717,7 +530,7 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
     }
 
     // Running Gradle daemons keep caches open; stop them once first.
-    if picked.iter().any(|t| t.id.starts_with("gradle")) {
+    if picked.iter().any(|t| t.before == Some("stop-gradle")) {
         if let Some(g) = which("gradle") {
             util::run_ok(&g, &["--stop"], Duration::from_secs(60));
         }
@@ -727,7 +540,7 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
         let id = t.id.to_string();
         emit(&CleanEvent { id: id.clone(), phase: "running".into(), freed: 0, skipped: 0, note: method(&t.how), ..Default::default() });
         let ticker = Ticker::start(app, &id, &match &t.how {
-            How::Tool { tool, args } | How::Command { tool, args } => format!("Running {tool} {}", args.join(" ")),
+            How::Tool { tool, args, .. } | How::Command { tool, args } => format!("Running {tool} {}", args.join(" ")),
             How::Docker => "Running docker system prune -af".into(),
             How::RecycleBin => "Emptying the Recycle Bin".into(),
             _ => "Deleting files".into(),
@@ -736,15 +549,16 @@ pub fn clean(app: &AppHandle, ids: &[String]) -> Vec<CleanEvent> {
         let mut cleared = Cleared::default();
         let mut note: String;
         match &t.how {
-            How::Tool { tool, args } => {
+            How::Tool { tool, args, per_path } => {
                 let ran = which(tool).is_some_and(|p| {
-                    if t.id == "pnpm" {
-                        // One prune per store; each drive has its own.
-                        let stores: Vec<&PathBuf> = t.paths.iter().filter(|s| s.is_dir()).collect();
-                        !stores.is_empty()
-                            && stores.iter().all(|s| {
+                    if !per_path.is_empty() {
+                        // Once per location (pnpm: each drive has its own store).
+                        let dirs: Vec<&PathBuf> = t.paths.iter().filter(|s| s.is_dir()).collect();
+                        !dirs.is_empty()
+                            && dirs.iter().all(|s| {
                                 let dir = s.to_string_lossy().to_string();
-                                util::run_ok(&p, &["store", "prune", "--store-dir", &dir], Duration::from_secs(600))
+                                let a: Vec<&str> = per_path.iter().map(|x| if *x == "{path}" { dir.as_str() } else { x }).collect();
+                                util::run_ok(&p, &a, Duration::from_secs(600))
                             })
                     } else {
                         util::run_ok(&p, args, Duration::from_secs(600))
@@ -883,3 +697,4 @@ mod tests {
         assert_eq!(ids.len(), ts.len());
     }
 }
+

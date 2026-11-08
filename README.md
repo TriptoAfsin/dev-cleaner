@@ -73,7 +73,11 @@ winget install TriptoAfsin.DevCleaner
 - Processes the OS needs (csrss, svchost, lsass, WindowServer, launchd...) cannot be ended, from the UI or the backend.
 - Project and model deletes are re-validated in the backend: only a recognised build folder or model file can be removed.
 - Downloaded AI models, experiment outputs (`wandb/`, `mlruns/`, `outputs/`) and the Hugging Face `token` are never selected for you.
-- Nothing leaves your machine.
+- Nothing about you or your files leaves your machine. The only network request is the update check (a plain request to GitHub's releases API), which can be turned off in Settings.
+
+## Definitions
+
+What the app knows (cache locations, project build folders, process verdicts, port hints, AI model folders, config files) lives as data in [`definitions/`](definitions/README.md), not in code. A copy is built into the app; Settings → Definitions shows the version in use, where it came from and the folder a newer set is read from. Adding a cache is a JSON edit; see the [definitions guide](definitions/README.md).
 
 ## Develop
 

@@ -1,0 +1,2290 @@
+{
+  "$comment": "Caches, language and AI caches, and system junk. Paths use templates ({home}, {local}, {cache}, {env:NAME|fallback}...); see definitions/README.md.",
+  "rules": [
+    {
+      "id": "npm",
+      "name": "npm cache",
+      "eco": "Node",
+      "risk": "safe",
+      "about": "Package tarballs npm keeps after every install. Nothing in your projects points here; the next install downloads what it needs.",
+      "paths": [
+        {
+          "windows": "{local}/npm-cache",
+          "unix": "{home}/.npm"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "npm",
+        "args": [
+          "cache",
+          "clean",
+          "--force"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "npm",
+          "args": [
+            "config",
+            "get",
+            "cache"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "pnpm",
+      "name": "pnpm store",
+      "eco": "Node",
+      "risk": "safe",
+      "about": "pnpm's content-addressed store. Pruning removes packages no project links to any more.",
+      "paths": [
+        "{local}/pnpm/store",
+        "{home}/Library/pnpm/store",
+        {
+          "windows": {
+            "expand": "drive-roots",
+            "tail": [
+              ".pnpm-store"
+            ]
+          }
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "pnpm",
+        "args": [
+          "store",
+          "prune"
+        ],
+        "perPathArgs": [
+          "store",
+          "prune",
+          "--store-dir",
+          "{path}"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "pnpm",
+          "args": [
+            "store",
+            "path"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "yarn",
+      "name": "Yarn cache",
+      "eco": "Node",
+      "risk": "safe",
+      "about": "Downloaded package archives for Yarn classic and Yarn Berry's global cache.",
+      "paths": [
+        {
+          "windows": "{local}/Yarn/Cache",
+          "unix": "{cache}/Yarn"
+        },
+        "{home}/.yarn/berry/cache"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "yarn",
+        "args": [
+          "cache",
+          "clean"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "yarn",
+          "args": [
+            "cache",
+            "dir"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bun",
+      "name": "Bun install cache",
+      "eco": "Bun",
+      "risk": "safe",
+      "about": "Packages Bun has downloaded. Bun fetches them again on the next install.",
+      "paths": [
+        "{home}/.bun/install/cache"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "bun",
+        "args": [
+          "pm",
+          "cache",
+          "rm"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "bun",
+          "args": [
+            "pm",
+            "cache"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deno",
+      "name": "Deno cache",
+      "eco": "Deno",
+      "risk": "safe",
+      "about": "Remote modules and compiled code Deno has cached.",
+      "paths": [
+        {
+          "windows": "{local}/deno",
+          "unix": "{cache}/deno"
+        }
+      ]
+    },
+    {
+      "id": "node-gyp",
+      "name": "node-gyp headers",
+      "eco": "Node",
+      "risk": "safe",
+      "about": "Node headers downloaded to build native addons. Fetched again when an addon is compiled.",
+      "paths": [
+        {
+          "windows": "{local}/node-gyp/Cache",
+          "unix": "{cache}/node-gyp"
+        }
+      ]
+    },
+    {
+      "id": "cargo",
+      "name": "Cargo registry",
+      "eco": "Rust",
+      "risk": "safe",
+      "about": "Downloaded crate archives and their unpacked sources. Cargo restores what a build needs.",
+      "paths": [
+        "{home}/.cargo/registry/cache",
+        "{home}/.cargo/registry/src"
+      ]
+    },
+    {
+      "id": "cargo-git",
+      "name": "Cargo git checkouts",
+      "eco": "Rust",
+      "risk": "safe",
+      "about": "Git dependencies Cargo has cloned. Cloned again on the next build that uses them.",
+      "paths": [
+        "{home}/.cargo/git"
+      ]
+    },
+    {
+      "id": "pip",
+      "name": "pip cache",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "Wheels and downloads pip keeps between installs.",
+      "paths": [
+        {
+          "windows": "{local}/pip/Cache",
+          "unix": "{cache}/pip"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "pip",
+        "args": [
+          "cache",
+          "purge"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "pip",
+          "args": [
+            "cache",
+            "dir"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "uv",
+      "name": "uv cache",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "uv's package cache. Virtual envs that hard-link from it keep working.",
+      "paths": [
+        {
+          "windows": "{local}/uv/cache",
+          "unix": "{home}/.cache/uv"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "uv",
+        "args": [
+          "cache",
+          "clean"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "uv",
+          "args": [
+            "cache",
+            "dir"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "poetry",
+      "name": "Poetry cache",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "Packages and metadata Poetry has downloaded.",
+      "paths": [
+        {
+          "windows": "{local}/pypoetry/Cache",
+          "unix": "{cache}/pypoetry"
+        }
+      ]
+    },
+    {
+      "id": "conda",
+      "name": "Conda packages",
+      "eco": "Python",
+      "risk": "slow",
+      "about": "Package tarballs and unused packages Conda keeps. conda clean removes only what no environment uses.",
+      "paths": [
+        "{home}/miniconda3/pkgs",
+        "{home}/anaconda3/pkgs",
+        "{home}/miniforge3/pkgs"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "conda",
+        "args": [
+          "clean",
+          "--all",
+          "-y"
+        ]
+      }
+    },
+    {
+      "id": "go-build",
+      "name": "Go build cache",
+      "eco": "Go",
+      "risk": "safe",
+      "about": "Compiled packages Go reuses between builds. The next build is slower once.",
+      "paths": [
+        {
+          "windows": "{local}/go-build",
+          "unix": "{cache}/go-build"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "go",
+        "args": [
+          "clean",
+          "-cache"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "go",
+          "args": [
+            "env",
+            "GOCACHE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "go-mod",
+      "name": "Go module cache",
+      "eco": "Go",
+      "risk": "slow",
+      "about": "Every module version Go has downloaded. Downloaded again by the next build that needs it.",
+      "paths": [
+        "{home}/go/pkg/mod"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "go",
+        "args": [
+          "clean",
+          "-modcache"
+        ]
+      },
+      "ask": [
+        {
+          "tool": "go",
+          "args": [
+            "env",
+            "GOMODCACHE"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gradle",
+      "name": "Gradle caches",
+      "eco": "Java",
+      "risk": "slow",
+      "about": "Dependencies, transforms and build-cache entries Gradle keeps in ~/.gradle/caches. Gradle daemons are stopped first so nothing stays locked; the next build downloads what it needs.",
+      "paths": [
+        "{home}/.gradle/caches"
+      ],
+      "before": "stop-gradle"
+    },
+    {
+      "id": "maven",
+      "name": "Maven repository",
+      "eco": "Java",
+      "risk": "slow",
+      "about": "Your local Maven repository. Anything you installed locally with mvn install is lost too.",
+      "paths": [
+        "{home}/.m2/repository"
+      ]
+    },
+    {
+      "id": "nuget",
+      "name": "NuGet packages & HTTP cache",
+      "eco": ".NET",
+      "risk": "slow",
+      "about": "Global NuGet packages plus its HTTP and plugin caches. dotnet restore downloads what a project needs again.",
+      "paths": [
+        "{home}/.nuget/packages",
+        {
+          "windows": "{local}/NuGet/v3-cache",
+          "unix": "{xdgData}/NuGet/http-cache"
+        },
+        {
+          "windows": "{local}/NuGet/plugins-cache",
+          "unix": "{xdgData}/NuGet/plugin-cache"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "dotnet",
+        "args": [
+          "nuget",
+          "locals",
+          "all",
+          "--clear"
+        ]
+      }
+    },
+    {
+      "id": "playwright",
+      "name": "Playwright browsers",
+      "eco": "Testing",
+      "risk": "slow",
+      "about": "Browser builds Playwright downloaded for tests. npx playwright install fetches them again.",
+      "paths": [
+        {
+          "windows": "{local}/ms-playwright",
+          "unix": "{cache}/ms-playwright"
+        }
+      ]
+    },
+    {
+      "id": "docker",
+      "name": "Docker unused data",
+      "eco": "Docker",
+      "risk": "slow",
+      "about": "Stopped containers, images no container uses, unused networks and build cache. Running containers and all volumes are kept; images are pulled again when needed.",
+      "paths": [],
+      "how": {
+        "kind": "docker"
+      }
+    },
+    {
+      "id": "vscode-cache",
+      "name": "VS Code caches",
+      "eco": "Editors",
+      "risk": "safe",
+      "about": "VS Code's web cache, compiled-code cache, downloaded extension packages and logs. Settings and extensions are untouched. Close VS Code first for the most space.",
+      "paths": [
+        "{roaming}/Code/Cache",
+        "{roaming}/Code/CachedData",
+        "{roaming}/Code/CachedExtensionVSIXs",
+        "{roaming}/Code/Code Cache",
+        "{roaming}/Code/GPUCache",
+        "{roaming}/Code/logs"
+      ]
+    },
+    {
+      "id": "cursor-cache",
+      "name": "Cursor caches",
+      "eco": "Editors",
+      "risk": "safe",
+      "about": "Cursor's web cache, compiled-code cache, downloaded extension packages and logs. Settings and chats are untouched.",
+      "paths": [
+        "{roaming}/Cursor/Cache",
+        "{roaming}/Cursor/CachedData",
+        "{roaming}/Cursor/CachedExtensionVSIXs",
+        "{roaming}/Cursor/Code Cache",
+        "{roaming}/Cursor/GPUCache",
+        "{roaming}/Cursor/logs"
+      ]
+    },
+    {
+      "id": "jetbrains",
+      "name": "JetBrains IDE caches",
+      "eco": "Editors",
+      "risk": "slow",
+      "about": "Caches, indexes and logs of every JetBrains IDE version. The IDE re-indexes on next open. Settings, plugins and Local History are kept.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "children",
+            "dir": "{local}/JetBrains",
+            "tail": [
+              "caches",
+              "index",
+              "log"
+            ],
+            "match": "versioned",
+            "except": [
+              "Toolbox"
+            ]
+          },
+          "unix": {
+            "expand": "children",
+            "dir": "{cache}/JetBrains",
+            "tail": [
+              "caches",
+              "index"
+            ],
+            "match": "versioned"
+          }
+        }
+      ]
+    },
+    {
+      "id": "cypress",
+      "name": "Cypress binaries",
+      "eco": "Testing",
+      "risk": "slow",
+      "about": "Cypress app binaries for every version you have installed. npm install downloads the one a project needs.",
+      "paths": [
+        {
+          "windows": "{local}/Cypress/Cache",
+          "unix": "{cache}/Cypress"
+        }
+      ]
+    },
+    {
+      "id": "puppeteer",
+      "name": "Puppeteer browsers",
+      "eco": "Testing",
+      "risk": "slow",
+      "about": "Chrome for Testing builds Puppeteer downloaded. Fetched again on the next install.",
+      "paths": [
+        "{home}/.cache/puppeteer"
+      ]
+    },
+    {
+      "id": "electron",
+      "name": "Electron downloads",
+      "eco": "Desktop",
+      "risk": "slow",
+      "about": "Electron and electron-builder downloads (runtimes, NSIS, code-sign tools). Fetched again by the next install or build.",
+      "paths": [
+        {
+          "windows": "{local}/electron/Cache",
+          "unix": "{cache}/electron"
+        },
+        {
+          "windows": "{local}/electron-builder/Cache",
+          "unix": "{cache}/electron-builder"
+        },
+        "{home}/.electron"
+      ]
+    },
+    {
+      "id": "composer",
+      "name": "Composer cache",
+      "eco": "PHP",
+      "risk": "safe",
+      "about": "Package archives and repository metadata Composer caches.",
+      "paths": [
+        {
+          "windows": "{local}/Composer",
+          "unix": "{cache}/composer"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "composer",
+        "args": [
+          "clear-cache"
+        ]
+      }
+    },
+    {
+      "id": "pub",
+      "name": "Dart / Flutter pub cache",
+      "eco": "Dart",
+      "risk": "slow",
+      "about": "Every Dart and Flutter package version pub has downloaded. Also removes globally activated packages; reactivate them with dart pub global activate.",
+      "paths": [
+        {
+          "windows": "{local}/Pub/Cache",
+          "unix": "{home}/.pub-cache"
+        }
+      ]
+    },
+    {
+      "id": "coursier",
+      "name": "Coursier / Ivy cache",
+      "eco": "Scala",
+      "risk": "slow",
+      "about": "Artifacts downloaded by sbt, Mill and scala-cli through Coursier and Ivy.",
+      "paths": [
+        {
+          "windows": "{local}/Coursier/Cache",
+          "unix": "{cache}/Coursier"
+        },
+        "{home}/.coursier/cache",
+        "{home}/.ivy2/cache"
+      ]
+    },
+    {
+      "id": "zig",
+      "name": "Zig global cache",
+      "eco": "Zig",
+      "risk": "safe",
+      "about": "Zig's global build and package cache. Rebuilt by the next zig build.",
+      "paths": [
+        {
+          "windows": "{local}/zig",
+          "unix": "{cache}/zig"
+        },
+        "{home}/.cache/zig"
+      ]
+    },
+    {
+      "id": "vcpkg",
+      "name": "vcpkg binary cache",
+      "eco": "C/C++",
+      "risk": "slow",
+      "about": "Prebuilt C/C++ libraries vcpkg reuses. Without them, packages build from source again.",
+      "paths": [
+        {
+          "windows": "{local}/vcpkg/archives",
+          "unix": "{home}/.cache/vcpkg/archives"
+        }
+      ]
+    },
+    {
+      "id": "conan",
+      "name": "Conan package cache",
+      "eco": "C/C++",
+      "risk": "slow",
+      "about": "Conan 2's package storage. Profiles and remotes in ~/.conan2 are kept.",
+      "paths": [
+        "{home}/.conan2/p"
+      ]
+    },
+    {
+      "id": "ccache",
+      "name": "ccache / sccache",
+      "eco": "C/C++",
+      "risk": "safe",
+      "about": "Compiler output caches. The next build is slower once.",
+      "paths": [
+        "{home}/.ccache",
+        {
+          "windows": "{local}/ccache",
+          "unix": "{cache}/ccache"
+        },
+        {
+          "windows": "{local}/Mozilla/sccache",
+          "unix": "{cache}/Mozilla.sccache"
+        }
+      ]
+    },
+    {
+      "id": "rustup-tmp",
+      "name": "rustup downloads",
+      "eco": "Rust",
+      "risk": "safe",
+      "about": "Leftover toolchain downloads and temp files. Installed toolchains are kept.",
+      "paths": [
+        "{home}/.rustup/downloads",
+        "{home}/.rustup/tmp"
+      ]
+    },
+    {
+      "id": "pre-commit",
+      "name": "pre-commit environments",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "Hook environments pre-commit builds. Rebuilt the next time hooks run.",
+      "paths": [
+        "{home}/.cache/pre-commit"
+      ]
+    },
+    {
+      "id": "gradle-wrapper",
+      "name": "Gradle wrapper distributions",
+      "eco": "Java",
+      "risk": "slow",
+      "about": "Every Gradle version ./gradlew has downloaded, one per project version. The wrapper downloads the one a project needs on its next build. Gradle daemons are stopped first.",
+      "paths": [
+        "{home}/.gradle/wrapper/dists"
+      ],
+      "before": "stop-gradle"
+    },
+    {
+      "id": "gradle-daemon",
+      "name": "Gradle daemon logs",
+      "eco": "Java",
+      "risk": "safe",
+      "about": "Logs and registry files of Gradle build daemons. Daemons are stopped first; nothing a build needs lives here.",
+      "paths": [
+        "{home}/.gradle/daemon"
+      ],
+      "before": "stop-gradle"
+    },
+    {
+      "id": "maven-wrapper",
+      "name": "Maven wrapper distributions",
+      "eco": "Java",
+      "risk": "slow",
+      "about": "Maven versions ./mvnw downloaded. Downloaded again on the next build.",
+      "paths": [
+        "{home}/.m2/wrapper"
+      ]
+    },
+    {
+      "id": "konan",
+      "name": "Kotlin/Native toolchains",
+      "eco": "Kotlin",
+      "risk": "slow",
+      "about": "Compilers, LLVM and platform libraries Kotlin/Native and Kotlin Multiplatform downloaded (~/.konan). Often several GB; downloaded again by the next native build.",
+      "paths": [
+        "{home}/.konan"
+      ]
+    },
+    {
+      "id": "android-cache",
+      "name": "Android build cache",
+      "eco": "Android",
+      "risk": "safe",
+      "about": "Caches the Android Gradle plugin and SDK tools keep in ~/.android. Your emulators (avd) and signing keys are not touched.",
+      "paths": [
+        "{home}/.android/cache",
+        "{home}/.android/build-cache"
+      ]
+    },
+    {
+      "id": "groovy-grapes",
+      "name": "Groovy Grape cache",
+      "eco": "Groovy",
+      "risk": "slow",
+      "about": "Dependencies Groovy scripts fetched with @Grab.",
+      "paths": [
+        "{home}/.groovy/grapes"
+      ]
+    },
+    {
+      "id": "sbt-boot",
+      "name": "sbt launcher cache",
+      "eco": "Scala",
+      "risk": "slow",
+      "about": "sbt and Scala versions the sbt launcher downloaded. Fetched again by the next sbt run.",
+      "paths": [
+        "{home}/.sbt/boot"
+      ]
+    },
+    {
+      "id": "clojure-gitlibs",
+      "name": "Clojure git deps",
+      "eco": "Clojure",
+      "risk": "slow",
+      "about": "Git dependencies the Clojure CLI checked out (~/.gitlibs). Maven deps share ~/.m2.",
+      "paths": [
+        "{home}/.gitlibs"
+      ]
+    },
+    {
+      "id": "dotnet-workloads",
+      "name": ".NET workload leftovers",
+      "eco": ".NET",
+      "risk": "safe",
+      "about": "Workload packs left behind by SDK updates. dotnet workload clean removes only packs no installed SDK uses.",
+      "paths": [],
+      "how": {
+        "kind": "command",
+        "tool": "dotnet",
+        "args": [
+          "workload",
+          "clean"
+        ]
+      }
+    },
+    {
+      "id": "ruby-gems",
+      "name": "RubyGems package cache",
+      "eco": "Ruby",
+      "risk": "safe",
+      "about": "The .gem files kept after installing gems. Installed gems keep working; gem install fetches packages again when needed.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{home}/.gem/ruby",
+          "tail": [
+            "cache"
+          ]
+        },
+        {
+          "expand": "children",
+          "dir": "{xdgData}/gem/ruby",
+          "tail": [
+            "cache"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "bundler-cache",
+      "name": "Bundler cache",
+      "eco": "Ruby",
+      "risk": "safe",
+      "about": "Gems Bundler downloaded into its global cache.",
+      "paths": [
+        "{home}/.bundle/cache"
+      ]
+    },
+    {
+      "id": "ruby-builds",
+      "name": "Ruby version manager downloads",
+      "eco": "Ruby",
+      "risk": "safe",
+      "about": "Source archives rbenv, rvm and asdf downloaded to build Ruby versions. Installed Rubies are kept.",
+      "paths": [
+        "{home}/.rbenv/cache",
+        "{home}/.rvm/archives",
+        "{home}/.rvm/src"
+      ]
+    },
+    {
+      "id": "swiftpm",
+      "name": "Swift Package Manager cache",
+      "eco": "Swift",
+      "risk": "slow",
+      "about": "Package repositories and manifests SwiftPM and Xcode cached. Fetched again on the next resolve.",
+      "paths": [
+        {
+          "windows": "{local}/org.swift.swiftpm",
+          "macos": "{cache}/org.swift.swiftpm",
+          "linux": "{xdgCache}/org.swift.swiftpm"
+        },
+        "{home}/Library/org.swift.swiftpm"
+      ]
+    },
+    {
+      "id": "cabal",
+      "name": "Cabal package cache",
+      "eco": "Haskell",
+      "risk": "slow",
+      "about": "Package tarballs and index Cabal downloaded. Fetched again by cabal update and the next build.",
+      "paths": [
+        {
+          "windows": "{roaming}/cabal/packages",
+          "macos": "{home}/.cabal/packages",
+          "linux": "{xdgCache}/cabal/packages"
+        },
+        "{home}/.cabal/packages"
+      ]
+    },
+    {
+      "id": "stack",
+      "name": "Stack Pantry cache",
+      "eco": "Haskell",
+      "risk": "slow",
+      "about": "Package sources Stack's Pantry downloaded. Installed GHC versions are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/stack/pantry",
+          "unix": "{home}/.stack/pantry"
+        }
+      ]
+    },
+    {
+      "id": "ghcup-cache",
+      "name": "GHCup downloads",
+      "eco": "Haskell",
+      "risk": "safe",
+      "about": "Installer archives GHCup kept after installing GHC, Cabal and HLS.",
+      "paths": [
+        "{home}/.ghcup/cache",
+        {
+          "windows": "C:/ghcup/cache"
+        }
+      ]
+    },
+    {
+      "id": "hex",
+      "name": "Hex package cache",
+      "eco": "Elixir",
+      "risk": "slow",
+      "about": "Elixir and Erlang packages Hex downloaded. Your Hex credentials in ~/.hex are kept.",
+      "paths": [
+        "{home}/.hex/packages"
+      ]
+    },
+    {
+      "id": "rebar3",
+      "name": "rebar3 cache",
+      "eco": "Erlang",
+      "risk": "slow",
+      "about": "Packages and plugins rebar3 cached.",
+      "paths": [
+        {
+          "windows": "{local}/rebar3",
+          "unix": "{xdgCache}/rebar3"
+        }
+      ]
+    },
+    {
+      "id": "julia-compiled",
+      "name": "Julia precompile cache",
+      "eco": "Julia",
+      "risk": "safe",
+      "about": "Precompiled package images. Julia recompiles them the next time packages load; the first load is slower.",
+      "paths": [
+        "{home}/.julia/compiled"
+      ]
+    },
+    {
+      "id": "renv",
+      "name": "R renv cache",
+      "eco": "R",
+      "risk": "slow",
+      "about": "Packages renv caches and links into R projects. Projects using them reinstall with renv::restore().",
+      "paths": [
+        {
+          "windows": "{local}/R/cache/R/renv",
+          "macos": "{cache}/org.R-project.R/R/renv",
+          "linux": "{xdgCache}/R/renv"
+        }
+      ]
+    },
+    {
+      "id": "cpanm",
+      "name": "Perl cpanm work files",
+      "eco": "Perl",
+      "risk": "safe",
+      "about": "Build directories and logs cpanm and CPAN leave behind. Installed modules are kept.",
+      "paths": [
+        "{home}/.cpanm/work",
+        "{home}/.cpan/build",
+        "{home}/.cpan/sources"
+      ]
+    },
+    {
+      "id": "opam-cache",
+      "name": "opam download cache",
+      "eco": "OCaml",
+      "risk": "safe",
+      "about": "Source archives opam downloaded. Installed switches are kept.",
+      "paths": [
+        "{home}/.opam/download-cache"
+      ]
+    },
+    {
+      "id": "nimble",
+      "name": "Nimble packages",
+      "eco": "Nim",
+      "risk": "slow",
+      "about": "Nim packages Nimble installed globally. Projects reinstall them with nimble install.",
+      "paths": [
+        "{home}/.nimble/pkgs2",
+        "{home}/.nimble/pkgs"
+      ]
+    },
+    {
+      "id": "crystal-cache",
+      "name": "Crystal compiler cache",
+      "eco": "Crystal",
+      "risk": "safe",
+      "about": "Object files the Crystal compiler caches between builds.",
+      "paths": [
+        {
+          "windows": "{local}/crystal",
+          "unix": "{xdgCache}/crystal"
+        }
+      ]
+    },
+    {
+      "id": "dub",
+      "name": "D (dub) packages",
+      "eco": "D",
+      "risk": "slow",
+      "about": "D packages dub fetched. Fetched again on the next build.",
+      "paths": [
+        {
+          "windows": "{local}/dub/packages",
+          "unix": "{home}/.dub/packages"
+        }
+      ]
+    },
+    {
+      "id": "gleam-cache",
+      "name": "Gleam package cache",
+      "eco": "Gleam",
+      "risk": "slow",
+      "about": "Packages Gleam downloaded.",
+      "paths": [
+        {
+          "windows": "{local}/gleam",
+          "macos": "{cache}/gleam",
+          "linux": "{xdgCache}/gleam"
+        }
+      ]
+    },
+    {
+      "id": "elm",
+      "name": "Elm package cache",
+      "eco": "Elm",
+      "risk": "slow",
+      "about": "Elm packages and compiler artifacts. Downloaded again by elm make.",
+      "paths": [
+        {
+          "windows": "{roaming}/elm",
+          "unix": "{home}/.elm"
+        }
+      ]
+    },
+    {
+      "id": "luarocks",
+      "name": "LuaRocks cache",
+      "eco": "Lua",
+      "risk": "safe",
+      "about": "Rock files LuaRocks downloaded.",
+      "paths": [
+        "{xdgCache}/luarocks",
+        "{roaming}/luarocks/cache"
+      ]
+    },
+    {
+      "id": "python-tools",
+      "name": "pdm, Hatch & pipx caches",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "Download caches of pdm, Hatch and pipx. Environments and installed apps are kept.",
+      "paths": [
+        {
+          "windows": "{local}/pdm/Cache",
+          "macos": "{cache}/pdm",
+          "linux": "{xdgCache}/pdm"
+        },
+        {
+          "windows": "{local}/hatch/Cache",
+          "macos": "{cache}/hatch",
+          "linux": "{xdgCache}/hatch"
+        },
+        "{home}/.local/pipx/.cache",
+        "{home}/pipx/.cache"
+      ]
+    },
+    {
+      "id": "pyenv-cache",
+      "name": "pyenv downloads",
+      "eco": "Python",
+      "risk": "safe",
+      "about": "Python source archives pyenv kept after building versions. Installed Pythons are kept.",
+      "paths": [
+        "{home}/.pyenv/cache",
+        "{home}/.pyenv/pyenv-win/install_cache"
+      ]
+    },
+    {
+      "id": "corepack",
+      "name": "Corepack cache",
+      "eco": "Node",
+      "risk": "safe",
+      "about": "pnpm and Yarn versions Corepack downloaded for projects that pin them. Fetched again on demand.",
+      "paths": [
+        {
+          "windows": "{local}/node/corepack",
+          "unix": "{xdgCache}/node/corepack"
+        }
+      ]
+    },
+    {
+      "id": "terraform",
+      "name": "Terraform plugin cache",
+      "eco": "Terraform",
+      "risk": "slow",
+      "about": "Provider plugins Terraform cached. terraform init downloads them again.",
+      "paths": [
+        "{home}/.terraform.d/plugin-cache",
+        "{roaming}/terraform.d/plugin-cache"
+      ]
+    },
+    {
+      "id": "pulumi",
+      "name": "Pulumi plugins",
+      "eco": "Pulumi",
+      "risk": "slow",
+      "about": "Provider and language plugins Pulumi downloaded. Installed again on the next pulumi up.",
+      "paths": [
+        "{home}/.pulumi/plugins"
+      ]
+    },
+    {
+      "id": "bazel",
+      "name": "Bazel output and caches",
+      "eco": "Bazel",
+      "risk": "slow",
+      "about": "Bazel's output base for every workspace plus its repository cache. Stop Bazel servers first (bazel shutdown); the next build starts from scratch.",
+      "paths": [
+        {
+          "windows": "{home}/_bazel_{user}",
+          "macos": "{cache}/bazel",
+          "linux": "{xdgCache}/bazel"
+        },
+        {
+          "macos": "/private/var/tmp/_bazel_{user}"
+        }
+      ]
+    },
+    {
+      "id": "nuget-scratch",
+      "name": "NuGet temp",
+      "eco": ".NET",
+      "risk": "safe",
+      "about": "Scratch files NuGet leaves in the temp folder during restores.",
+      "paths": [
+        "{temp}/NuGetScratch"
+      ]
+    },
+    {
+      "id": "hf-datasets",
+      "name": "Hugging Face datasets cache",
+      "eco": "AI / ML",
+      "risk": "slow",
+      "about": "Arrow files and map() results from load_dataset. Rebuilt from the Hub the next time a script loads the dataset. Your token and models are not touched.",
+      "paths": [
+        "{env:HF_DATASETS_CACHE|{env:HF_HOME|{home}/.cache/huggingface}/datasets}"
+      ]
+    },
+    {
+      "id": "hf-misc",
+      "name": "Hugging Face assets & legacy cache",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "Library assets, remote-code modules, the xet shard cache and the pre-2022 transformers cache that newer versions no longer read.",
+      "paths": [
+        "{env:HF_HOME|{home}/.cache/huggingface}/assets",
+        "{env:HF_HOME|{home}/.cache/huggingface}/modules",
+        "{env:HF_HOME|{home}/.cache/huggingface}/xet",
+        "{env:HF_HOME|{home}/.cache/huggingface}/transformers"
+      ]
+    },
+    {
+      "id": "torch-compile",
+      "name": "torch.compile / Triton / vLLM caches",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "Kernels compiled by torch.compile (Inductor), Triton, torch C++ extensions (DeepSpeed ops) and vLLM. Recompiled on the next run; only the first run is slower.",
+      "paths": [
+        "{env:TORCHINDUCTOR_CACHE_DIR|{temp}/torchinductor_{user}}",
+        "{env:TRITON_CACHE_DIR|{home}/.triton/cache}",
+        {
+          "windows": "{local}/torch_extensions",
+          "unix": "{cache}/torch_extensions"
+        },
+        "{home}/.cache/torch_extensions",
+        "{env:VLLM_CACHE_ROOT|{home}/.cache/vllm}/torch_compile_cache"
+      ]
+    },
+    {
+      "id": "torch-hub",
+      "name": "PyTorch hub & checkpoints",
+      "eco": "AI / ML",
+      "risk": "slow",
+      "about": "Pretrained weights fetched by torch.hub, torchvision and older timm. Downloaded again on first use.",
+      "paths": [
+        "{env:TORCH_HOME|{home}/.cache/torch}/hub"
+      ]
+    },
+    {
+      "id": "keras",
+      "name": "Keras / TF Hub downloads",
+      "eco": "AI / ML",
+      "risk": "slow",
+      "about": "Datasets and weights from keras.utils.get_file and keras.applications, and TensorFlow Hub modules. Downloaded again on demand.",
+      "paths": [
+        "{home}/.keras/datasets",
+        "{home}/.keras/models",
+        "{env:TFHUB_CACHE_DIR|{temp}/tfhub_modules}"
+      ]
+    },
+    {
+      "id": "tfds-downloads",
+      "name": "TensorFlow Datasets downloads",
+      "eco": "AI / ML",
+      "risk": "slow",
+      "about": "Raw archives TFDS downloaded before preparing datasets. Prepared datasets and files you placed in downloads/manual are kept.",
+      "paths": [
+        "{home}/tensorflow_datasets/downloads/extracted"
+      ]
+    },
+    {
+      "id": "wandb-cache",
+      "name": "Weights & Biases cache",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "Artifact and media cache W&B keeps locally. Runs on wandb.ai and local run folders are not touched.",
+      "paths": [
+        "{env:WANDB_CACHE_DIR|{home}/.cache/wandb}"
+      ]
+    },
+    {
+      "id": "gradio",
+      "name": "Gradio temp files",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "Uploads and outputs Gradio apps wrote to temp. Only items older than a day are removed.",
+      "paths": [
+        "{env:GRADIO_TEMP_DIR|{temp}/gradio}"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "gpu-shaders",
+      "name": "GPU shader caches",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Compiled shaders and CUDA kernels cached by NVIDIA, AMD, Intel and DirectX. Rebuilt as apps run; the first launch after is a little slower. Close games and GPU apps first.",
+      "paths": [
+        {
+          "windows": "{local}/NVIDIA/DXCache"
+        },
+        {
+          "windows": "{local}/NVIDIA/GLCache"
+        },
+        {
+          "windows": "{local}/NVIDIA Corporation/NV_Cache"
+        },
+        {
+          "windows": "{roaming}/NVIDIA/ComputeCache"
+        },
+        {
+          "windows": "{local}/AMD/DxCache"
+        },
+        {
+          "windows": "{local}/AMD/DxcCache"
+        },
+        {
+          "windows": "{local}/AMD/VkCache"
+        },
+        {
+          "windows": "{local}/AMD/GLCache"
+        },
+        {
+          "windows": "{local}/D3DSCache"
+        },
+        {
+          "windows": "{localLow}/Intel/ShaderCache"
+        }
+      ]
+    },
+    {
+      "id": "scoop",
+      "name": "Scoop download cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Installers Scoop downloaded. Installed apps are kept.",
+      "paths": [
+        "{home}/scoop/cache"
+      ],
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "temp",
+      "name": "Temp files",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Your user temp folder. Only items older than a day are removed, and anything in use is skipped.",
+      "paths": [
+        "{temp}"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      },
+      "os": [
+        "windows"
+      ],
+      "junk": true
+    },
+    {
+      "id": "crashdumps",
+      "name": "Crash dumps",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Memory dumps written when apps crashed. Only useful when reporting that crash.",
+      "paths": [
+        "{local}/CrashDumps"
+      ],
+      "os": [
+        "windows"
+      ],
+      "junk": true
+    },
+    {
+      "id": "xcode",
+      "name": "Xcode DerivedData",
+      "eco": "Apple",
+      "risk": "safe",
+      "about": "Build products and indexes for every Xcode project. Rebuilt on the next build.",
+      "paths": [
+        "{home}/Library/Developer/Xcode/DerivedData"
+      ],
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "cocoapods",
+      "name": "CocoaPods cache",
+      "eco": "Apple",
+      "risk": "slow",
+      "about": "Pod specs and sources CocoaPods caches. pod install fetches them again.",
+      "paths": [
+        "{cache}/CocoaPods"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "pod",
+        "args": [
+          "cache",
+          "clean",
+          "--all"
+        ]
+      },
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "simulator",
+      "name": "Simulator caches",
+      "eco": "Apple",
+      "risk": "safe",
+      "about": "Caches for iOS simulators. Your simulator devices are kept.",
+      "paths": [
+        "{home}/Library/Developer/CoreSimulator/Caches"
+      ],
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "homebrew",
+      "name": "Homebrew cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Downloaded bottles and source archives. brew cleanup removes the old ones.",
+      "paths": [
+        "{cache}/Homebrew"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "brew",
+        "args": [
+          "cleanup",
+          "-s",
+          "--prune=all"
+        ]
+      },
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "temp",
+      "name": "Temp files",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Your files in /tmp. Only items older than a day are removed, and anything in use is skipped.",
+      "paths": [
+        "{temp}"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      },
+      "os": [
+        "linux"
+      ],
+      "junk": true
+    },
+    {
+      "id": "homebrew",
+      "name": "Homebrew cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Downloaded bottles and source archives from Homebrew on Linux. brew cleanup removes the old ones.",
+      "paths": [
+        "{cache}/Homebrew"
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "brew",
+        "args": [
+          "cleanup",
+          "-s",
+          "--prune=all"
+        ]
+      },
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "broken-downloads",
+      "name": "Unfinished downloads",
+      "eco": "Downloads",
+      "risk": "safe",
+      "about": "Downloads that never finished (.crdownload, .part, .download, .partial), in your Downloads folder and on every drive chosen in Settings. They can't be opened; download the file again if you still need it.",
+      "paths": [
+        {
+          "expand": "files",
+          "dir": "{home}/Downloads",
+          "ext": [
+            "crdownload",
+            "part",
+            "partial",
+            "download",
+            "opdownload"
+          ]
+        },
+        {
+          "expand": "drive-walk",
+          "find": "partials"
+        }
+      ],
+      "junk": true
+    },
+    {
+      "id": "thumbs-db",
+      "name": "Thumbs.db files",
+      "eco": "Downloads",
+      "risk": "safe",
+      "about": "Hidden thumbnail caches older Windows versions and network shares leave in folders of pictures and videos, found on the chosen drives. Windows rebuilds them only if it needs them.",
+      "paths": [
+        {
+          "expand": "drive-walk",
+          "find": "thumbs"
+        }
+      ],
+      "junk": true
+    },
+    {
+      "id": "steam-shaders",
+      "name": "Steam shader caches",
+      "eco": "Apps",
+      "risk": "slow",
+      "about": "Shaders Steam compiled for each game, in every Steam library on the chosen drives. Games rebuild them; the first launch after may stutter briefly.",
+      "paths": [
+        {
+          "expand": "drive-walk",
+          "find": "shader-caches"
+        }
+      ],
+      "junk": true
+    },
+    {
+      "id": "old-installers",
+      "name": "Old disk images & installers",
+      "eco": "Downloads",
+      "risk": "data",
+      "about": "Disk images and installers in Downloads older than a week (.dmg, .iso, .pkg, .msi, .exe setup files). Usually installed already, but they are your files: check before deleting.",
+      "paths": [
+        {
+          "expand": "files",
+          "dir": "{home}/Downloads",
+          "ext": [
+            "dmg",
+            "iso",
+            "pkg",
+            "msi",
+            "img"
+          ]
+        }
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 168
+      },
+      "junk": true
+    },
+    {
+      "id": "recycle-bin",
+      "name": "Recycle Bin",
+      "eco": "System",
+      "risk": "data",
+      "about": "Files you deleted earlier, on every drive chosen in Settings. Emptying it can't be undone.",
+      "paths": [],
+      "how": {
+        "kind": "recycleBin"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "recycle-bin",
+      "name": "Trash",
+      "eco": "System",
+      "risk": "data",
+      "about": "Files you deleted earlier, on every drive chosen in Settings. Emptying it can't be undone.",
+      "paths": [],
+      "how": {
+        "kind": "recycleBin"
+      },
+      "junk": true,
+      "os": [
+        "macos",
+        "linux"
+      ]
+    },
+    {
+      "id": "wer-user",
+      "name": "Error reports (yours)",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Crash and hang reports Windows Error Reporting keeps for your apps. Only reports older than 30 days are removed.",
+      "paths": [
+        "{local}/Microsoft/Windows/WER"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 720
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "thumbcache",
+      "name": "Thumbnail & icon cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Explorer's thumbnail and icon databases. Rebuilt as you browse folders. Explorer keeps the current ones open, so those are skipped.",
+      "paths": [
+        {
+          "expand": "files",
+          "dir": "{local}/Microsoft/Windows/Explorer",
+          "ext": [
+            "db"
+          ],
+          "prefix": [
+            "thumbcache_",
+            "iconcache_"
+          ]
+        }
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "inetcache",
+      "name": "Internet cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Temporary Internet Files used by Windows, Office and older apps (Disk Cleanup's \"Temporary Internet Files\").",
+      "paths": [
+        "{local}/Microsoft/Windows/INetCache"
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "chrome-cache",
+      "name": "Chrome cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Chrome's web, code and GPU caches for every profile. Cookies, history, passwords and tabs are not touched. Files in use while Chrome runs are skipped.",
+      "paths": [
+        {
+          "expand": "chromium-profiles",
+          "dir": "{local}/Google/Chrome/User Data"
+        }
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "edge-cache",
+      "name": "Edge cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Microsoft Edge's web, code and GPU caches for every profile. Cookies, history and passwords are kept.",
+      "paths": [
+        {
+          "expand": "chromium-profiles",
+          "dir": "{local}/Microsoft/Edge/User Data"
+        }
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "brave-cache",
+      "name": "Brave cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Brave's web, code and GPU caches for every profile. Cookies, history and wallets are kept.",
+      "paths": [
+        {
+          "expand": "chromium-profiles",
+          "dir": "{local}/BraveSoftware/Brave-Browser/User Data"
+        }
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "firefox-cache",
+      "name": "Firefox cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Firefox's disk cache for every profile. Your profile (bookmarks, history, logins) is not touched.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{local}/Mozilla/Firefox/Profiles",
+          "tail": [
+            "cache2",
+            "startupCache",
+            "thumbnails"
+          ]
+        }
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "chat-caches",
+      "name": "Discord, Slack & Teams caches",
+      "eco": "Apps",
+      "risk": "safe",
+      "about": "Web and GPU caches of Electron chat apps. Messages and logins are kept; quit the apps first for the most space.",
+      "paths": [
+        "{roaming}/discord/Cache",
+        "{roaming}/discord/Code Cache",
+        "{roaming}/discord/GPUCache",
+        "{roaming}/Slack/Cache",
+        "{roaming}/Slack/Code Cache",
+        "{roaming}/Slack/GPUCache",
+        "{roaming}/Microsoft/Teams/Cache",
+        "{roaming}/Microsoft/Teams/Code Cache",
+        "{roaming}/Microsoft/Teams/GPUCache"
+      ],
+      "junk": true,
+      "os": [
+        "windows"
+      ]
+    },
+    {
+      "id": "system-temp",
+      "name": "Windows temp",
+      "eco": "System",
+      "risk": "safe",
+      "about": "C:\\Windows\\Temp, used by installers and services. Only items older than 7 days are removed; anything in use is skipped.",
+      "paths": [
+        "{systemRoot}/Temp"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 7
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "wu-cache",
+      "name": "Windows Update downloads",
+      "eco": "System",
+      "risk": "slow",
+      "about": "Update packages Windows already downloaded. The update services are stopped while this runs and restarted after; anything still needed is downloaded again. Don't run it while an update is installing.",
+      "paths": [
+        "{systemRoot}/SoftwareDistribution/Download"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "stop-update-services"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "delivery-opt",
+      "name": "Delivery Optimization cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Update files Windows keeps to share with other PCs. Cleared with Microsoft's Delete-DeliveryOptimizationCache.",
+      "paths": [
+        "{systemRoot}/ServiceProfiles/NetworkService/AppData/Local/Microsoft/Windows/DeliveryOptimization/Cache"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "delivery-optimization"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "wer-system",
+      "name": "Error reports (system)",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Windows Error Reporting's archive and queue. ReportQueue can grow to many GB. Only reports older than 30 days are removed.",
+      "paths": [
+        "{programData}/Microsoft/Windows/WER/ReportArchive",
+        "{programData}/Microsoft/Windows/WER/ReportQueue",
+        "{programData}/Microsoft/Windows/WER/Temp"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 30
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "memory-dumps",
+      "name": "Memory dumps",
+      "eco": "System",
+      "risk": "slow",
+      "about": "Dumps Windows writes after a blue screen. Useful only when diagnosing that crash; dumps older than 30 days are removed.",
+      "paths": [
+        "{systemRoot}/MEMORY.DMP",
+        "{systemRoot}/Minidump"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 30
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "cbs-logs",
+      "name": "Windows servicing logs",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Old component-servicing (CBS) logs. The active log is kept; logs older than 30 days are removed.",
+      "paths": [
+        "{systemRoot}/Logs/CBS"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 30
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "component-store",
+      "name": "Component store cleanup",
+      "eco": "System",
+      "risk": "slow",
+      "about": "Removes superseded Windows component versions with DISM. Safe and supported by Microsoft; takes several minutes. Size is known only after it runs.",
+      "paths": [],
+      "how": {
+        "kind": "admin",
+        "action": "dism-component-cleanup"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "windows-old",
+      "name": "Previous Windows installation",
+      "eco": "System",
+      "risk": "data",
+      "about": "Windows.old from the last upgrade. Deleting it removes the option to roll back to your previous Windows version. Windows deletes it on its own about 10 days after an upgrade.",
+      "paths": [
+        "{systemDrive}/Windows.old"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "cleanmgr-autoclean"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "user-caches",
+      "name": "App caches",
+      "eco": "System",
+      "risk": "safe",
+      "about": "~/Library/Caches for your apps. Apps rebuild them as needed. Apple's own caches and the developer caches on the Disk cleanup page are left out.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{home}/Library/Caches",
+          "tail": [
+            ""
+          ],
+          "except": [
+            "Homebrew",
+            "pip",
+            "pnpm",
+            "Yarn",
+            "CocoaPods",
+            "deno",
+            "go-build",
+            "ms-playwright",
+            "JetBrains",
+            "Cypress",
+            "electron",
+            "electron-builder",
+            "node-gyp",
+            "pypoetry",
+            "composer",
+            "Google",
+            "Firefox",
+            "BraveSoftware",
+            "Microsoft Edge",
+            "Arc",
+            "Mozilla.sccache",
+            "ccache",
+            "zig",
+            "torch_extensions",
+            "llama.cpp",
+            "com.apple.Safari"
+          ],
+          "exceptPrefix": [
+            "com.apple."
+          ]
+        }
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "user-logs",
+      "name": "Your logs",
+      "eco": "System",
+      "risk": "safe",
+      "about": "~/Library/Logs: app logs and crash reports. Only items older than 7 days are removed.",
+      "paths": [
+        "{home}/Library/Logs"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 168
+      },
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "chrome-cache",
+      "name": "Chrome cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Chrome's disk cache for every profile. Cookies, history and passwords are kept.",
+      "paths": [
+        "{home}/Library/Caches/Google/Chrome"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "brave-cache",
+      "name": "Brave cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Brave's disk cache. Cookies, history and wallets are kept.",
+      "paths": [
+        "{home}/Library/Caches/BraveSoftware/Brave-Browser"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "edge-cache",
+      "name": "Edge cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Microsoft Edge's disk cache. Cookies, history and passwords are kept.",
+      "paths": [
+        "{home}/Library/Caches/Microsoft Edge"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "firefox-cache",
+      "name": "Firefox cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Firefox's disk cache for every profile. Your profile is not touched.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{home}/Library/Caches/Firefox/Profiles",
+          "tail": [
+            "cache2",
+            "startupCache",
+            "thumbnails"
+          ]
+        }
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "safari-cache",
+      "name": "Safari cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Safari's web cache. Needs Full Disk Access for Dev Cleaner (System Settings → Privacy & Security); without it, nothing is removed.",
+      "paths": [
+        "{home}/Library/Caches/com.apple.Safari"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "ios-device-support",
+      "name": "iOS DeviceSupport",
+      "eco": "Apple",
+      "risk": "slow",
+      "about": "Debug symbols Xcode copies from every iPhone/iPad OS version you connected. Copied again the next time a device connects.",
+      "paths": [
+        "{home}/Library/Developer/Xcode/iOS DeviceSupport"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "sim-unavailable",
+      "name": "Unavailable simulators",
+      "eco": "Apple",
+      "risk": "safe",
+      "about": "Simulators for iOS versions no longer installed. Removed with xcrun simctl delete unavailable.",
+      "paths": [],
+      "how": {
+        "kind": "command",
+        "tool": "xcrun",
+        "args": [
+          "simctl",
+          "delete",
+          "unavailable"
+        ]
+      },
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "xcode-archives",
+      "name": "Xcode archives",
+      "eco": "Apple",
+      "risk": "data",
+      "about": "Archives of apps you built for release. Keep the ones you shipped if you may need their symbols.",
+      "paths": [
+        "{home}/Library/Developer/Xcode/Archives"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "ios-backups",
+      "name": "iPhone & iPad backups",
+      "eco": "Apple",
+      "risk": "data",
+      "about": "Local device backups. Apple: a deleted backup can't be recovered. Needs Full Disk Access.",
+      "paths": [
+        "{home}/Library/Application Support/MobileSync/Backup"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "mail-downloads",
+      "name": "Mail attachments cache",
+      "eco": "Apps",
+      "risk": "slow",
+      "about": "Attachments Mail saved when you opened them. They stay in the messages and download again when opened. Needs Full Disk Access.",
+      "paths": [
+        "{home}/Library/Containers/com.apple.mail/Data/Library/Mail Downloads"
+      ],
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "quicklook",
+      "name": "Quick Look cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Preview thumbnails for Quick Look. Reset with qlmanage -r cache.",
+      "paths": [],
+      "how": {
+        "kind": "command",
+        "tool": "qlmanage",
+        "args": [
+          "-r",
+          "cache"
+        ]
+      },
+      "junk": true,
+      "os": [
+        "macos"
+      ]
+    },
+    {
+      "id": "system-logs",
+      "name": "System logs",
+      "eco": "System",
+      "risk": "safe",
+      "about": "/Library/Logs and /var/log. Only log files older than 7 days are removed; the active logs are kept.",
+      "paths": [
+        "/Library/Logs",
+        "/private/var/log"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 7
+      },
+      "junk": true,
+      "os": [
+        "macos"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "tm-snapshots",
+      "name": "Time Machine local snapshots",
+      "eco": "System",
+      "risk": "slow",
+      "about": "Local snapshots macOS keeps between backups. Thinned with tmutil; your backups on the backup disk are not touched. Size is known only after it runs.",
+      "paths": [],
+      "how": {
+        "kind": "admin",
+        "action": "thin-time-machine-snapshots"
+      },
+      "junk": true,
+      "os": [
+        "macos"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "thumbnails",
+      "name": "Thumbnail cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Thumbnails file managers created. Rebuilt as you browse.",
+      "paths": [
+        "{cache}/thumbnails"
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "chrome-cache",
+      "name": "Chrome / Chromium cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Disk caches of Chrome and Chromium. Cookies, history and passwords live in ~/.config and are kept.",
+      "paths": [
+        "{cache}/google-chrome",
+        "{cache}/chromium"
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "brave-cache",
+      "name": "Brave cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Brave's disk cache. Your profile in ~/.config is kept.",
+      "paths": [
+        "{cache}/BraveSoftware"
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "edge-cache",
+      "name": "Edge cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Microsoft Edge's disk cache.",
+      "paths": [
+        "{cache}/microsoft-edge"
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "firefox-cache",
+      "name": "Firefox cache",
+      "eco": "Browsers",
+      "risk": "safe",
+      "about": "Firefox's disk cache for every profile. Your profile is not touched.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{cache}/mozilla/firefox",
+          "tail": [
+            "cache2",
+            "startupCache",
+            "thumbnails"
+          ]
+        }
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "mesa-shaders",
+      "name": "Mesa shader cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Shaders compiled by the open-source GPU drivers. Rebuilt as apps and games run.",
+      "paths": [
+        "{cache}/mesa_shader_cache",
+        "{cache}/mesa_shader_cache_db",
+        "{cache}/nvidia/GLCache"
+      ],
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "flatpak-unused",
+      "name": "Unused Flatpak runtimes",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Runtimes and extensions no installed app uses any more.",
+      "paths": [],
+      "how": {
+        "kind": "command",
+        "tool": "flatpak",
+        "args": [
+          "uninstall",
+          "--unused",
+          "-y"
+        ]
+      },
+      "junk": true,
+      "os": [
+        "linux"
+      ]
+    },
+    {
+      "id": "journal",
+      "name": "System journal",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Archived systemd journal files older than 7 days. The active journal is kept.",
+      "paths": [
+        "/var/log/journal"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "journal-vacuum"
+      },
+      "junk": true,
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "coredumps",
+      "name": "Core dumps",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Memory dumps of crashed programs kept by systemd-coredump. Only useful when debugging that crash.",
+      "paths": [
+        "/var/lib/systemd/coredump"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 0
+      },
+      "junk": true,
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "apt-cache",
+      "name": "APT package cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Downloaded package files the package manager keeps after installing. Installed software is not affected.",
+      "paths": [
+        "/var/cache/apt/archives"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "apt-clean"
+      },
+      "junk": true,
+      "requires": "apt-get",
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "dnf-cache",
+      "name": "DNF package cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Downloaded package files the package manager keeps after installing. Installed software is not affected.",
+      "paths": [
+        "/var/cache/dnf"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "dnf-clean"
+      },
+      "junk": true,
+      "requires": "dnf",
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "pacman-cache",
+      "name": "Pacman package cache",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Downloaded package files the package manager keeps after installing. Installed software is not affected.",
+      "paths": [
+        "/var/cache/pacman/pkg"
+      ],
+      "how": {
+        "kind": "admin",
+        "action": "paccache"
+      },
+      "junk": true,
+      "requires": "paccache",
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "snap-old",
+      "name": "Old Snap revisions",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Disabled older revisions Snap keeps for rollback. The current revision of every snap stays.",
+      "paths": [],
+      "how": {
+        "kind": "admin",
+        "action": "snap-remove-disabled"
+      },
+      "junk": true,
+      "requires": "snap",
+      "os": [
+        "linux"
+      ],
+      "realOnly": true
+    }
+  ]
+}

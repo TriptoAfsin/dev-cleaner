@@ -1,0 +1,778 @@
+{
+  "$comment": "Editor and coding-harness config files offered for backup, and where cross-tool copies write. Paths: ~ is home, %APPDATA% the roaming config folder (~/Library/Application Support on macOS, ~/.config on Linux), %LOCALAPPDATA% the local data folder. 'secret' marks files holding credentials; '@name' refers to the secrets table.",
+  "tools": [
+    [
+      "vscode",
+      "VS Code"
+    ],
+    [
+      "cursor",
+      "Cursor"
+    ],
+    [
+      "windsurf",
+      "Windsurf"
+    ],
+    [
+      "vscodium",
+      "VSCodium"
+    ],
+    [
+      "zed",
+      "Zed"
+    ],
+    [
+      "sublime",
+      "Sublime Text"
+    ],
+    [
+      "neovim",
+      "Neovim"
+    ],
+    [
+      "jetbrains",
+      "JetBrains IDEs"
+    ],
+    [
+      "wt",
+      "Windows Terminal"
+    ],
+    [
+      "git",
+      "Git"
+    ],
+    [
+      "ssh",
+      "SSH"
+    ],
+    [
+      "pwsh",
+      "PowerShell"
+    ],
+    [
+      "shell",
+      "Shell"
+    ],
+    [
+      "claude",
+      "Claude Code"
+    ],
+    [
+      "codex",
+      "Codex"
+    ],
+    [
+      "gemini",
+      "Gemini CLI"
+    ],
+    [
+      "copilot",
+      "GitHub Copilot CLI"
+    ],
+    [
+      "opencode",
+      "OpenCode"
+    ],
+    [
+      "aider",
+      "Aider"
+    ],
+    [
+      "continue",
+      "Continue"
+    ],
+    [
+      "amp",
+      "Amp"
+    ],
+    [
+      "goose",
+      "Goose"
+    ],
+    [
+      "claude-desktop",
+      "Claude Desktop"
+    ],
+    [
+      "agents",
+      "Shared agent skills"
+    ]
+  ],
+  "secrets": {
+    "mcp": "MCP server definitions often carry API keys or tokens in their env or headers.",
+    "login": "A login token. Anyone with this file can use your account.",
+    "apiKeys": "Usually holds model provider API keys."
+  },
+  "items": [
+    {
+      "tool": "vscode",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Code/User/settings.json"
+    },
+    {
+      "tool": "vscode",
+      "slug": "keybindings",
+      "label": "keybindings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Code/User/keybindings.json"
+    },
+    {
+      "tool": "vscode",
+      "slug": "snippets",
+      "label": "snippets",
+      "kind": "dir",
+      "path": "%APPDATA%/Code/User/snippets"
+    },
+    {
+      "tool": "vscode",
+      "slug": "profiles",
+      "label": "profiles",
+      "kind": "dir",
+      "path": "%APPDATA%/Code/User/profiles"
+    },
+    {
+      "tool": "vscode",
+      "slug": "mcp",
+      "label": "mcp.json",
+      "kind": "file",
+      "path": "%APPDATA%/Code/User/mcp.json",
+      "secret": "@mcp"
+    },
+    {
+      "tool": "vscode",
+      "slug": "extensions",
+      "label": "Extensions",
+      "kind": "extensions"
+    },
+    {
+      "tool": "cursor",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Cursor/User/settings.json"
+    },
+    {
+      "tool": "cursor",
+      "slug": "keybindings",
+      "label": "keybindings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Cursor/User/keybindings.json"
+    },
+    {
+      "tool": "cursor",
+      "slug": "snippets",
+      "label": "snippets",
+      "kind": "dir",
+      "path": "%APPDATA%/Cursor/User/snippets"
+    },
+    {
+      "tool": "cursor",
+      "slug": "extensions",
+      "label": "Extensions",
+      "kind": "extensions"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Windsurf/User/settings.json"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "keybindings",
+      "label": "keybindings.json",
+      "kind": "file",
+      "path": "%APPDATA%/Windsurf/User/keybindings.json"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "snippets",
+      "label": "snippets",
+      "kind": "dir",
+      "path": "%APPDATA%/Windsurf/User/snippets"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "extensions",
+      "label": "Extensions",
+      "kind": "extensions"
+    },
+    {
+      "tool": "vscodium",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "%APPDATA%/VSCodium/User/settings.json"
+    },
+    {
+      "tool": "vscodium",
+      "slug": "keybindings",
+      "label": "keybindings.json",
+      "kind": "file",
+      "path": "%APPDATA%/VSCodium/User/keybindings.json"
+    },
+    {
+      "tool": "vscodium",
+      "slug": "snippets",
+      "label": "snippets",
+      "kind": "dir",
+      "path": "%APPDATA%/VSCodium/User/snippets"
+    },
+    {
+      "tool": "vscodium",
+      "slug": "extensions",
+      "label": "Extensions",
+      "kind": "extensions"
+    },
+    {
+      "tool": "cursor",
+      "slug": "mcp",
+      "label": "mcp.json",
+      "kind": "file",
+      "path": "~/.cursor/mcp.json",
+      "secret": "@mcp"
+    },
+    {
+      "tool": "cursor",
+      "slug": "rules",
+      "label": "rules",
+      "kind": "dir",
+      "path": "~/.cursor/rules"
+    },
+    {
+      "tool": "cursor",
+      "slug": "skills",
+      "label": "skills",
+      "kind": "dir",
+      "path": "~/.cursor/skills"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "mcp",
+      "label": "mcp_config.json",
+      "kind": "file",
+      "path": "~/.codeium/windsurf/mcp_config.json",
+      "secret": "@mcp"
+    },
+    {
+      "tool": "windsurf",
+      "slug": "global-rules",
+      "label": "global_rules.md",
+      "kind": "file",
+      "path": "~/.codeium/windsurf/memories/global_rules.md"
+    },
+    {
+      "tool": "zed",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "windows": "%APPDATA%/Zed/settings.json",
+      "unix": "~/.config/zed/settings.json"
+    },
+    {
+      "tool": "zed",
+      "slug": "keymap",
+      "label": "keymap.json",
+      "kind": "file",
+      "windows": "%APPDATA%/Zed/keymap.json",
+      "unix": "~/.config/zed/keymap.json"
+    },
+    {
+      "tool": "sublime",
+      "slug": "user",
+      "label": "Packages/User",
+      "kind": "dir",
+      "path": "%APPDATA%/Sublime Text/Packages/User"
+    },
+    {
+      "tool": "neovim",
+      "slug": "config",
+      "label": "nvim",
+      "kind": "dir",
+      "windows": "%LOCALAPPDATA%/nvim",
+      "unix": "~/.config/nvim"
+    },
+    {
+      "tool": "wt",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "windows": "%LOCALAPPDATA%/Packages/Microsoft.WindowsTerminal_8wekyb3d8bbwe/LocalState/settings.json"
+    },
+    {
+      "tool": "git",
+      "slug": "gitconfig",
+      "label": ".gitconfig",
+      "kind": "file",
+      "path": "~/.gitconfig"
+    },
+    {
+      "tool": "git",
+      "slug": "ignore",
+      "label": "global ignore",
+      "kind": "file",
+      "path": "~/.config/git/ignore"
+    },
+    {
+      "tool": "ssh",
+      "slug": "config",
+      "label": "config",
+      "kind": "file",
+      "path": "~/.ssh/config",
+      "secret": "Host names, user names and which key opens which server. No keys themselves."
+    },
+    {
+      "tool": "pwsh",
+      "slug": "profile",
+      "label": "Microsoft.PowerShell_profile.ps1",
+      "kind": "file",
+      "windows": "~/Documents/PowerShell/Microsoft.PowerShell_profile.ps1",
+      "unix": "~/.config/powershell/Microsoft.PowerShell_profile.ps1"
+    },
+    {
+      "tool": "pwsh",
+      "slug": "profile-legacy",
+      "label": "Windows PowerShell profile",
+      "kind": "file",
+      "windows": "~/Documents/WindowsPowerShell/Microsoft.PowerShell_profile.ps1"
+    },
+    {
+      "tool": "shell",
+      "slug": "zshrc",
+      "label": ".zshrc",
+      "kind": "file",
+      "path": "~/.zshrc"
+    },
+    {
+      "tool": "shell",
+      "slug": "bashrc",
+      "label": ".bashrc",
+      "kind": "file",
+      "path": "~/.bashrc"
+    },
+    {
+      "tool": "shell",
+      "slug": "bash_profile",
+      "label": ".bash_profile",
+      "kind": "file",
+      "path": "~/.bash_profile"
+    },
+    {
+      "tool": "shell",
+      "slug": "zprofile",
+      "label": ".zprofile",
+      "kind": "file",
+      "path": "~/.zprofile"
+    },
+    {
+      "tool": "claude",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "~/.claude/settings.json"
+    },
+    {
+      "tool": "claude",
+      "slug": "claude-md",
+      "label": "CLAUDE.md",
+      "kind": "file",
+      "path": "~/.claude/CLAUDE.md"
+    },
+    {
+      "tool": "claude",
+      "slug": "rules",
+      "label": "rules",
+      "kind": "dir",
+      "path": "~/.claude/rules"
+    },
+    {
+      "tool": "claude",
+      "slug": "skills",
+      "label": "skills",
+      "kind": "dir",
+      "path": "~/.claude/skills"
+    },
+    {
+      "tool": "claude",
+      "slug": "agents",
+      "label": "agents",
+      "kind": "dir",
+      "path": "~/.claude/agents"
+    },
+    {
+      "tool": "claude",
+      "slug": "commands",
+      "label": "commands",
+      "kind": "dir",
+      "path": "~/.claude/commands"
+    },
+    {
+      "tool": "claude",
+      "slug": "output-styles",
+      "label": "output-styles",
+      "kind": "dir",
+      "path": "~/.claude/output-styles"
+    },
+    {
+      "tool": "claude",
+      "slug": "keybindings",
+      "label": "keybindings.json",
+      "kind": "file",
+      "path": "~/.claude/keybindings.json"
+    },
+    {
+      "tool": "claude",
+      "slug": "plugins",
+      "label": "installed_plugins.json",
+      "kind": "file",
+      "path": "~/.claude/plugins/installed_plugins.json"
+    },
+    {
+      "tool": "claude",
+      "slug": "claude-json",
+      "label": ".claude.json",
+      "kind": "file",
+      "path": "~/.claude.json",
+      "secret": "Your MCP servers (with any API keys in their env) and account details."
+    },
+    {
+      "tool": "claude",
+      "slug": "credentials",
+      "label": ".credentials.json",
+      "kind": "file",
+      "path": "~/.claude/.credentials.json",
+      "secret": "@login"
+    },
+    {
+      "tool": "codex",
+      "slug": "config",
+      "label": "config.toml",
+      "kind": "file",
+      "path": "~/.codex/config.toml",
+      "secret": "MCP servers in here can carry API keys in their env."
+    },
+    {
+      "tool": "codex",
+      "slug": "agents-md",
+      "label": "AGENTS.md",
+      "kind": "file",
+      "path": "~/.codex/AGENTS.md"
+    },
+    {
+      "tool": "codex",
+      "slug": "skills",
+      "label": "skills",
+      "kind": "dir",
+      "path": "~/.codex/skills"
+    },
+    {
+      "tool": "codex",
+      "slug": "prompts",
+      "label": "prompts",
+      "kind": "dir",
+      "path": "~/.codex/prompts"
+    },
+    {
+      "tool": "codex",
+      "slug": "auth",
+      "label": "auth.json",
+      "kind": "file",
+      "path": "~/.codex/auth.json",
+      "secret": "@login"
+    },
+    {
+      "tool": "gemini",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "~/.gemini/settings.json"
+    },
+    {
+      "tool": "gemini",
+      "slug": "gemini-md",
+      "label": "GEMINI.md",
+      "kind": "file",
+      "path": "~/.gemini/GEMINI.md"
+    },
+    {
+      "tool": "gemini",
+      "slug": "commands",
+      "label": "commands",
+      "kind": "dir",
+      "path": "~/.gemini/commands"
+    },
+    {
+      "tool": "gemini",
+      "slug": "extensions",
+      "label": "extensions",
+      "kind": "dir",
+      "path": "~/.gemini/extensions"
+    },
+    {
+      "tool": "gemini",
+      "slug": "env",
+      "label": ".env",
+      "kind": "file",
+      "path": "~/.gemini/.env",
+      "secret": "@apiKeys"
+    },
+    {
+      "tool": "gemini",
+      "slug": "oauth",
+      "label": "oauth_creds.json",
+      "kind": "file",
+      "path": "~/.gemini/oauth_creds.json",
+      "secret": "@login"
+    },
+    {
+      "tool": "gemini",
+      "slug": "accounts",
+      "label": "google_accounts.json",
+      "kind": "file",
+      "path": "~/.gemini/google_accounts.json",
+      "secret": "The Google accounts you signed in with."
+    },
+    {
+      "tool": "copilot",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "~/.copilot/settings.json"
+    },
+    {
+      "tool": "copilot",
+      "slug": "mcp",
+      "label": "mcp-config.json",
+      "kind": "file",
+      "path": "~/.copilot/mcp-config.json",
+      "secret": "@mcp"
+    },
+    {
+      "tool": "copilot",
+      "slug": "agents",
+      "label": "agents",
+      "kind": "dir",
+      "path": "~/.copilot/agents"
+    },
+    {
+      "tool": "copilot",
+      "slug": "skills",
+      "label": "skills",
+      "kind": "dir",
+      "path": "~/.copilot/skills"
+    },
+    {
+      "tool": "copilot",
+      "slug": "instructions",
+      "label": "copilot-instructions.md",
+      "kind": "file",
+      "path": "~/.copilot/copilot-instructions.md"
+    },
+    {
+      "tool": "copilot",
+      "slug": "config",
+      "label": "config.json",
+      "kind": "file",
+      "path": "~/.copilot/config.json",
+      "secret": "@login"
+    },
+    {
+      "tool": "opencode",
+      "slug": "config",
+      "label": "opencode.json",
+      "kind": "file",
+      "path": "~/.config/opencode/opencode.json"
+    },
+    {
+      "tool": "opencode",
+      "slug": "configc",
+      "label": "opencode.jsonc",
+      "kind": "file",
+      "path": "~/.config/opencode/opencode.jsonc"
+    },
+    {
+      "tool": "opencode",
+      "slug": "agents-md",
+      "label": "AGENTS.md",
+      "kind": "file",
+      "path": "~/.config/opencode/AGENTS.md"
+    },
+    {
+      "tool": "opencode",
+      "slug": "agents",
+      "label": "agents",
+      "kind": "dir",
+      "path": "~/.config/opencode/agents"
+    },
+    {
+      "tool": "opencode",
+      "slug": "commands",
+      "label": "commands",
+      "kind": "dir",
+      "path": "~/.config/opencode/commands"
+    },
+    {
+      "tool": "aider",
+      "slug": "conf",
+      "label": ".aider.conf.yml",
+      "kind": "file",
+      "path": "~/.aider.conf.yml",
+      "secret": "@apiKeys"
+    },
+    {
+      "tool": "continue",
+      "slug": "yaml",
+      "label": "config.yaml",
+      "kind": "file",
+      "path": "~/.continue/config.yaml",
+      "secret": "@apiKeys"
+    },
+    {
+      "tool": "continue",
+      "slug": "json",
+      "label": "config.json",
+      "kind": "file",
+      "path": "~/.continue/config.json",
+      "secret": "@apiKeys"
+    },
+    {
+      "tool": "amp",
+      "slug": "settings",
+      "label": "settings.json",
+      "kind": "file",
+      "path": "~/.config/amp/settings.json"
+    },
+    {
+      "tool": "goose",
+      "slug": "config",
+      "label": "config.yaml",
+      "kind": "file",
+      "windows": "%APPDATA%/Block/goose/config/config.yaml",
+      "unix": "~/.config/goose/config.yaml"
+    },
+    {
+      "tool": "goose",
+      "slug": "secrets",
+      "label": "secrets.yaml",
+      "kind": "file",
+      "windows": "%APPDATA%/Block/goose/config/secrets.yaml",
+      "unix": "~/.config/goose/secrets.yaml",
+      "secret": "@apiKeys"
+    },
+    {
+      "tool": "claude-desktop",
+      "slug": "config",
+      "label": "claude_desktop_config.json",
+      "kind": "file",
+      "path": "%APPDATA%/Claude/claude_desktop_config.json",
+      "secret": "@mcp"
+    },
+    {
+      "tool": "agents",
+      "slug": "skills",
+      "label": "skills",
+      "kind": "dir",
+      "path": "~/.agents/skills"
+    }
+  ],
+  "copyTargets": {
+    "editors": [
+      {
+        "id": "vscode",
+        "name": "VS Code",
+        "path": "%APPDATA%/Code/User"
+      },
+      {
+        "id": "cursor",
+        "name": "Cursor",
+        "path": "%APPDATA%/Cursor/User"
+      },
+      {
+        "id": "windsurf",
+        "name": "Windsurf",
+        "path": "%APPDATA%/Windsurf/User"
+      },
+      {
+        "id": "vscodium",
+        "name": "VSCodium",
+        "path": "%APPDATA%/VSCodium/User"
+      }
+    ],
+    "instructions": [
+      {
+        "id": "claude",
+        "name": "Claude Code",
+        "path": "~/.claude/CLAUDE.md"
+      },
+      {
+        "id": "codex",
+        "name": "Codex",
+        "path": "~/.codex/AGENTS.md"
+      },
+      {
+        "id": "gemini",
+        "name": "Gemini CLI",
+        "path": "~/.gemini/GEMINI.md"
+      },
+      {
+        "id": "copilot",
+        "name": "GitHub Copilot CLI",
+        "path": "~/.copilot/copilot-instructions.md"
+      },
+      {
+        "id": "opencode",
+        "name": "OpenCode",
+        "path": "~/.config/opencode/AGENTS.md"
+      }
+    ],
+    "skills": [
+      {
+        "id": "agents",
+        "name": "Shared (Codex, OpenCode)",
+        "path": "~/.agents/skills"
+      },
+      {
+        "id": "copilot",
+        "name": "GitHub Copilot CLI",
+        "path": "~/.copilot/skills"
+      },
+      {
+        "id": "cursor",
+        "name": "Cursor",
+        "path": "~/.cursor/skills"
+      }
+    ],
+    "commands": [
+      {
+        "id": "gemini",
+        "name": "Gemini CLI",
+        "path": "~/.gemini/commands"
+      },
+      {
+        "id": "opencode",
+        "name": "OpenCode",
+        "path": "~/.config/opencode/commands"
+      },
+      {
+        "id": "claude-skills",
+        "name": "Claude Code skills",
+        "path": "~/.claude/skills"
+      }
+    ],
+    "agents": [
+      {
+        "id": "opencode",
+        "name": "OpenCode",
+        "path": "~/.config/opencode/agents"
+      },
+      {
+        "id": "copilot",
+        "name": "GitHub Copilot CLI",
+        "path": "~/.copilot/agents"
+      }
+    ]
+  }
+}

@@ -1,0 +1,441 @@
+{
+  "$comment": "Build and dependency folders inside projects. The first rule whose folder name and conditions match wins. 'parent', 'inside' and 'grandparent' check for files ('any'), file extensions ('anyExt') or folders that must all exist ('allDirs').",
+  "rules": [
+    {
+      "names": [
+        "node_modules"
+      ],
+      "kind": "node_modules",
+      "label": "node_modules",
+      "restore": "npm / pnpm / yarn / bun install",
+      "parent": {
+        "any": [
+          "package.json"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".venv",
+        "venv",
+        "env",
+        ".env"
+      ],
+      "kind": "venv",
+      "label": "Python venv",
+      "restore": "python -m venv, then reinstall requirements",
+      "inside": {
+        "any": [
+          "pyvenv.cfg"
+        ]
+      }
+    },
+    {
+      "names": [
+        "target"
+      ],
+      "kind": "target",
+      "label": "Rust target",
+      "restore": "cargo build",
+      "parent": {
+        "any": [
+          "Cargo.toml"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".next"
+      ],
+      "kind": "next",
+      "label": "Next.js build",
+      "restore": "next build / next dev",
+      "parent": {
+        "any": [
+          "package.json"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".nuxt",
+        ".output"
+      ],
+      "kind": "nuxt",
+      "label": "Nuxt build",
+      "restore": "nuxt build / nuxt dev",
+      "parent": {
+        "any": [
+          "nuxt.config.ts",
+          "nuxt.config.js"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".svelte-kit"
+      ],
+      "kind": "svelte",
+      "label": "SvelteKit build",
+      "restore": "vite dev / vite build"
+    },
+    {
+      "names": [
+        ".turbo"
+      ],
+      "kind": "turbo",
+      "label": "Turborepo cache",
+      "restore": "turbo run"
+    },
+    {
+      "names": [
+        ".parcel-cache"
+      ],
+      "kind": "parcel",
+      "label": "Parcel cache",
+      "restore": "parcel build"
+    },
+    {
+      "names": [
+        ".angular"
+      ],
+      "kind": "angular",
+      "label": "Angular cache",
+      "restore": "ng build",
+      "parent": {
+        "any": [
+          "angular.json"
+        ]
+      }
+    },
+    {
+      "names": [
+        "unsloth_compiled_cache"
+      ],
+      "kind": "unsloth",
+      "label": "Unsloth compile cache",
+      "restore": "re-created on the next training run"
+    },
+    {
+      "names": [
+        ".mypy_cache",
+        ".ruff_cache",
+        ".pytest_cache"
+      ],
+      "kind": "pycache",
+      "label": "Python tool cache",
+      "restore": "re-created on the next run"
+    },
+    {
+      "names": [
+        ".tox",
+        ".nox"
+      ],
+      "kind": "pycache",
+      "label": "Python test envs",
+      "restore": "tox / nox"
+    },
+    {
+      "names": [
+        "target"
+      ],
+      "kind": "maven",
+      "label": "Maven target",
+      "restore": "mvn package",
+      "parent": {
+        "any": [
+          "pom.xml"
+        ]
+      }
+    },
+    {
+      "names": [
+        "target"
+      ],
+      "kind": "scala",
+      "label": "sbt target",
+      "restore": "sbt compile",
+      "parent": {
+        "any": [
+          "build.sbt"
+        ]
+      }
+    },
+    {
+      "names": [
+        "target"
+      ],
+      "kind": "clojure",
+      "label": "Leiningen target",
+      "restore": "lein compile",
+      "parent": {
+        "any": [
+          "project.clj"
+        ]
+      }
+    },
+    {
+      "names": [
+        "build"
+      ],
+      "kind": "gradle",
+      "label": "Gradle build",
+      "restore": "./gradlew build",
+      "parent": {
+        "any": [
+          "build.gradle",
+          "build.gradle.kts",
+          "settings.gradle",
+          "settings.gradle.kts"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".gradle"
+      ],
+      "kind": "gradle",
+      "label": "Gradle project cache",
+      "restore": "./gradlew build",
+      "parent": {
+        "any": [
+          "build.gradle",
+          "build.gradle.kts",
+          "settings.gradle",
+          "settings.gradle.kts"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".kotlin"
+      ],
+      "kind": "gradle",
+      "label": "Kotlin build cache",
+      "restore": "./gradlew build",
+      "parent": {
+        "any": [
+          "build.gradle",
+          "build.gradle.kts",
+          "settings.gradle",
+          "settings.gradle.kts"
+        ]
+      }
+    },
+    {
+      "names": [
+        "bin",
+        "obj"
+      ],
+      "kind": "dotnet",
+      "label": ".NET bin/obj",
+      "restore": "dotnet build",
+      "parent": {
+        "anyExt": [
+          "csproj",
+          "fsproj",
+          "vbproj"
+        ]
+      }
+    },
+    {
+      "names": [
+        "vendor"
+      ],
+      "kind": "composer",
+      "label": "Composer vendor",
+      "restore": "composer install",
+      "parent": {
+        "any": [
+          "composer.json"
+        ]
+      }
+    },
+    {
+      "names": [
+        "bundle"
+      ],
+      "kind": "bundler",
+      "label": "Bundler vendor/bundle",
+      "restore": "bundle install",
+      "parentName": "vendor",
+      "grandparent": {
+        "any": [
+          "Gemfile"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".build"
+      ],
+      "kind": "swift",
+      "label": "Swift build",
+      "restore": "swift build",
+      "parent": {
+        "any": [
+          "Package.swift"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".dart_tool"
+      ],
+      "kind": "dart",
+      "label": "Dart tool cache",
+      "restore": "dart pub get",
+      "parent": {
+        "any": [
+          "pubspec.yaml"
+        ]
+      }
+    },
+    {
+      "names": [
+        "build"
+      ],
+      "kind": "dart",
+      "label": "Flutter build",
+      "restore": "flutter build",
+      "parent": {
+        "any": [
+          "pubspec.yaml"
+        ]
+      }
+    },
+    {
+      "names": [
+        "_build",
+        "deps"
+      ],
+      "kind": "elixir",
+      "label": "Mix build / deps",
+      "restore": "mix deps.get && mix compile",
+      "parent": {
+        "any": [
+          "mix.exs"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".stack-work"
+      ],
+      "kind": "haskell",
+      "label": "Stack build",
+      "restore": "stack build",
+      "parent": {
+        "any": [
+          "stack.yaml",
+          "package.yaml"
+        ]
+      }
+    },
+    {
+      "names": [
+        "dist-newstyle"
+      ],
+      "kind": "haskell",
+      "label": "Cabal build",
+      "restore": "cabal build",
+      "parent": {
+        "any": [
+          "cabal.project"
+        ],
+        "anyExt": [
+          "cabal"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".zig-cache",
+        "zig-cache",
+        "zig-out"
+      ],
+      "kind": "zig",
+      "label": "Zig build",
+      "restore": "zig build",
+      "parent": {
+        "any": [
+          "build.zig"
+        ]
+      }
+    },
+    {
+      "names": [
+        "build",
+        "cmake-build-debug",
+        "cmake-build-release",
+        "out"
+      ],
+      "kind": "cmake",
+      "label": "CMake build",
+      "restore": "cmake -B build && cmake --build build",
+      "inside": {
+        "any": [
+          "CMakeCache.txt"
+        ]
+      }
+    },
+    {
+      "names": [
+        "Library"
+      ],
+      "kind": "unity",
+      "label": "Unity Library",
+      "restore": "reopen the project in Unity",
+      "parent": {
+        "allDirs": [
+          "ProjectSettings",
+          "Assets"
+        ]
+      }
+    },
+    {
+      "names": [
+        ".godot"
+      ],
+      "kind": "godot",
+      "label": "Godot import cache",
+      "restore": "reopen the project in Godot",
+      "parent": {
+        "any": [
+          "project.godot"
+        ]
+      }
+    },
+    {
+      "names": [
+        "Intermediate",
+        "DerivedDataCache"
+      ],
+      "kind": "unreal",
+      "label": "Unreal build cache",
+      "restore": "rebuild in Unreal Editor",
+      "parent": {
+        "anyExt": [
+          "uproject"
+        ]
+      }
+    }
+  ],
+  "skip": [
+    ".git",
+    ".hg",
+    ".svn",
+    "$recycle.bin",
+    "system volume information",
+    "windows",
+    "program files",
+    "program files (x86)",
+    "appdata",
+    "library",
+    ".cache",
+    ".cargo",
+    ".rustup",
+    ".npm",
+    ".pnpm-store"
+  ]
+}

@@ -4,7 +4,6 @@ import { test, before, after } from "node:test"
 import assert from "node:assert/strict"
 import { spawn } from "node:child_process"
 import { killTree, launch } from "../lib/harness.mjs"
-import { sleep } from "../lib/webdriver.mjs"
 
 let ctx
 before(async () => (ctx = await launch()))
@@ -49,12 +48,14 @@ test("End task on a process asks first and then ends it", async () => {
   const { s } = ctx
   // A throwaway process with a name nothing else uses.
   const child = spawn("powershell", ["-NoProfile", "-Command", "Start-Sleep 120"], { stdio: "ignore" })
-  await sleep(1500)
+  // Wait until the backend lists it, rather than guessing how long that takes
+  // on a busy machine.
+  await s.waitFor(async () => (await s.invoke("list_processes")).some((g) => g.pids.includes(child.pid)), "the child in the process list", { timeout: 20000 })
   const input = await ctx.tid("process-filter")
   await input.clear()
   await input.click()
   await s.type(String(child.pid))
-  const btn = await s.waitFor(() => s.byLabel("End powershell"), "End button for the child")
+  const btn = await s.waitFor(() => s.byLabel("End powershell"), "End button for the child", { timeout: 20000 })
   await btn.click()
   await s.waitFor(() => s.byText("[role=dialog]", "End powershell"), "confirm dialog")
   await ctx.click("confirm-kill")
