@@ -65,3 +65,11 @@ test("Settings lists the drives and remembers the choice", async () => {
   await (await s.byText("[data-testid=drives-setting] button", "Select all")).click()
   await s.waitFor(async () => (await s.invoke("load_settings"))?.drives === null, "back to all drives")
 })
+
+test("every button and control shows the pointer cursor", async () => {
+  await ctx.nav("settings")
+  const wrong = await ctx.s.exec(`
+    const els = [...document.querySelectorAll('button:not(:disabled), [role=tab], [role=switch], input[type=checkbox]:not(:disabled), a[href]')]
+    return els.filter(el => getComputedStyle(el).cursor !== 'pointer').map(el => el.outerHTML.slice(0, 80))`)
+  assert.deepEqual(wrong, [])
+})
