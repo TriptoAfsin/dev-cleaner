@@ -101,7 +101,7 @@ function wipeData() {
 }
 
 /** Launch the app. `windowState` is written before launch to test restore. */
-export async function launch({ keepData = false, windowState, realHome = false } = {}) {
+export async function launch({ keepData = false, windowState, realHome = false, env: extraEnv = {} } = {}) {
   if (!existsSync(APP)) throw new Error(`e2e build missing at ${APP}. Run: npm run e2e:build`)
   if (!keepData) wipeData()
   if (!realHome && !keepData) seedCaches()
@@ -112,7 +112,7 @@ export async function launch({ keepData = false, windowState, realHome = false }
 
   const port = await freePort()
   const nativePort = await freePort()
-  const env = { ...process.env }
+  const env = { ...process.env, ...extraEnv }
   if (realHome) delete env.DEV_CLEANER_FAKE_HOME
   else env.DEV_CLEANER_FAKE_HOME = FAKE_HOME
   const driver = spawn(

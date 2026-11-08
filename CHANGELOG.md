@@ -8,6 +8,7 @@ section matching the tag.
 ## [Unreleased]
 
 ### Added
+- About, in Settings and from the title bar: version, how it was installed, links, and update checks against GitHub releases (on launch, then daily; can be turned off). A dot on the title-bar button marks an update, with release notes and the right upgrade command for Scoop, WinGet, Homebrew or Flatpak.
 - Flatpak bundle for Linux. Inside the sandbox, tools run on the host through `flatpak-spawn --host`, and processes and ports are read from the host (`ps`, `ss`), so cleaning, ending processes and freeing ports keep working.
 - After a clean, the dialog shows what was freed and what was left behind: files open in other programs are counted, a few are listed, and the programs holding them are named (Windows Restart Manager, /proc on Linux, lsof on macOS), with Clean again and a link to Processes. Files kept on purpose for being too new are counted separately.
 - Clean progress: an overall bar (bytes deleted of the selected size), what is happening right now (running a tool, deleting files, checking what is left, finding which programs hold files), a bar and timer per item, and an indeterminate bar for tool commands that do not report progress. The result shows the total time, the time per item and the slowest one.

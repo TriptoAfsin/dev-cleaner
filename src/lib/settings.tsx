@@ -16,6 +16,8 @@ export type Settings = {
   /** Also search the chosen drives for AI model files. */
   modelDrives: boolean
   confirmKills: boolean
+  /** Ask GitHub for a newer release on launch, then once a day. */
+  checkUpdates: boolean
 }
 
 export const ACCENTS: { name: string; hex: string }[] = [
@@ -38,6 +40,7 @@ const DEFAULTS: Settings = {
   drives: null,
   modelDrives: true,
   confirmKills: true,
+  checkUpdates: true,
 }
 
 const KEY = "dc-settings"

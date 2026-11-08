@@ -149,6 +149,16 @@ export type Artifact = {
 }
 export type DeleteEvent = { path: string; ok: boolean; freed: number; error: string | null }
 
+export type AppInfo = {
+  version: string
+  os: string
+  arch: string
+  installedVia: string
+  upgradeCommand: string | null
+  repo: string
+}
+export type UpdateInfo = { current: string; latest: string; newer: boolean; url: string; publishedAt: string; notes: string }
+
 const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 
 export const api = {
@@ -170,6 +180,8 @@ export const api = {
   privilegesInfo: () => invoke<Privileges>("privileges_info"),
   openFullDiskAccess: () => invoke<boolean>("open_full_disk_access"),
   platform: () => invoke<string>("platform"),
+  appInfo: () => invoke<AppInfo>("app_info"),
+  checkUpdate: () => invoke<UpdateInfo>("check_update"),
   loadSettings: () => invoke<Record<string, unknown> | null>("load_settings"),
   saveSettings: (settings: unknown) => invoke<void>("save_settings", { settings }),
   saveFile: (path: string, base64: string) => invoke<void>("save_file", { path, base64 }),

@@ -26,6 +26,7 @@ dirs = "6"
 starship-battery = "0.10"
 zip = { version = "2", default-features = false, features = ["deflate"] }
 base64 = "0.22"
+ureq = { version = "2", default-features = false, features = ["tls"] }
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.59", features = [

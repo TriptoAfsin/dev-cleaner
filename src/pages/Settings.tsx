@@ -4,6 +4,7 @@ import { bytes, cn } from "@/lib/format"
 import { ACCENTS, useDrives, useSettings, type ThemeMode } from "@/lib/settings"
 import { Bar, Card, Checkbox, PageHeader, Skeleton, Switch } from "@/components/ui"
 import { PermissionsCard } from "@/components/Privileges"
+import { AboutCard } from "@/components/About"
 
 export function SettingsPage() {
   const { settings, set } = useSettings()
@@ -129,7 +130,8 @@ export function SettingsPage() {
         </div>
       </Card>
       <PermissionsCard />
-      <p className="m-0 text-[12px] text-subtle">Dev Cleaner never sends anything off your machine.</p>
+      <AboutCard />
+      <p className="m-0 text-[12px] text-subtle">Nothing about you or your files leaves this machine. The only network request is the update check, a plain request to GitHub, which you can turn off above.</p>
     </div>
   )
 }

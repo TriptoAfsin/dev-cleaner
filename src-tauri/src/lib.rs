@@ -10,6 +10,7 @@ mod ports;
 mod projects;
 mod sysinfo_dev;
 mod util;
+mod updates;
 mod winstate;
 
 use monitor::Monitor;
@@ -202,6 +203,17 @@ fn save_settings(app: AppHandle, settings: serde_json::Value) -> R<()> {
 }
 
 #[tauri::command]
+fn app_info(app: AppHandle) -> updates::AppInfo {
+    updates::app_info(&app.package_info().version.to_string())
+}
+
+#[tauri::command]
+async fn check_update(app: AppHandle) -> R<updates::UpdateInfo> {
+    let v = app.package_info().version.to_string();
+    blocking(move || updates::check(&v)).await?
+}
+
+#[tauri::command]
 fn platform() -> &'static str {
     std::env::consts::OS
 }
@@ -303,6 +315,8 @@ pub fn run() {
             }
         })
         .invoke_handler(tauri::generate_handler![
+            app_info,
+            check_update,
             live_stats,
             list_processes,
             kill_processes,

@@ -7,6 +7,7 @@ import { cn } from "@/lib/format"
 import { ACCENTS, useSettings } from "@/lib/settings"
 import { useStore } from "@/lib/store"
 import { Tooltip } from "./ui"
+import { AboutButton } from "./About"
 
 const DRAG_THRESHOLD = 4
 
@@ -78,6 +79,7 @@ export function TitleBar() {
       </div>
       <div className="h-full flex-1" />
       <div className="flex items-center gap-1.5 pr-2">
+        <AboutButton />
         <AccentPicker />
         <ThemeToggle />
       </div>

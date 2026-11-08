@@ -5,6 +5,9 @@ import { Sidebar, StatusBar, type Page } from "./components/Shell"
 import { Toaster } from "./components/ui"
 import { ShareReportDialog } from "./components/Share"
 import { useSettings } from "./lib/settings"
+import { useStore } from "./lib/store"
+import { checkForUpdates, LAST_CHECK_KEY } from "./lib/updates"
+import { api } from "./lib/api"
 import { Overview } from "./pages/Overview"
 import { Disk } from "./pages/Disk"
 import { Projects } from "./pages/Projects"
@@ -32,6 +35,31 @@ export function App() {
     window.addEventListener("dc-go", go)
     return () => window.removeEventListener("dc-go", go)
   }, [])
+
+  // Update check: a few seconds after launch (never before the first paint
+  // or scan), then once a day. A failure is silent here; Settings shows it.
+  const { toast } = useStore()
+  useEffect(() => {
+    if (!settings.checkUpdates || !api.inTauri) return
+    const DAY = 24 * 60 * 60 * 1000
+    const run = async () => {
+      const s = await checkForUpdates()
+      if (s.info?.newer) toast({ kind: "info", title: `Dev Cleaner ${s.info.latest} is out`, detail: "See what's new and how to update.", action: { label: "Details", run: () => window.dispatchEvent(new Event("dc-about")) } })
+    }
+    let last = 0
+    try {
+      last = Number(localStorage.getItem(LAST_CHECK_KEY) || 0)
+    } catch {
+      /* storage unavailable */
+    }
+    const first = window.setTimeout(run, Date.now() - last > DAY ? 4000 : Math.max(4000, last + DAY - Date.now()))
+    const every = window.setInterval(run, DAY)
+    return () => {
+      clearTimeout(first)
+      clearInterval(every)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [settings.checkUpdates])
 
   // Ctrl/Cmd + 1..9 jumps between sections.
   useEffect(() => {
