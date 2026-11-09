@@ -10,7 +10,7 @@ first release is published:
 
 ```powershell
 winget install wingetcreate
-wingetcreate new https://github.com/TriptoAfsin/dev-cleaner/releases/download/v0.1.0/Dev.Cleaner_0.1.0_x64_en-US.msi
+wingetcreate new https://github.com/TriptoAfsin/dev-cleaner/releases/download/v0.5.0/Dev.Cleaner_0.5.0_x64_en-US.msi
 ```
 
 Use `TriptoAfsin.DevCleaner` as the identifier, `Dev Cleaner` as the name, and
