@@ -6,6 +6,7 @@ import { bytes, cn, took } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useStore } from "@/lib/store"
 import { useDrives } from "@/lib/settings"
+import { AdminBanner } from "@/components/Privileges"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, PageHeader, Skeleton } from "@/components/ui"
 import { CacheRow } from "@/components/shared"
 
@@ -57,6 +58,8 @@ export function Disk({ junk = false }: { junk?: boolean }) {
           </>
         }
       />
+
+      {junk && found.some((c) => c.admin) && <AdminBanner what="Admin cleanups" />}
 
       <div className="flex flex-wrap items-center gap-2">
         {ecos.map((e) => (

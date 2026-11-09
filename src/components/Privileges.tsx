@@ -163,3 +163,33 @@ export function PermissionsCard() {
     </Card>
   )
 }
+
+/** A banner on pages whose actions need admin rights. Windows: restart as
+    admin once instead of a UAC prompt per change. macOS and Linux: says a
+    password prompt will appear (Dev Cleaner never runs as root there). */
+export function AdminBanner({ what, testid = "admin-banner" }: { what: string; testid?: string }) {
+  const { p } = usePrivileges()
+  const [ask, setAsk] = useState(false)
+  if (!p || p.isAdmin) return null
+  if (p.os === "linux" && p.inFlatpak) return null
+  const text =
+    p.os === "windows"
+      ? `${what} need administrator rights. Windows asks each time; restart as administrator to skip the prompts.`
+      : p.os === "macos"
+        ? `${what} need administrator rights. macOS asks for your password each time.`
+        : `${what} need administrator rights. You'll be asked through pkexec each time.`
+  return (
+    <div data-testid={testid} role="note" className="flex items-center gap-3 rounded-xl border border-warn/30 bg-warn-soft px-3.5 py-2.5">
+      <ShieldAlert size={16} className="shrink-0 text-warn" />
+      <p className="m-0 min-w-0 flex-1 text-[12.5px] leading-[1.45] text-text">{text}</p>
+      {p.os === "windows" && p.canRelaunch && (
+        <>
+          <Button size="sm" icon={<ShieldCheck size={13} />} onClick={() => setAsk(true)} data-testid="banner-relaunch" className="shrink-0">
+            Restart as admin
+          </Button>
+          <RelaunchDialog open={ask} onClose={() => setAsk(false)} />
+        </>
+      )}
+    </div>
+  )
+}

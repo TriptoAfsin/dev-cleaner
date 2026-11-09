@@ -19,6 +19,8 @@ its own.
 | `ports.json` | Ports listed even when free, and names for what listens on them. |
 | `models.json` | Folders AI apps keep models in. |
 | `configs.json` | Config files offered for backup, and where cross-tool copies write. |
+| `startup.json` | Verdicts for programs that start at sign-in: keep, or fine to turn off. |
+| `services.json` | Services: protected (never changed), dev servers, optional. |
 
 ## Where the app reads them from
 

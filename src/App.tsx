@@ -16,10 +16,12 @@ import { Configs } from "./pages/Configs"
 import { Memory } from "./pages/Memory"
 import { Processes } from "./pages/Processes"
 import { Ports } from "./pages/Ports"
+import { Startup } from "./pages/Startup"
+import { Services } from "./pages/Services"
 import { SystemPage } from "./pages/System"
 import { SettingsPage } from "./pages/Settings"
 
-const ORDER: Page[] = ["overview", "disk", "junk", "projects", "models", "configs", "memory", "processes", "ports", "system", "settings"]
+const ORDER: Page[] = ["overview", "disk", "junk", "projects", "models", "configs", "memory", "processes", "startup", "services", "ports", "system", "settings"]
 
 export function App() {
   const { settings } = useSettings()
@@ -84,6 +86,8 @@ export function App() {
     projects: <Projects />,
     memory: <Memory />,
     processes: <Processes />,
+    startup: <Startup />,
+    services: <Services />,
     ports: <Ports />,
     system: <SystemPage go={setPage} />,
     settings: <SettingsPage />,

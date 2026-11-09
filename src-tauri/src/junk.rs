@@ -275,11 +275,11 @@ pub fn admin_available() -> bool {
     util::fake_home().is_none() && (cfg!(any(windows, target_os = "macos")) || which("pkexec").is_some())
 }
 
-fn sh_quote(s: &str) -> String {
+pub(crate) fn sh_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 
-fn ps_quote(s: &str) -> String {
+pub(crate) fn ps_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "''"))
 }
 
@@ -329,7 +329,18 @@ pub(crate) fn run_admin(items: &[&Target]) -> bool {
     if util::fake_home().is_some() || items.is_empty() {
         return false;
     }
-    let script = admin_script(items);
+    run_elevated(&admin_script(items))
+}
+
+/// Run a script with admin rights: PowerShell through UAC on Windows (or
+/// directly when already elevated), sh through the macOS password prompt,
+/// sh through pkexec on Linux. One prompt per call. False if cancelled or
+/// it failed. Never under the e2e fake home.
+pub(crate) fn run_elevated(script: &str) -> bool {
+    if util::fake_home().is_some() {
+        return false;
+    }
+    let script = script.to_string();
     let long = Duration::from_secs(1800);
     if cfg!(windows) {
         let path = std::env::temp_dir().join(format!("dev-cleaner-admin-{}.ps1", std::process::id()));

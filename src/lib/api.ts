@@ -172,6 +172,38 @@ export type DefinitionsInfo = {
   counts: { caches: number; junk: number; projects: number; processes: number; ports: number; models: number; configs: number }
 }
 
+export type StartupItem = {
+  id: string
+  name: string
+  displayName: string
+  publisher: string | null
+  command: string
+  location: string
+  scope: "user" | "machine"
+  enabled: boolean
+  needsAdmin: boolean
+  verdict: "keep" | "optional" | "unknown"
+  reason: string
+  path: string | null
+}
+export type Service = {
+  name: string
+  displayName: string
+  description: string
+  state: "running" | "stopped" | "starting" | "stopping" | "paused" | "unknown"
+  startType: "auto" | "delayed" | "manual" | "disabled" | "unknown"
+  pid: number | null
+  memory: number | null
+  path: string
+  account: string
+  verdict: "protected" | "dev" | "optional" | "unknown"
+  reason: string
+  canChange: boolean
+  needsAdmin: boolean
+  kind: string
+}
+export type ServiceAction = "start" | "stop" | "restart" | "auto" | "manual" | "disabled"
+
 const inTauri = typeof window !== "undefined" && "__TAURI_INTERNALS__" in window
 
 export const api = {
@@ -195,6 +227,10 @@ export const api = {
   platform: () => invoke<string>("platform"),
   appInfo: () => invoke<AppInfo>("app_info"),
   checkUpdate: () => invoke<UpdateInfo>("check_update"),
+  listStartup: () => invoke<StartupItem[]>("list_startup"),
+  setStartup: (id: string, enabled: boolean) => invoke<StartupItem>("set_startup", { id, enabled }),
+  listServices: () => invoke<Service[]>("list_services"),
+  serviceAction: (name: string, action: ServiceAction) => invoke<Service>("service_action", { name, action }),
   definitionsInfo: () => invoke<DefinitionsInfo>("definitions_info"),
   reloadDefinitions: () => invoke<DefinitionsInfo>("reload_definitions"),
   openDefinitionsFolder: () => invoke<void>("open_definitions_folder"),

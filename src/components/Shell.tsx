@@ -1,11 +1,11 @@
 import { motion } from "motion/react"
-import { Activity, ArchiveRestore, BrainCircuit, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Settings } from "lucide-react"
+import { Activity, ArchiveRestore, BrainCircuit, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Rocket, ServerCog, Settings } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
 import { useStore } from "@/lib/store"
 import { PrivilegeStatus } from "./Privileges"
 import type { ReactNode } from "react"
 
-export type Page = "overview" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "ports" | "system" | "settings"
+export type Page = "overview" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "startup" | "services" | "ports" | "system" | "settings"
 
 const NAV: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "overview", label: "Overview", icon: <GaugeIcon size={15} /> },
@@ -16,6 +16,8 @@ const NAV: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "configs", label: "Configs", icon: <ArchiveRestore size={15} /> },
   { id: "memory", label: "Memory", icon: <MemoryStick size={15} /> },
   { id: "processes", label: "Processes", icon: <Activity size={15} /> },
+  { id: "startup", label: "Startup", icon: <Rocket size={15} /> },
+  { id: "services", label: "Services", icon: <ServerCog size={15} /> },
   { id: "ports", label: "Ports", icon: <Cable size={15} /> },
   { id: "system", label: "System", icon: <Monitor size={15} /> },
 ]

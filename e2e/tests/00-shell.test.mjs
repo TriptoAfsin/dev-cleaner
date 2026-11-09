@@ -19,7 +19,7 @@ test("starts on Overview with the custom title bar and live stats", async () => 
 })
 
 test("every section opens from the sidebar and marks itself current", async () => {
-  for (const page of ["disk", "junk", "projects", "models", "configs", "memory", "processes", "ports", "system", "settings", "overview"]) {
+  for (const page of ["disk", "junk", "projects", "models", "configs", "memory", "processes", "startup", "services", "ports", "system", "settings", "overview"]) {
     await ctx.nav(page)
     const current = await ctx.s.exec(`return document.querySelector('[aria-current=page]')?.dataset.testid`)
     assert.equal(current, `nav-${page}`)

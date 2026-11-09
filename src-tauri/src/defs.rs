@@ -25,6 +25,8 @@ const BUILTIN: &[(&str, &str)] = &[
     ("ports.json", include_str!("../../definitions/ports.json")),
     ("models.json", include_str!("../../definitions/models.json")),
     ("configs.json", include_str!("../../definitions/configs.json")),
+    ("startup.json", include_str!("../../definitions/startup.json")),
+    ("services.json", include_str!("../../definitions/services.json")),
 ];
 
 // ------------------------------------------------------------------- format
@@ -321,6 +323,38 @@ pub struct Endpoint {
     pub path: String,
 }
 
+/// Programs that start at sign-in: which to keep, which are fine to turn off.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Startup {
+    pub keep: HashMap<String, String>,
+    pub optional: HashMap<String, String>,
+}
+
+/// Services: which the OS needs, which are developer servers, which are optional.
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct Services {
+    pub protected: HashMap<String, String>,
+    pub dev: HashMap<String, String>,
+    pub optional: HashMap<String, String>,
+}
+
+/// Look a name up in a verdict table: case-insensitive, and a key ending in
+/// `*` matches any name that starts with the rest.
+pub fn lookup<'a>(table: &'a HashMap<String, String>, name: &str) -> Option<&'a str> {
+    let n = name.to_ascii_lowercase();
+    if let Some((_, v)) = table.iter().find(|(k, _)| k.to_ascii_lowercase() == n) {
+        return Some(v.as_str());
+    }
+    table
+        .iter()
+        .filter_map(|(k, v)| k.strip_suffix('*').map(|p| (p.to_ascii_lowercase(), v)))
+        .filter(|(p, _)| n.starts_with(p.as_str()))
+        .max_by_key(|(p, _)| p.len())
+        .map(|(_, v)| v.as_str())
+}
+
 pub struct Defs {
     pub index: Index,
     pub caches: Vec<CacheRule>,
@@ -329,6 +363,8 @@ pub struct Defs {
     pub ports: Ports,
     pub models: Models,
     pub configs: Configs,
+    pub startup: Startup,
+    pub services: Services,
 }
 
 // ---------------------------------------------------------------- templates
@@ -470,6 +506,8 @@ fn parse_set(read: impl Fn(&str) -> Result<String, String>) -> Result<Defs, Stri
         ports: parse("ports.json", &read("ports.json")?)?,
         models: parse("models.json", &read("models.json")?)?,
         configs: parse("configs.json", &read("configs.json")?)?,
+        startup: parse("startup.json", &read("startup.json")?)?,
+        services: parse("services.json", &read("services.json")?)?,
         index,
     };
     check(&defs)?;
@@ -630,6 +668,8 @@ pub struct Counts {
     pub ports: usize,
     pub models: usize,
     pub configs: usize,
+    pub startup: usize,
+    pub services: usize,
 }
 
 pub fn applies(r: &CacheRule) -> bool {
@@ -660,6 +700,8 @@ pub fn info() -> Info {
             ports: d.ports.command_hints.len() + d.ports.process_hints.len() + d.ports.port_hints.len(),
             models: d.models.app_roots.len(),
             configs: d.configs.items.len(),
+            startup: d.startup.keep.len() + d.startup.optional.len(),
+            services: d.services.protected.len() + d.services.dev.len() + d.services.optional.len(),
         },
     }
 }
@@ -676,6 +718,15 @@ mod tests {
         for f in &d.index.files {
             assert!(BUILTIN.iter().any(|(n, _)| n == f), "{f} is listed but not built in");
         }
+    }
+
+    #[test]
+    fn lookup_is_case_insensitive_and_takes_the_longest_prefix() {
+        let t: HashMap<String, String> = [("MySQL*", "a"), ("mysql80", "b"), ("my*", "c")].iter().map(|(k, v)| (k.to_string(), v.to_string())).collect();
+        assert_eq!(lookup(&t, "MYSQL80"), Some("b"));
+        assert_eq!(lookup(&t, "MySQL57"), Some("a"));
+        assert_eq!(lookup(&t, "mything"), Some("c"));
+        assert_eq!(lookup(&t, "postgres"), None);
     }
 
     #[test]

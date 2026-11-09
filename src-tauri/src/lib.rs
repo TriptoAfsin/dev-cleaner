@@ -8,6 +8,8 @@ mod models;
 mod monitor;
 mod ports;
 mod projects;
+mod services;
+mod startup;
 mod sysinfo_dev;
 mod util;
 mod updates;
@@ -41,6 +43,33 @@ async fn list_processes(m: State<'_, Arc<Monitor>>) -> R<Vec<monitor::ProcGroup>
 async fn kill_processes(m: State<'_, Arc<Monitor>>, pids: Vec<u32>) -> R<monitor::KillResult> {
     let m = Arc::clone(&m);
     blocking(move || monitor::kill(&m, &pids)).await
+}
+
+#[tauri::command]
+async fn list_startup() -> R<Vec<startup::StartupItem>> {
+    blocking(startup::list).await
+}
+
+#[tauri::command]
+async fn set_startup(id: String, enabled: bool) -> R<startup::StartupItem> {
+    blocking(move || startup::set_enabled(&id, enabled)).await?
+}
+
+/// Memory of one process, from the monitor's last refresh.
+fn proc_memory(m: &Monitor, pid: u32) -> Option<u64> {
+    m.sys.lock().ok()?.process(sysinfo::Pid::from_u32(pid)).map(|p| p.memory())
+}
+
+#[tauri::command]
+async fn list_services(m: State<'_, Arc<Monitor>>) -> R<Vec<services::Service>> {
+    let m = Arc::clone(&m);
+    blocking(move || services::list(|p| proc_memory(&m, p))).await
+}
+
+#[tauri::command]
+async fn service_action(m: State<'_, Arc<Monitor>>, name: String, action: String) -> R<services::Service> {
+    let m = Arc::clone(&m);
+    blocking(move || services::act(&name, &action, |p| proc_memory(&m, p))).await?
 }
 
 #[tauri::command]
@@ -341,6 +370,10 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             app_info,
             check_update,
+            list_startup,
+            set_startup,
+            list_services,
+            service_action,
             definitions_info,
             reload_definitions,
             open_definitions_folder,

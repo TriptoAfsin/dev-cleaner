@@ -32,6 +32,8 @@ const panel = () =>
 
 test("long tables scroll inside their card; header and footer frame the rows", async () => {
   await ctx.s.cmd("POST", "/window/rect", { width: 1100, height: 640 }).catch(() => {})
+  // Let the resize settle: a click mid-resize can land on the bare page.
+  await ctx.s.waitFor(() => ctx.s.exec(`return window.innerWidth <= 1100 && document.elementFromPoint(97, 100)?.closest('[data-testid=nav-disk]') != null`), "window resized", { timeout: 5000 }).catch(() => sleep(800))
   await ctx.nav("disk")
   await ctx.s.waitFor(() => ctx.s.exec(`return document.querySelectorAll('[data-testid=cache-list] li').length > 10`), "cache rows")
   await sleep(300)

@@ -3,5 +3,14 @@
   "schema": 1,
   "version": "2026.11.09.1",
   "minApp": "0.1.0",
-  "files": ["caches.json", "projects.json", "processes.json", "ports.json", "models.json", "configs.json"]
+  "files": [
+    "caches.json",
+    "projects.json",
+    "processes.json",
+    "ports.json",
+    "models.json",
+    "configs.json",
+    "startup.json",
+    "services.json"
+  ]
 }
