@@ -7,6 +7,8 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-11-09
+
 ### Added
 - Definitions: what the app knows about caches, language and AI caches, system junk, project build folders, process verdicts, port hints, AI model folders and config files now lives as data in `definitions/*.json` instead of code. Settings shows the version in use, its source (built-in or the definitions folder), the folder path and what it holds, with a Refresh button. A set in the data folder replaces the built-in one when it is complete and valid; otherwise the built-in set is used and the reason is shown. Groundwork for updating definitions without a new release.
 - About, in Settings and from the title bar: version, how it was installed, links, and update checks against GitHub releases (on launch, then daily; can be turned off). A dot on the title-bar button marks an update, with release notes and the right upgrade command for Scoop, WinGet, Homebrew or Flatpak.
@@ -16,7 +18,7 @@ section matching the tag.
 - Permissions per OS. Windows: Restart as administrator through UAC (from the status bar, System or Settings); the window reopens where it was, and the elevated copy waits for the old one to close. macOS: Full Disk Access status with a button to the right System Settings pane; admin cleanups ask for a password when they run, and the app never runs as root. Linux: admin cleanups go through pkexec; the status shows if it's missing.
 - More languages in Disk cleanup: Gradle wrapper distributions and daemon logs (daemons are stopped first), Maven wrapper, Kotlin/Native, Android build cache, Groovy Grape, sbt, Clojure, NuGet HTTP and plugin caches, .NET workload cleanup, RubyGems, Bundler, rbenv/rvm downloads, SwiftPM, Cabal, Stack, GHCup, Hex, rebar3, Julia, renv, cpanm, opam, Nimble, Crystal, dub, Gleam, Elm, LuaRocks, pdm, Hatch, pipx, pyenv, Corepack, Terraform, Pulumi and Bazel.
 - More languages in Projects: Maven, sbt and Leiningen target, Gradle build, .gradle and .kotlin, .NET bin/obj, Composer vendor, Bundler vendor/bundle, Swift .build, Dart/Flutter .dart_tool and build, Mix _build/deps, Stack and Cabal output, Zig cache/out, CMake build trees, tox/nox, and Unity, Godot and Unreal caches. Each matches only beside its project file.
-- Available through Homebrew (`t21dev/tap/dev-cleaner`), Scoop (`t21dev/dev-cleaner`) and WinGet (`TriptoAfsin.DevCleaner`).
+- Available through Homebrew (`t21dev/tap/dev-cleaner`), Scoop (`t21dev/dev-cleaner`) and WinGet (`TriptoAfsin.DevCleaner`, once its first submission is merged).
 
 ## [0.1.0] - 2026-11-09
 
