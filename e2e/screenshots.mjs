@@ -1,11 +1,13 @@
 // README screenshots, taken from the real app on this machine's real data.
 //   npm run e2e:build && node e2e/screenshots.mjs [projectsFolder]
+// SHOTS_DIR saves elsewhere; SHOTS_ACCENT=default keeps the app's own accent.
 import { mkdirSync, writeFileSync } from "node:fs"
 import path from "node:path"
 import { launch, ROOT } from "./lib/harness.mjs"
 import { sleep } from "./lib/webdriver.mjs"
 
-const OUT = path.join(ROOT, "docs", "screenshots")
+const OUT = process.env.SHOTS_DIR || path.join(ROOT, "docs", "screenshots")
+const accent = process.env.SHOTS_ACCENT || "#1d4ed8"
 const projectsRoot = process.argv[2] ?? path.resolve(ROOT, "..")
 mkdirSync(OUT, { recursive: true })
 
@@ -21,7 +23,7 @@ const idle = (ms = 60000) => s.waitFor(async () => !(await s.exec(`return !!docu
 try {
   // A consistent window size for every shot.
   await s.cmd("POST", "/window/rect", { width: 1440, height: 900, x: 60, y: 40 }).catch(() => {})
-  await ctx.settings({ theme: "dark", accent: "#1d4ed8", projectRoots: [projectsRoot], projectDepth: 6 })
+  await ctx.settings({ theme: "dark", ...(accent === "default" ? {} : { accent }), projectRoots: [projectsRoot], projectDepth: 6 })
 
   await ctx.waitText(/reclaimable|can be rebuilt/, "first scan", 120000)
   await idle(120000)

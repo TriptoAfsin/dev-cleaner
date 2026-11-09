@@ -181,6 +181,21 @@ jobs:
           gh api -X POST "https://uploads.github.com/repos/${{ github.repository }}/releases/${{ needs.create-release.outputs.release_id }}/assets?name=$zip" `
             -H "Content-Type: application/zip" --input $zip --jq .name
 
+      # Microsoft Store package, unsigned: the Store signs it on upload. Kept
+      # as a workflow artifact, not a release download, since an unsigned
+      # MSIX won't install outside the Store. Upload it in Partner Center.
+      - name: MSIX for the Microsoft Store (Windows)
+        if: matrix.platform == 'windows-latest'
+        shell: pwsh
+        run: ./scripts/build-msix.ps1 -Version "$env:TAG"
+
+      - name: Keep the MSIX
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: msstore-msix
+          path: dist-msix/*.msix
+
   # Tag pushes only: the Flatpak build checks out the commit that triggered it.
   flatpak:
     if: github.event_name == 'push'

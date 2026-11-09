@@ -7,6 +7,13 @@ section matching the tag.
 
 ## [Unreleased]
 
+### Added
+- Microsoft Store package: every release also builds an MSIX for the Store. About shows "Microsoft Store" for Store installs and sends updates there.
+- A privacy policy (`PRIVACY.md`).
+
+### Fixed
+- Update checks keep working when GitHub's API rate-limits them: the latest version is read from the release page and the notes from the changelog instead.
+
 ## [0.5.0] - 2026-11-09
 
 ### Added

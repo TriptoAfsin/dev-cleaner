@@ -13,6 +13,7 @@ import { AppMark } from "./TitleBar"
 import { Badge, Button, Card, Dialog, Switch, Tooltip } from "./ui"
 
 const VIA: Record<string, string> = {
+  msstore: "Microsoft Store",
   scoop: "Scoop",
   "winget-or-installer": "Installer or WinGet",
   portable: "Portable zip",
@@ -23,6 +24,8 @@ const VIA: Record<string, string> = {
   "app-bundle": "App bundle",
   dev: "Development build",
 }
+
+const STORE_URL = "https://apps.microsoft.com/detail/9N1VVF6949HW"
 
 const open = (url: string) => void openUrl(url).catch(() => {})
 
@@ -100,9 +103,17 @@ function UpdateStatus() {
             </div>
           )}
           <div>
-            <Button variant="primary" icon={<ExternalLink size={14} />} onClick={() => open(u.info!.url)}>
-              Open release page
-            </Button>
+            {app?.installedVia === "msstore" ? (
+              // Store installs update through the Store, which can lag GitHub
+              // by a few days while the new version is certified.
+              <Button variant="primary" icon={<ExternalLink size={14} />} onClick={() => open(STORE_URL)}>
+                Open in Microsoft Store
+              </Button>
+            ) : (
+              <Button variant="primary" icon={<ExternalLink size={14} />} onClick={() => open(u.info!.url)}>
+                Open release page
+              </Button>
+            )}
           </div>
         </div>
       )}

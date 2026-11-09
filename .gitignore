@@ -20,3 +20,4 @@ repo
 # Local secrets (WINGET_TOKEN etc.). Never commit.
 .env
 .env.*
+dist-msix

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Microsoft Store package. scripts/build-msix.ps1 fills in {{VERSION}}.
+     Identity values come from Partner Center > Product identity and must
+     match it exactly; DisplayName must be a name reserved there. -->
+<Package
+  xmlns="http://schemas.microsoft.com/appx/manifest/foundation/windows10"
+  xmlns:uap="http://schemas.microsoft.com/appx/manifest/uap/windows10"
+  xmlns:rescap="http://schemas.microsoft.com/appx/manifest/foundation/windows10/restrictedcapabilities"
+  IgnorableNamespaces="uap rescap">
+
+  <Identity
+    Name="TriptoAfsin.dev-cleaner"
+    Publisher="CN=83EC5113-24EF-4718-9965-289BB530FA30"
+    Version="{{VERSION}}"
+    ProcessorArchitecture="x64" />
+
+  <Properties>
+    <DisplayName>dev-cleaner</DisplayName>
+    <PublisherDisplayName>TriptoAfsin</PublisherDisplayName>
+    <Logo>Assets\StoreLogo.png</Logo>
+    <Description>Reclaim disk and memory from developer caches, build folders, processes and ports.</Description>
+  </Properties>
+
+  <Dependencies>
+    <!-- Windows 10 1903+: deletes under AppData reach the real files. -->
+    <TargetDeviceFamily Name="Windows.Desktop" MinVersion="10.0.18362.0" MaxVersionTested="10.0.26100.0" />
+  </Dependencies>
+
+  <Resources>
+    <Resource Language="en-us" />
+  </Resources>
+
+  <Applications>
+    <Application Id="DevCleaner" Executable="Dev Cleaner.exe" EntryPoint="Windows.FullTrustApplication">
+      <uap:VisualElements
+        DisplayName="dev-cleaner"
+        Description="Reclaim disk and memory from developer caches"
+        BackgroundColor="transparent"
+        Square150x150Logo="Assets\Square150x150Logo.png"
+        Square44x44Logo="Assets\Square44x44Logo.png">
+        <uap:DefaultTile Square71x71Logo="Assets\Square71x71Logo.png" />
+      </uap:VisualElements>
+    </Application>
+  </Applications>
+
+  <Capabilities>
+    <!-- A desktop app: reads and cleans caches anywhere the user can. -->
+    <rescap:Capability Name="runFullTrust" />
+  </Capabilities>
+</Package>

@@ -86,6 +86,10 @@ By installing or using Dev Cleaner you accept the [MIT License](LICENSE) it is d
 
 If you don't accept these terms, don't install or use the software.
 
+## Privacy
+
+Dev Cleaner collects nothing: no accounts, telemetry or analytics. Its only network requests are update and definitions checks to GitHub. See the [privacy policy](PRIVACY.md).
+
 ## Definitions
 
 What the app knows (cache locations, project build folders, process verdicts, port hints, AI model folders, config files) lives as data in [`definitions/`](definitions/README.md), not in code. A copy is built into the app, and new rules reach you without an app update: Settings → Definitions → **Refresh** downloads the newest set from this repository (the app also checks daily when update checks are on), checks it, and uses it when it is newer. A rule written for a newer version of the app is skipped on older ones, and the rest of the set still applies. Adding a cache is a JSON edit; see the [definitions guide](definitions/README.md).
