@@ -1,10 +1,8 @@
 name: Build
 
+# Manual only, to save Actions minutes: releases build in release.yml.
+# Run it from the Actions tab when a full three-OS build check is wanted.
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
   workflow_dispatch:
 
 jobs:
