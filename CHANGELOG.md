@@ -7,6 +7,20 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-09
+
+### Added
+- **AI / ML** replaces AI models, with three tabs: **Models** (as before), **Harnesses** and **CLI tools** (ML caches such as Hugging Face, PyTorch, Keras, wandb and Gradio, moved off Disk cleanup).
+- **Harnesses** cleans what AI coding agents leave behind: Claude Code (temp folders and scratchpads, MCP logs it never prunes, debug logs and shell snapshots, old versions, the desktop app's caches and old builds), Codex (caches, temp files, the trace-log database, old CLI and daemon releases), Kimi Code, DeepSeek Harness, agent-browser, OpenCode and Kilo, Qwen Code, GitHub Copilot CLI, the Cursor CLI, Windsurf's language servers, Factory Droid, Crush, Goose, Aider, Continue, Cline, Warp, T3 Code (including the throwaway Claude sessions it runs to title threads), Ghostex, AI app update downloads, and the ChatGPT, Antigravity and Cherry Studio apps. Transcripts, checkpoints, memory, auth, settings, skills and plugins are never touched, and temp folders only lose entries older than a day.
+- Over 40 more developer caches: old Node versions (nvm, nvm-windows, fnm, Volta) and their downloads, mise, SDKMAN!, IDE-downloaded JDKs, FVM Flutter SDKs, the Dart analysis server, Android Studio caches, partial Android SDK downloads, old NDKs and build tools, emulator Quick Boot snapshots, Metro, Expo Go downloads, Jest, Selenium, Firebase emulators, Prisma engines, minikube, Helm, Vagrant, gcloud logs, PlatformIO, ESP-IDF, Arduino, Unity, Godot, Unreal's shared DDC, old VS Code / Cursor remote servers, Chocolatey, WinGet, pixi, browser-automation leftovers (Playwright, Puppeteer, chrome-devtools-mcp, browser-use), and Windsurf, Kiro, Trae and Zed caches. System junk adds the new Teams and Postman caches.
+- Projects finds Android native build folders (`.cxx`, `.externalNativeBuild`).
+- Definitions can keep the newest versions of a folder and drop the rest (`old-entries`): it sorts by version number, and never offers what a link such as Codex's `current` points to. `children` can match names with `contains`.
+- Update notes in About render as Markdown, with tables and code that scroll sideways instead of breaking the panel.
+- Terms of use: the README and About state that Dev Cleaner is provided as is under the MIT License, deletes are permanent, and the authors aren't liable for lost data.
+
+### Changed
+- The definitions set needs Dev Cleaner 0.4.0 or newer.
+
 ## [0.3.1] - 2026-11-09
 
 ### Added
