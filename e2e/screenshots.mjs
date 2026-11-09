@@ -82,9 +82,9 @@ try {
   await idle()
   await shot("system-light")
 
-  // The accent picker, open
+  // The appearance popover, open
   await ctx.nav("overview")
-  await ctx.click("accent-button")
+  await ctx.click("appearance-button")
   await sleep(400)
   await shot("accent-light")
 } finally {

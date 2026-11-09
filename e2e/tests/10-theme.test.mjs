@@ -1,4 +1,4 @@
-// Light/dark toggle, accent picker, and both surviving a restart.
+// Appearance popover (theme + accent), and both surviving a restart.
 import { test, before, after } from "node:test"
 import assert from "node:assert/strict"
 import { launch } from "../lib/harness.mjs"
@@ -11,30 +11,36 @@ after(async () => ctx?.stop())
 const isDark = () => ctx.s.exec(`return document.documentElement.classList.contains('dark')`)
 const accent = () => ctx.s.exec(`return getComputedStyle(document.documentElement).getPropertyValue('--accent-base').trim()`)
 
-test("the round toggle flips between light and dark", async () => {
-  const before = await isDark()
-  await ctx.click("theme-toggle")
-  await ctx.s.waitFor(async () => (await isDark()) !== before, "theme to flip")
-  await ctx.click("theme-toggle")
-  await ctx.s.waitFor(async () => (await isDark()) === before, "theme to flip back")
+const POPOVER = `[role=dialog][aria-label="Appearance"]`
+
+test("the appearance popover switches between light and dark", async () => {
+  const { s } = ctx
+  await ctx.click("appearance-button")
+  await s.waitFor(() => s.exec(`return !!document.querySelector('${POPOVER}')`), "appearance popover")
+  await ctx.click("appearance-theme-dark")
+  await s.waitFor(isDark, "dark theme")
+  await ctx.click("appearance-theme-light")
+  await s.waitFor(async () => !(await isDark()), "light theme")
+  await s.press("Escape")
+  await s.waitFor(() => s.exec(`return !document.querySelector('${POPOVER}')`), "popover closed")
 })
 
-test("the accent picker opens, applies a preset, and closes with Escape", async () => {
+test("the appearance popover opens, applies a preset, and closes with Escape", async () => {
   const { s } = ctx
-  await ctx.click("accent-button")
-  await s.waitFor(() => s.exec(`return !!document.querySelector('[role=dialog][aria-label="Choose accent colour"]')`), "accent popover")
+  await ctx.click("appearance-button")
+  await s.waitFor(() => s.exec(`return !!document.querySelector('${POPOVER}')`), "accent popover")
   await ctx.click("accent-violet")
   await s.waitFor(async () => (await accent()) === "#7c3aed", "violet accent")
   await s.press("Escape")
-  await s.waitFor(() => s.exec(`return !document.querySelector('[aria-label="Choose accent colour"]')`), "popover closed")
+  await s.waitFor(() => s.exec(`return !document.querySelector('${POPOVER}')`), "popover closed")
 })
 
-test("clicking outside the accent popover closes it", async () => {
+test("clicking outside the appearance popover closes it", async () => {
   const { s } = ctx
-  await ctx.click("accent-button")
-  await s.waitFor(() => s.exec(`return !!document.querySelector('[aria-label="Choose accent colour"]')`), "popover open")
+  await ctx.click("appearance-button")
+  await s.waitFor(() => s.exec(`return !!document.querySelector('${POPOVER}')`), "popover open")
   await (await s.find("main")).click()
-  await s.waitFor(() => s.exec(`return !document.querySelector('[aria-label="Choose accent colour"]')`), "popover closed")
+  await s.waitFor(() => s.exec(`return !document.querySelector('${POPOVER}')`), "popover closed")
 })
 
 test("Settings page theme radio sets dark explicitly", async () => {

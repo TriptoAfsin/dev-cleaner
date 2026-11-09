@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from "react"
 import { openUrl } from "@tauri-apps/plugin-opener"
 import { AnimatePresence, motion } from "motion/react"
-import { Cable, ExternalLink, RefreshCw, Search, X } from "lucide-react"
+import { Cable, ExternalLink, RefreshCw, X } from "lucide-react"
 import { api, type PortEntry, type PortState } from "@/lib/api"
 import { bytes, cn } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
 import { useSettings } from "@/lib/settings"
 import { usePoll, useStore } from "@/lib/store"
-import { Button, Card, Empty, IconButton, PageHeader, Skeleton, Switch } from "@/components/ui"
+import { Button, Card, Empty, IconButton, PageHeader, Skeleton, Switch, SearchField } from "@/components/ui"
 import { ProcIcon, useKill } from "@/components/shared"
 import { SnapshotButton } from "@/components/Share"
 
@@ -73,17 +73,7 @@ export function Ports() {
         }
       />
       <div className="flex flex-wrap items-center gap-2">
-        <label className="flex h-[34px] min-w-[240px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-3 focus-within:border-accent">
-          <Search size={14} className="text-subtle" />
-          <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="Search port, process or PID"
-            aria-label="Search ports"
-            data-testid="port-search"
-            className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-subtle"
-          />
-        </label>
+        <SearchField value={q} onChange={setQ} placeholder="Search port, process or PID" label="Search ports" testId="port-search" className="h-[34px] min-w-[240px] pl-3" />
         {(
           [
             ["all", `All ${list.length}`, ""],

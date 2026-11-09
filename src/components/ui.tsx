@@ -9,7 +9,7 @@ import {
 } from "react"
 import { createPortal } from "react-dom"
 import { AnimatePresence, animate, motion, useMotionValue, useReducedMotion } from "motion/react"
-import { Check, CircleAlert, Info, Loader2, X } from "lucide-react"
+import { Check, CircleAlert, Info, Loader2, Search, X } from "lucide-react"
 import { cn } from "@/lib/format"
 import type { Verdict } from "@/lib/api"
 
@@ -316,6 +316,98 @@ export function Badge({ tone = "muted", children }: { tone?: "ok" | "warn" | "mu
       <span className="h-1.5 w-1.5 rounded-full bg-current" />
       {children}
     </span>
+  )
+}
+
+// ------------------------------------------------------------------ search
+
+/** A filter box with a clear button once there is text. Escape clears too. */
+export function SearchField({
+  value,
+  onChange,
+  placeholder,
+  label,
+  testId,
+  className,
+}: {
+  value: string
+  onChange: (v: string) => void
+  placeholder: string
+  label: string
+  testId?: string
+  className?: string
+}) {
+  const ref = useRef<HTMLInputElement>(null)
+  return (
+    <label className={cn("flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface pl-2.5 pr-1 focus-within:border-accent", className)}>
+      <Search size={14} className="shrink-0 text-subtle" />
+      <input
+        ref={ref}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Escape" && value) {
+            e.stopPropagation()
+            onChange("")
+          }
+        }}
+        placeholder={placeholder}
+        aria-label={label}
+        data-testid={testId}
+        spellCheck={false}
+        className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-subtle"
+      />
+      {value && (
+        <button
+          type="button"
+          aria-label="Clear search"
+          data-testid={testId ? `${testId}-clear` : undefined}
+          onClick={() => {
+            onChange("")
+            ref.current?.focus()
+          }}
+          className="grid h-6 w-6 shrink-0 place-items-center rounded-md text-subtle transition-colors duration-150 hover:bg-hover hover:text-text"
+        >
+          <X size={13} />
+        </button>
+      )}
+    </label>
+  )
+}
+
+// ------------------------------------------------------------------ progress
+
+/** A thin bar: a fraction from 0 to 1, or indeterminate when null. */
+export function ProgressBar({ value, className }: { value: number | null; className?: string }) {
+  return (
+    <div
+      role="progressbar"
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-valuenow={value == null ? undefined : Math.round(value * 100)}
+      className={cn("relative h-1 overflow-hidden rounded-full bg-track", className)}
+    >
+      {value == null ? (
+        <div className="indeterminate absolute inset-y-0 w-2/5 rounded-full bg-accent" />
+      ) : (
+        <div className="h-full rounded-full bg-accent transition-[width] duration-300 ease-out" style={{ width: `${Math.max(0, Math.min(1, value)) * 100}%` }} />
+      )}
+    </div>
+  )
+}
+
+/** Progress of a batch delete: a bar, how many are done and what's freed. */
+export function DeleteProgress({ done, total, freed, label, format }: { done: number; total: number; freed: number; label: string; format: (n: number) => string }) {
+  return (
+    <div className="flex flex-col gap-1.5" data-testid="delete-progress">
+      <ProgressBar value={total ? done / total : 0} className="h-2" />
+      <div className="mono flex justify-between text-[11.5px] text-subtle">
+        <span>
+          {Math.min(done + 1, total)} of {total} {label} · {format(freed)} freed
+        </span>
+        <span>{total ? Math.round((done / total) * 100) : 0}%</span>
+      </div>
+    </div>
   )
 }
 

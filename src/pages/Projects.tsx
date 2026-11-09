@@ -9,7 +9,7 @@ import { BrandIcon } from "@/lib/brands"
 import { useDrives, useSettings } from "@/lib/settings"
 import { useStore } from "@/lib/store"
 import { SnapshotButton } from "@/components/Share"
-import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader, Tooltip } from "@/components/ui"
+import { AnimatedNumber, Button, Card, Checkbox, DeleteProgress, Dialog, Empty, IconButton, InfoTip, PageHeader, ProgressBar, Tooltip } from "@/components/ui"
 
 type Sort = "size" | "age"
 const DAY = 86400
@@ -25,6 +25,9 @@ export function Projects() {
   const [sort, setSort] = useState<Sort>("size")
   const [confirm, setConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // The batch being deleted, frozen at the start so the counts don't shrink
+  // as rows disappear.
+  const [batch, setBatch] = useState<{ items: Artifact[]; n: number; size: number; done: number; freed: number } | null>(null)
   const [gone, setGone] = useState<Set<string>>(new Set())
   const scanned = useRef(false)
 
@@ -99,8 +102,12 @@ export function Projects() {
 
   const remove = async () => {
     setDeleting(true)
+    setBatch({ items: selItems, n: selItems.length, size: selBytes, done: 0, freed: 0 })
     setActivity({ kind: "busy", text: `Deleting ${selItems.length} folders` })
-    const off = on<DeleteEvent>("project-deleted", (e) => e.ok && setGone((g) => new Set(g).add(e.path)))
+    const off = on<DeleteEvent>("project-deleted", (e) => {
+      setBatch((b) => b && { ...b, done: b.done + 1, freed: b.freed + e.freed })
+      if (e.ok) setGone((g) => new Set(g).add(e.path))
+    })
     try {
       const res = await api.deleteArtifacts(selItems.map((a) => a.path))
       const freed = res.reduce((n, r) => n + r.freed, 0)
@@ -131,6 +138,7 @@ export function Projects() {
     } finally {
       off()
       setDeleting(false)
+      setBatch(null)
       setConfirm(false)
     }
   }
@@ -283,19 +291,28 @@ export function Projects() {
               </AnimatePresence>
             </ul>
             {scanning && (
-              <div className="mono flex items-center gap-2 border-t border-border px-4 py-2 text-[11.5px] text-subtle">
-                <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                <span className="truncate">{walking || "Starting…"}</span>
-                <span className="ml-auto shrink-0">{items.length} found</span>
+              <div className="shrink-0 border-t border-border" data-testid="project-scan-progress">
+                <ProgressBar value={null} className="h-0.5 rounded-none" />
+                <div className="mono flex items-center gap-2 px-4 py-2 text-[11.5px] text-subtle">
+                  <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span className="truncate">{walking || "Starting…"}</span>
+                  <span className="ml-auto shrink-0">{items.length} found</span>
+                </div>
               </div>
             )}
           </>
         )}
         {items.length > 0 && (
-          <div className="shrink-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
-            <span className="mono text-[12.5px]">
-              {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
-            </span>
+          <div className="shrink-0 flex items-center justify-between gap-4 border-t border-border bg-surface-2 px-4 py-2.5">
+            {batch ? (
+              <div className="min-w-0 flex-1">
+                <DeleteProgress done={batch.done} total={batch.n} freed={batch.freed} label="folders" format={bytes} />
+              </div>
+            ) : (
+              <span className="mono text-[12.5px]">
+                {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
+              </span>
+            )}
             <Button variant="danger" size="sm" className="h-[30px] px-3" icon={<Trash2 size={14} />} disabled={!selItems.length || scanning} onClick={() => setConfirm(true)} data-testid="delete-artifacts">
               Delete selected
             </Button>
@@ -306,7 +323,7 @@ export function Projects() {
       <Dialog
         open={confirm}
         onClose={() => !deleting && setConfirm(false)}
-        title={`Delete ${selItems.length} build folder${selItems.length === 1 ? "" : "s"} · ${bytes(selBytes)}?`}
+        title={batch ? `Deleting ${batch.n} build folder${batch.n === 1 ? "" : "s"} · ${bytes(batch.size)}` : `Delete ${selItems.length} build folder${selItems.length === 1 ? "" : "s"} · ${bytes(selBytes)}?`}
         actions={
           <>
             <Button onClick={() => setConfirm(false)} disabled={deleting}>
@@ -318,10 +335,15 @@ export function Projects() {
           </>
         }
       >
+        {batch && (
+          <div className="mb-3">
+            <DeleteProgress done={batch.done} total={batch.n} freed={batch.freed} label="folders" format={bytes} />
+          </div>
+        )}
         <p className="m-0 mb-3">These are removed permanently, not moved to the Recycle Bin. Source code is never touched. Restore each with:</p>
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {Object.entries(
-            selItems.reduce<Record<string, { n: number; restore: string; size: number }>>((m, a) => {
+            (batch?.items ?? selItems).reduce<Record<string, { n: number; restore: string; size: number }>>((m, a) => {
               const k = (m[a.label] ??= { n: 0, restore: a.restore, size: 0 })
               k.n++
               k.size += a.size

@@ -61,7 +61,6 @@ type Ctx = {
   settings: Settings
   set: <K extends keyof Settings>(k: K, v: Settings[K]) => void
   dark: boolean
-  toggleTheme: () => void
 }
 const SettingsCtx = createContext<Ctx | null>(null)
 
@@ -130,11 +129,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings((s) => ({ ...s, [k]: v }))
   }, [])
 
-  const toggleTheme = useCallback(() => {
-    setSettings((s) => ({ ...s, theme: dark ? "light" : "dark" }))
-  }, [dark])
-
-  return <SettingsCtx.Provider value={{ settings, set, dark, toggleTheme }}>{children}</SettingsCtx.Provider>
+  return <SettingsCtx.Provider value={{ settings, set, dark }}>{children}</SettingsCtx.Provider>
 }
 
 export function useSettings() {

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type ReactNode } from "react"
 import { getCurrentWindow } from "@tauri-apps/api/window"
 import { AnimatePresence, motion } from "motion/react"
-import { Palette } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react"
 import { api } from "@/lib/api"
 import { cn } from "@/lib/format"
-import { ACCENTS, useSettings } from "@/lib/settings"
+import { ACCENTS, useSettings, type ThemeMode } from "@/lib/settings"
 import { useStore } from "@/lib/store"
 import { Tooltip } from "./ui"
 import { AboutButton } from "./About"
@@ -80,8 +80,7 @@ export function TitleBar() {
       <div className="h-full flex-1" />
       <div className="flex items-center gap-1.5 pr-2">
         <AboutButton />
-        <AccentPicker />
-        <ThemeToggle />
+        <AppearancePicker />
       </div>
       {!mac && win && (
         <div className="flex h-full items-center">
@@ -126,28 +125,15 @@ function WinButton({ label, onClick, danger, children }: { label: string; onClic
   )
 }
 
-function ThemeToggle() {
-  const { dark, toggleTheme } = useSettings()
-  return (
-    <Tooltip text={dark ? "Light mode" : "Dark mode"} side="bottom">
-      <button
-        type="button"
-        aria-label={dark ? "Switch to light mode" : "Switch to dark mode"}
-        data-testid="theme-toggle"
-        onClick={toggleTheme}
-        className="grid h-7 w-7 place-items-center rounded-full border border-border-strong bg-surface transition-transform duration-150 hover:border-subtle/60 active:scale-95"
-      >
-        <motion.svg width="14" height="14" viewBox="0 0 16 16" aria-hidden animate={{ rotate: dark ? 180 : 0 }} transition={{ duration: 0.45, ease: [0.65, 0, 0.35, 1] }}>
-          <circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--text)" strokeWidth="1.3" />
-          <path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="var(--text)" />
-        </motion.svg>
-      </button>
-    </Tooltip>
-  )
-}
+const THEMES: [ThemeMode, string, ReactNode][] = [
+  ["light", "Light", <Sun size={13} key="s" />],
+  ["dark", "Dark", <Moon size={13} key="m" />],
+  ["system", "System", <Monitor size={13} key="o" />],
+]
 
-function AccentPicker() {
-  const { settings, set } = useSettings()
+/** One title-bar button for the look of the app: theme and accent together. */
+function AppearancePicker() {
+  const { settings, set, dark } = useSettings()
   const [open, setOpen] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
@@ -165,31 +151,55 @@ function AccentPicker() {
 
   return (
     <div ref={ref} className="relative" data-no-drag>
-      <Tooltip text="Accent colour" side="bottom">
+      <Tooltip text="Appearance" side="bottom">
         <button
           type="button"
-          aria-label="Accent colour"
+          aria-label="Appearance"
           aria-expanded={open}
-          data-testid="accent-button"
+          data-testid="appearance-button"
           onClick={() => setOpen((o) => !o)}
           className="grid h-7 w-7 place-items-center rounded-full border bg-surface text-text transition-transform duration-150 active:scale-95"
           style={{ borderColor: open ? "var(--accent)" : "var(--border-strong)" }}
         >
-          <Palette size={14} />
+          <motion.svg width="14" height="14" viewBox="0 0 16 16" aria-hidden animate={{ rotate: dark ? 180 : 0 }} transition={{ duration: 0.45, ease: [0.65, 0, 0.35, 1] }}>
+            <circle cx="8" cy="8" r="6.5" fill="none" stroke="var(--text)" strokeWidth="1.3" />
+            <path d="M8 1.5a6.5 6.5 0 0 1 0 13z" fill="var(--accent)" />
+          </motion.svg>
         </button>
       </Tooltip>
       <AnimatePresence>
         {open && (
           <motion.div
             role="dialog"
-            aria-label="Choose accent colour"
+            aria-label="Appearance"
             initial={{ opacity: 0, y: -4, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: -4, transition: { duration: 0.1 } }}
             transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
             style={{ transformOrigin: "top right" }}
-            className="absolute right-0 top-9 z-40 flex w-[232px] flex-col gap-3 rounded-xl border border-border bg-surface p-3.5 shadow-float"
+            className="absolute right-0 top-9 z-40 flex w-[248px] flex-col gap-3 rounded-xl border border-border bg-surface p-3.5 shadow-float"
           >
+            <div className="text-[12px] font-semibold">Theme</div>
+            <div className="grid grid-cols-3 rounded-lg border border-border-strong p-0.5" role="radiogroup" aria-label="Theme">
+              {THEMES.map(([v, label, icon]) => (
+                <button
+                  key={v}
+                  type="button"
+                  role="radio"
+                  aria-checked={settings.theme === v}
+                  data-testid={`appearance-theme-${v}`}
+                  onClick={() => set("theme", v)}
+                  className={cn(
+                    "flex h-7 items-center justify-center gap-1.5 rounded-md text-[12px] transition-colors",
+                    settings.theme === v ? "bg-accent-soft font-medium text-accent" : "text-muted hover:text-text",
+                  )}
+                >
+                  {icon}
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="h-px bg-border" />
             <div className="text-[12px] font-semibold">Accent</div>
             <div className="flex gap-2">
               {ACCENTS.map((a) => {

@@ -2,11 +2,11 @@
 // uses the OS's own switch (Task Manager's on Windows), so nothing is
 // uninstalled and it can be turned back on here or there.
 import { useEffect, useMemo, useState } from "react"
-import { RefreshCw, Search, ShieldCheck } from "lucide-react"
+import { RefreshCw, ShieldCheck } from "lucide-react"
 import { api, type StartupItem } from "@/lib/api"
 import { cn } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
-import { Badge, Button, Card, PageHeader, Skeleton, Switch, Tooltip } from "@/components/ui"
+import { Badge, Button, Card, PageHeader, Skeleton, Switch, Tooltip, SearchField } from "@/components/ui"
 import { ProcIcon } from "@/components/shared"
 import { AdminBanner } from "@/components/Privileges"
 import { SnapshotButton } from "@/components/Share"
@@ -76,17 +76,7 @@ export function Startup() {
       {anyAdmin && <AdminBanner what="All-users startup entries" />}
       <Card className="flex min-h-0 flex-1 flex-col overflow-hidden">
         <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-          <label className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2.5 focus-within:border-accent">
-            <Search size={14} className="text-subtle" />
-            <input
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-              placeholder="Filter by name, publisher or command"
-              aria-label="Filter startup programs"
-              data-testid="startup-filter"
-              className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-subtle"
-            />
-          </label>
+          <SearchField value={q} onChange={setQ} placeholder="Filter by name, publisher or command" label="Filter startup programs" testId="startup-filter" />
           {(["all", "on", "off"] as const).map((f) => (
             <button
               key={f}

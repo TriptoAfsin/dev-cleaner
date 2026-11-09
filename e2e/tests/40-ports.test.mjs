@@ -51,6 +51,12 @@ test("selecting the row fills the inspector with the process details", async () 
   await ctx.s.waitFor(async () => new RegExp(`Port ${port}[\\s\\S]*PID[\\s\\S]*${server.pid}`, "i").test(await ctx.s.exec(`return document.querySelector('[data-testid=port-inspector]').innerText`)), "inspector")
 })
 
+test("the search box's clear button empties it", async () => {
+  await ctx.click("port-search-clear")
+  await ctx.s.waitFor(async () => (await ctx.s.exec(`return document.querySelector('[data-testid=port-search]').value`)) === "", "search cleared")
+  assert.equal(await ctx.s.exec(`return !!document.querySelector('[data-testid=port-search-clear]')`), false)
+})
+
 test("Free asks first, then ends the process and the port turns Free", async () => {
   await ctx.click("free-port")
   await ctx.s.waitFor(() => ctx.s.byText("[role=dialog]", `Frees port ${port}`), "confirm dialog")

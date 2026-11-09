@@ -11,7 +11,7 @@ import { useStore } from "@/lib/store"
 import { useDrives, useSettings } from "@/lib/settings"
 import type { Page } from "@/components/Shell"
 import { lastUsed, loadModelRoots, modelsApi, quantOf, saveModelRoots, type Model, type ModelDeleteEvent } from "@/lib/models"
-import { AnimatedNumber, Button, Card, Checkbox, Dialog, Empty, IconButton, InfoTip, PageHeader, Skeleton } from "@/components/ui"
+import { AnimatedNumber, Button, Card, Checkbox, DeleteProgress, Dialog, Empty, IconButton, ProgressBar, InfoTip, PageHeader, Skeleton } from "@/components/ui"
 
 type Sort = "size" | "lru"
 const DAY = 86400
@@ -78,6 +78,9 @@ export function Models({ go }: { go: (p: Page) => void }) {
   const [sort, setSort] = useState<Sort>("size")
   const [confirm, setConfirm] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  // The batch being deleted, frozen at the start so the counts don't shrink
+  // as rows disappear.
+  const [batch, setBatch] = useState<{ items: Model[]; n: number; size: number; done: number; freed: number } | null>(null)
   const [gone, setGone] = useState<Set<string>>(new Set())
   const scanned = useRef(false)
 
@@ -151,8 +154,12 @@ export function Models({ go }: { go: (p: Page) => void }) {
 
   const remove = async () => {
     setDeleting(true)
+    setBatch({ items: selItems, n: selItems.length, size: selBytes, done: 0, freed: 0 })
     setActivity({ kind: "busy", text: `Removing ${selItems.length} model${selItems.length === 1 ? "" : "s"}` })
-    const off = on<ModelDeleteEvent>("model-deleted", (e) => e.ok && setGone((g) => new Set(g).add(e.id)))
+    const off = on<ModelDeleteEvent>("model-deleted", (e) => {
+      setBatch((b) => b && { ...b, done: b.done + 1, freed: b.freed + e.freed })
+      if (e.ok) setGone((g) => new Set(g).add(e.id))
+    })
     const byId = new Map(selItems.map((m) => [m.id, m]))
     try {
       const res = await modelsApi.remove(selItems.map((m) => m.id))
@@ -191,6 +198,7 @@ export function Models({ go }: { go: (p: Page) => void }) {
     } finally {
       off()
       setDeleting(false)
+      setBatch(null)
       setConfirm(false)
     }
   }
@@ -381,19 +389,28 @@ export function Models({ go }: { go: (p: Page) => void }) {
               </AnimatePresence>
             </ul>
             {scanning && (
-              <div className="mono flex items-center gap-2 border-t border-border px-4 py-2 text-[11.5px] text-subtle">
-                <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-accent" />
-                <span className="truncate">{walking || "Starting…"}</span>
-                <span className="ml-auto shrink-0">{live.length} found</span>
+              <div className="shrink-0 border-t border-border" data-testid="model-scan-progress">
+                <ProgressBar value={null} className="h-0.5 rounded-none" />
+                <div className="mono flex items-center gap-2 px-4 py-2 text-[11.5px] text-subtle">
+                  <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-accent" />
+                  <span className="truncate">{walking || "Starting…"}</span>
+                  <span className="ml-auto shrink-0">{live.length} found</span>
+                </div>
               </div>
             )}
           </>
         )}
         {live.length > 0 && (
-          <div className="shrink-0 flex items-center justify-between border-t border-border bg-surface-2 px-4 py-2.5">
-            <span className="mono text-[12.5px]">
-              {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
-            </span>
+          <div className="shrink-0 flex items-center justify-between gap-4 border-t border-border bg-surface-2 px-4 py-2.5">
+            {batch ? (
+              <div className="min-w-0 flex-1">
+                <DeleteProgress done={batch.done} total={batch.n} freed={batch.freed} label="models" format={bytes} />
+              </div>
+            ) : (
+              <span className="mono text-[12.5px]">
+                {selItems.length} selected · <AnimatedNumber value={selBytes} format={(n) => bytes(n)} />
+              </span>
+            )}
             <Button
               variant="danger"
               size="sm"
@@ -412,7 +429,7 @@ export function Models({ go }: { go: (p: Page) => void }) {
       <Dialog
         open={confirm}
         onClose={() => !deleting && setConfirm(false)}
-        title={`Delete ${selItems.length} model${selItems.length === 1 ? "" : "s"} · ${bytes(selBytes)}?`}
+        title={batch ? `Deleting ${batch.n} model${batch.n === 1 ? "" : "s"} · ${bytes(batch.size)}` : `Delete ${selItems.length} model${selItems.length === 1 ? "" : "s"} · ${bytes(selBytes)}?`}
         actions={
           <>
             <Button onClick={() => setConfirm(false)} disabled={deleting}>
@@ -424,6 +441,11 @@ export function Models({ go }: { go: (p: Page) => void }) {
           </>
         }
       >
+        {batch && (
+          <div className="mb-3">
+            <DeleteProgress done={batch.done} total={batch.n} freed={batch.freed} label="models" format={bytes} />
+          </div>
+        )}
         <p className="m-0 mb-3">
           These are removed permanently, not moved to the Recycle Bin. To use one again you'll need to download it again.
           {ollamaSel.length > 0 && (
@@ -434,7 +456,7 @@ export function Models({ go }: { go: (p: Page) => void }) {
           )}
         </p>
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
-          {selItems.map((m) => (
+          {(batch?.items ?? selItems).map((m) => (
             <li key={m.id} className="flex items-center gap-2 text-text">
               <SourceIcon kind={m.kind} size={13} />
               <span className="min-w-0 flex-1 truncate" title={m.path}>
@@ -446,7 +468,7 @@ export function Models({ go }: { go: (p: Page) => void }) {
         </ul>
         <div className="mt-3 flex items-center justify-between border-t border-border pt-2.5 text-text">
           <span>Total</span>
-          <span className="mono text-[12.5px]">{bytes(selBytes)}</span>
+          <span className="mono text-[12.5px]">{bytes(batch?.size ?? selBytes)}</span>
         </div>
       </Dialog>
     </div>

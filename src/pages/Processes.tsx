@@ -1,10 +1,10 @@
 import { SnapshotButton } from "@/components/Share"
 import { useMemo, useState } from "react"
-import { Search, X } from "lucide-react"
+import { X } from "lucide-react"
 import { api, type ProcGroup, type Verdict } from "@/lib/api"
 import { bytes, cn } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
-import { Button, Card, PageHeader, Skeleton, Sparkline, VerdictPill } from "@/components/ui"
+import { Button, Card, PageHeader, Skeleton, Sparkline, VerdictPill, SearchField } from "@/components/ui"
 import { ProcIcon, TopCpu, useKill } from "@/components/shared"
 
 type SortKey = "memory" | "cpu" | "name"
@@ -48,17 +48,7 @@ export function Processes() {
         </Card>
         <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <label className="flex h-8 min-w-[200px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2.5 focus-within:border-accent">
-              <Search size={14} className="text-subtle" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Filter by name or PID"
-                aria-label="Filter processes"
-                data-testid="process-filter"
-                className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-subtle"
-              />
-            </label>
+            <SearchField value={q} onChange={setQ} placeholder="Filter by name or PID" label="Filter processes" testId="process-filter" />
             {(["all", "safe", "saveFirst", "unknown", "system"] as const).map((v) => (
               <button
                 key={v}

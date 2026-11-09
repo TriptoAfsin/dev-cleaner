@@ -3,11 +3,11 @@
 // the usual reason to be here: Manual keeps them installed but idle until
 // you start them.
 import { useEffect, useMemo, useState } from "react"
-import { Lock, Play, RefreshCw, RotateCw, Search, Square } from "lucide-react"
+import { Lock, Play, RefreshCw, RotateCw, Square } from "lucide-react"
 import { api, type Service, type ServiceAction } from "@/lib/api"
 import { bytes, cn } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
-import { Badge, Button, Card, Dialog, PageHeader, Skeleton } from "@/components/ui"
+import { Badge, Button, Card, Dialog, PageHeader, Skeleton, SearchField } from "@/components/ui"
 import { AdminBanner } from "@/components/Privileges"
 import { SnapshotButton } from "@/components/Share"
 
@@ -97,17 +97,7 @@ export function Services() {
       <div className="grid min-h-0 flex-1 grid-cols-[minmax(0,1fr)_340px] grid-rows-[minmax(0,1fr)] gap-3.5">
         <Card className="flex min-h-0 min-w-0 flex-col overflow-hidden">
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <label className="flex h-8 min-w-[180px] flex-1 items-center gap-2 rounded-lg border border-border-strong bg-surface px-2.5 focus-within:border-accent">
-              <Search size={14} className="text-subtle" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="Filter by name or description"
-                aria-label="Filter services"
-                data-testid="service-filter"
-                className="h-full min-w-0 flex-1 bg-transparent text-[13px] outline-none placeholder:text-subtle"
-              />
-            </label>
+            <SearchField value={q} onChange={setQ} placeholder="Filter by name or description" label="Filter services" testId="service-filter" className="min-w-[180px]" />
             {(["all", "running", "auto", "dev", "optional"] as const).map((f) => (
               <button
                 key={f}
