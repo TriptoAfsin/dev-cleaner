@@ -7,6 +7,8 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-09
+
 ### Added
 - **Startup**: programs that start when you sign in (Windows Run keys and Startup folders, macOS LaunchAgents, Linux autostart), each with its program's own name and publisher, a verdict (keep, fine to turn off, check first) and a switch. Turning one off uses the OS's own switch (Task Manager's on Windows), so nothing is uninstalled.
 - **Services**: every service with its status, how it starts and its memory. Start, stop or restart it, and set it to Automatic, Manual or Disabled. Dev servers (databases, Docker, web servers) are flagged with a hint that Manual keeps them idle until needed. Services the OS needs are protected: the backend refuses to change them. Windows changes go through one UAC prompt each; macOS covers Homebrew services and third-party daemons; Linux uses systemd through pkexec.
