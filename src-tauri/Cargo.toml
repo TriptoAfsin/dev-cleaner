@@ -1,6 +1,6 @@
 [package]
 name = "dev-cleaner"
-version = "0.3.0"
+version = "0.3.1"
 description = "Reclaim disk and memory from developer caches, processes and ports"
 authors = ["Tripto Afsin"]
 license = "MIT"

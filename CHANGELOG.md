@@ -7,6 +7,8 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-11-09
+
 ### Added
 - Progress bars for deleting on Projects and AI models: the confirm dialog and the footer show how many are done, what's freed so far and a percentage. Scanning on both pages shows a moving bar above the folder being walked.
 - Search boxes on Ports, Processes, Startup and Services have a clear button once there's text. Escape clears them too.
