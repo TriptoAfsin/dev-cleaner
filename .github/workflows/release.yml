@@ -92,7 +92,39 @@ jobs:
 
       - run: npm ci
 
+      # The bundler downloads AppImage tools from GitHub release assets, which
+      # sometimes answer 504 to runners. Fetch them first with retries into
+      # the cache the bundler checks (names match @tauri-apps/cli 2.12).
+      - name: Prefetch AppImage tools (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          dir="$HOME/.cache/tauri"
+          mkdir -p "$dir"
+          get() { curl -fL --retry 8 --retry-all-errors --retry-delay 15 -o "$dir/$1" "$2" && chmod +x "$dir/$1"; }
+          base=https://github.com/tauri-apps/binary-releases/releases/download
+          get AppRun-x86_64 "$base/apprun-old/AppRun-x86_64"
+          get linuxdeploy-07333c6-x86_64.AppImage "$base/linuxdeploy-07333c6/linuxdeploy-x86_64.AppImage"
+          get linuxdeploy-plugin-appimage.AppImage https://github.com/linuxdeploy/linuxdeploy-plugin-appimage/releases/download/continuous/linuxdeploy-plugin-appimage-x86_64.AppImage || true
+
       - name: Build the app
+        id: build
+        continue-on-error: true
+        uses: tauri-apps/tauri-action@v0.5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          releaseId: ${{ needs.create-release.outputs.release_id }}
+          args: ${{ matrix.args }}
+
+      # One more try after a pause: tool downloads (WiX, NSIS, AppImage) fail
+      # now and then with a 5xx from GitHub's CDN.
+      - name: Wait before retrying
+        if: steps.build.outcome == 'failure'
+        shell: bash
+        run: sleep 90
+
+      - name: Build the app (retry)
+        if: steps.build.outcome == 'failure'
         uses: tauri-apps/tauri-action@v0.5
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
