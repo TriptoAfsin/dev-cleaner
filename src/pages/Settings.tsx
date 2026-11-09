@@ -133,7 +133,7 @@ export function SettingsPage() {
       <PermissionsCard />
       <DefinitionsCard />
       <AboutCard />
-      <p className="m-0 text-[12px] text-subtle">Nothing about you or your files leaves this machine. The only network request is the update check, a plain request to GitHub, which you can turn off above.</p>
+      <p className="m-0 text-[12px] text-subtle">Nothing about you or your files leaves this machine. The only network requests are the update check and the definitions download, plain requests to GitHub, which you can turn off above.</p>
     </div>
   )
 }

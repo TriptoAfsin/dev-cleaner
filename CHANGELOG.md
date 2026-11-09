@@ -7,6 +7,13 @@ section matching the tag.
 
 ## [Unreleased]
 
+### Added
+- Definitions update without an app update: Settings → Definitions → Refresh downloads the newest set from GitHub, checks it like a folder copy, and uses it when it is newer. With update checks on, the app also checks once a day. A download that fails its checks, or needs a newer app, leaves the current set in place.
+- A cache rule can say `minApp`. An older app skips just that rule (or any rule it can't read) and uses the rest of the set; Settings lists how many were skipped.
+
+### Fixed
+- A definitions folder copy older than the app's built-in set no longer hides the newer built-in rules after an app update.
+
 ## [0.4.0] - 2026-11-09
 
 ### Added

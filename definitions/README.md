@@ -22,11 +22,29 @@ its own.
 | `startup.json` | Verdicts for programs that start at sign-in: keep, or fine to turn off. |
 | `services.json` | Services: protected (never changed), dev servers, optional. |
 
+## How updates reach the app
+
+Settings → Definitions → **Refresh** downloads `index.json` from this folder on
+GitHub's `main` branch, and, when its `version` is newer than the set in use,
+every file it lists. The set is checked exactly like a folder copy and written
+to the data folder only if it passes; otherwise the current set stays. The app
+also does this once a day when update checks are on. So:
+
+- **Adding or fixing a rule** needs no app release: edit the JSON, bump
+  `version` in `index.json`, push to `main`.
+- **A rule that uses something only a newer app has** (a new field, expander or
+  action) gets `"minApp": "X.Y.Z"` on the rule. Older apps skip just that rule
+  and use the rest. An older app also skips, rule by rule, anything it can't
+  parse or check.
+- **`minApp` in `index.json`** shuts older apps out of the whole set. Raise it
+  only when the format of a file other than `caches.json` changes.
+
 ## Where the app reads them from
 
-1. `<app data>/definitions/`, when it holds a complete set (`index.json` plus
-   every file it lists) that parses, passes the checks, uses a schema this app
-   reads, and doesn't need a newer app.
+1. `<app data>/definitions/` (where downloads go), when it holds a complete
+   set (`index.json` plus every file it lists) that parses, passes the checks,
+   uses a schema this app reads, doesn't need a newer app, and is newer than
+   the built-in set.
 2. Otherwise the copy compiled into the app.
 
 Settings → Definitions shows which one is in use, its version, the folder path,
@@ -55,6 +73,7 @@ uses them.
 | `paths` | Templates, expanders or per-OS choices (below). Paths that don't exist are simply not shown. |
 | `how` | Default `{"kind": "delete"}` (empty the folders). Also `olderThan` (`hours`), `tool` (`tool`, `args`, optional `perPathArgs` with `{path}`), `command`, `docker`, `recycleBin`, `admin` (`days` and/or a named `action`). |
 | `os` | `["windows"]`, `["macos"]`, `["linux"]`, or any mix. All when missing. |
+| `minApp` | The oldest Dev Cleaner that understands the rule. Older apps skip it and keep the rest of the set. |
 | `junk` | Listed on System junk instead of Disk cleanup. |
 | `realOnly` | A system location: never offered under the test sandbox. |
 | `requires` | Offered only when this tool is on PATH. |

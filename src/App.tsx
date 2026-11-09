@@ -40,11 +40,21 @@ export function App() {
 
   // Update check: a few seconds after launch (never before the first paint
   // or scan), then once a day. A failure is silent here; Settings shows it.
-  const { toast } = useStore()
+  const { toast, scan } = useStore()
   useEffect(() => {
     if (!settings.checkUpdates || !api.inTauri) return
     const DAY = 24 * 60 * 60 * 1000
     const run = async () => {
+      // New definitions (cache rules and the rest) come without an app update.
+      void api
+        .updateDefinitions()
+        .then((r) => {
+          if (r.outcome !== "updated") return
+          window.dispatchEvent(new Event("dc-definitions"))
+          toast({ kind: "ok", title: `Definitions updated to ${r.version}`, detail: `${r.info.counts.caches} caches and ${r.info.counts.junk} junk locations. Rescanning.` })
+          void scan()
+        })
+        .catch(() => {})
       const s = await checkForUpdates()
       if (s.info?.newer) toast({ kind: "info", title: `Dev Cleaner ${s.info.latest} is out`, detail: "See what's new and how to update.", action: { label: "Details", run: () => window.dispatchEvent(new Event("dc-about")) } })
     }

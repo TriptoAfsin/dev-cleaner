@@ -1,6 +1,7 @@
 // Settings: which definitions are in use (what the app knows about caches,
 // project folders, processes, ports, model folders and config files), where
-// they came from, the folder a newer set is read from, and a manual reload.
+// they came from, and Refresh: download the newest set from GitHub (or, if
+// that fails, read the folder again).
 import { useCallback, useEffect, useState } from "react"
 import { BookOpen, FolderOpen, RefreshCw } from "lucide-react"
 import { api, type DefinitionsInfo } from "@/lib/api"
@@ -30,25 +31,38 @@ export function DefinitionsCard() {
   const [busy, setBusy] = useState(false)
   const load = useCallback(() => void api.definitionsInfo().then(setInfo).catch(() => {}), [])
   useEffect(() => {
-    if (api.inTauri) load()
+    if (!api.inTauri) return
+    load()
+    // The daily background check downloaded a newer set.
+    window.addEventListener("dc-definitions", load)
+    return () => window.removeEventListener("dc-definitions", load)
   }, [load])
   if (!info) return null
 
   const c = info.counts
   const folder = info.source === "folder"
+  // Download the newest set; whatever happens, read the folder again too, so
+  // a set placed there by hand is picked up.
   const reload = async () => {
     setBusy(true)
     const before = info.version
     try {
-      const next = await api.reloadDefinitions()
+      let fetched: Awaited<ReturnType<typeof api.updateDefinitions>> | null = null
+      let failed = ""
+      try {
+        fetched = await api.updateDefinitions()
+      } catch (e) {
+        failed = String(e)
+      }
+      const next = fetched?.outcome === "updated" ? fetched.info : await api.reloadDefinitions()
       setInfo(next)
       if (next.error) toast({ kind: "error", title: "Folder copy not used", detail: next.error })
-      else
-        toast({
-          kind: "ok",
-          title: next.version === before ? "Definitions are up to date" : `Definitions ${next.version} loaded`,
-          detail: next.source === "folder" ? "From the definitions folder. Rescanning caches." : "Built-in set. Rescanning caches.",
-        })
+      else if (fetched?.outcome === "updated") toast({ kind: "ok", title: `Definitions updated to ${next.version}`, detail: "Downloaded from GitHub. Rescanning caches." })
+      else if (fetched?.outcome === "needs-app")
+        toast({ kind: "info", title: `Definitions ${fetched.version} need Dev Cleaner ${fetched.minApp}`, detail: "Update the app to get them. The current set stays in use." })
+      else if (next.version !== before) toast({ kind: "ok", title: `Definitions ${next.version} loaded`, detail: "From the definitions folder. Rescanning caches." })
+      else if (failed) toast({ kind: "error", title: "Couldn't check for new definitions", detail: `${failed} The current set stays in use.` })
+      else toast({ kind: "ok", title: "Definitions are up to date", detail: `${next.version} is the newest set.` })
       void scan()
     } catch (e) {
       toast({ kind: "error", title: "Couldn't reload definitions", detail: String(e) })
@@ -66,7 +80,7 @@ export function DefinitionsCard() {
             Definitions
           </div>
           <div className="mt-1 text-[12px] leading-[1.5] text-muted">
-            What Dev Cleaner knows about caches, project folders, processes, ports, AI model folders and config files. Kept as data, so it can be updated without a new app release.
+            What Dev Cleaner knows about caches, project folders, processes, ports, AI model folders and config files. Kept as data: Refresh downloads the newest set from GitHub, no app update needed (it also checks daily when update checks are on).
           </div>
         </div>
         <Button icon={<RefreshCw size={14} className={cn(busy && "spin")} />} disabled={busy} onClick={() => void reload()} data-testid="reload-definitions">
@@ -82,7 +96,7 @@ export function DefinitionsCard() {
         </Line>
         <Line label="Source" testid="defs-source">
           {folder ? (
-            <>Read from the definitions folder below{info.builtinVersion !== info.version && <span className="text-subtle"> · built-in set is {info.builtinVersion}</span>}</>
+            <>Downloaded, kept in the folder below{info.builtinVersion !== info.version && <span className="text-subtle"> · built-in set is {info.builtinVersion}</span>}</>
           ) : (
             <>Built into this version of Dev Cleaner</>
           )}
@@ -97,12 +111,21 @@ export function DefinitionsCard() {
             </Button>
           </div>
           <div className="mt-0.5 text-[11.5px] text-subtle">
-            {info.folderExists ? "A complete, valid set here (index.json and its files) is used instead of the built-in one." : "Doesn't exist yet. A set placed here is used instead of the built-in one."}
+            {info.folderExists
+              ? "Downloaded sets live here. A complete, valid set here is used when it's newer than the built-in one."
+              : "Created on the first download. A set placed here by hand is also used when it's newer than the built-in one."}
           </div>
         </Line>
         {info.error && (
           <Line label="Problem" testid="defs-error">
             <span className="text-warn">The folder copy wasn't used: {info.error}. Using the built-in set.</span>
+          </Line>
+        )}
+        {info.skipped.length > 0 && (
+          <Line label="Skipped" testid="defs-skipped">
+            <span className="text-muted" title={info.skipped.join(String.fromCharCode(10))}>
+              {info.skipped.length} rule{info.skipped.length === 1 ? "" : "s"} need{info.skipped.length === 1 ? "s" : ""} a newer Dev Cleaner and {info.skipped.length === 1 ? "is" : "are"} left out. Everything else is in use.
+            </span>
           </Line>
         )}
         <Line label="Contains">

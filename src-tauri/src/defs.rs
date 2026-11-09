@@ -41,12 +41,6 @@ pub struct Index {
     pub files: Vec<String>,
 }
 
-#[derive(Deserialize)]
-#[serde(deny_unknown_fields)]
-struct Rules<T> {
-    rules: Vec<T>,
-}
-
 /// One cache, language cache or junk location.
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
@@ -69,6 +63,10 @@ pub struct CacheRule {
     /// System locations: never offered under the test fake home.
     #[serde(default)]
     pub real_only: bool,
+    /// The oldest app that understands this rule. An older app skips just
+    /// this rule and keeps the rest of the set.
+    #[serde(default)]
+    pub min_app: Option<String>,
     /// Offered only when this tool is on PATH.
     #[serde(default)]
     pub requires: Option<String>,
@@ -371,6 +369,9 @@ pub struct Defs {
     pub configs: Configs,
     pub startup: Startup,
     pub services: Services,
+    /// Cache rules this app skipped: written for a newer Dev Cleaner, or
+    /// failing a check. The rest of the set is still used.
+    pub skipped: Vec<String>,
 }
 
 // ---------------------------------------------------------------- templates
@@ -506,7 +507,7 @@ fn parse_set(read: impl Fn(&str) -> Result<String, String>) -> Result<Defs, Stri
         return Err(format!("needs Dev Cleaner {} or newer", index.min_app));
     }
     let defs = Defs {
-        caches: parse::<Rules<CacheRule>>("caches.json", &read("caches.json")?)?.rules,
+        caches: vec![],
         projects: parse("projects.json", &read("projects.json")?)?,
         processes: parse("processes.json", &read("processes.json")?)?,
         ports: parse("ports.json", &read("ports.json")?)?,
@@ -514,17 +515,61 @@ fn parse_set(read: impl Fn(&str) -> Result<String, String>) -> Result<Defs, Stri
         configs: parse("configs.json", &read("configs.json")?)?,
         startup: parse("startup.json", &read("startup.json")?)?,
         services: parse("services.json", &read("services.json")?)?,
+        skipped: vec![],
         index,
     };
+    let (caches, skipped) = parse_caches(&read("caches.json")?)?;
+    let mut defs = Defs { caches, skipped, ..defs };
     check(&defs)?;
+    defs.skipped.sort();
     Ok(defs)
+}
+
+/// caches.json, one rule at a time: a rule this app can't read (a field or
+/// expander added later, a `minApp` above this version, a failed check) is
+/// skipped with the reason instead of failing the whole set. That way a
+/// definitions update can add rules for newer apps without cutting older
+/// ones off.
+fn parse_caches(text: &str) -> Result<(Vec<CacheRule>, Vec<String>), String> {
+    let mut v: serde_json::Value = serde_json::from_str(text).map_err(|e| format!("caches.json: {e}"))?;
+    let rules = v.get_mut("rules").and_then(|r| r.as_array_mut()).map(std::mem::take).ok_or("caches.json: no rules list")?;
+    let app = env!("CARGO_PKG_VERSION");
+    let (mut ok, mut skipped) = (vec![], vec![]);
+    for raw in rules {
+        let id = raw.get("id").and_then(|x| x.as_str()).unwrap_or("?").to_string();
+        let rule: CacheRule = match serde_json::from_value(raw) {
+            Ok(r) => r,
+            Err(e) => {
+                skipped.push(format!("{id}: {e}"));
+                continue;
+            }
+        };
+        if let Some(m) = rule.min_app.as_deref().filter(|m| crate::updates::is_newer(m, app)) {
+            skipped.push(format!("{id}: needs Dev Cleaner {m}"));
+            continue;
+        }
+        match check_rule(&rule) {
+            Ok(()) => ok.push(rule),
+            Err(e) => skipped.push(e),
+        }
+    }
+    Ok((ok, skipped))
+}
+
+/// A set's version ("2026.11.09.2") as numbers, for comparing sets.
+fn set_version(v: &str) -> Vec<u64> {
+    v.split('.').map(|x| x.parse().unwrap_or(0)).collect()
 }
 
 /// Structural checks: every template expands, every named action and
 /// expander exists, ids are unique per OS. (Path and command limits come
 /// with signing.)
-pub fn check(d: &Defs) -> Result<(), String> {
-    let tpl = |t: &str, id: &str| expand_str(t).map(|_| ()).map_err(|e| format!("{id}: {e}"));
+fn tpl(t: &str, id: &str) -> Result<(), String> {
+    expand_str(t).map(|_| ()).map_err(|e| format!("{id}: {e}"))
+}
+
+/// One cache rule: its OS names, templates, expanders and named actions.
+fn check_rule(r: &CacheRule) -> Result<(), String> {
     fn entry(e: &PathEntry, id: &str, tpl: &dyn Fn(&str, &str) -> Result<(), String>) -> Result<(), String> {
         match e {
             PathEntry::Template(t) => tpl(t, id),
@@ -548,29 +593,35 @@ pub fn check(d: &Defs) -> Result<(), String> {
             }
         }
     }
+    for os in &r.os {
+        if !["windows", "macos", "linux"].contains(&os.as_str()) {
+            return Err(format!("{}: unknown os {os}", r.id));
+        }
+    }
+    for p in &r.paths {
+        entry(p, &r.id, &tpl)?;
+    }
+    if let HowDef::Admin { action: Some(a), .. } = &r.how {
+        if crate::junk::admin_action(a).is_none() {
+            return Err(format!("{}: unknown admin action {a}", r.id));
+        }
+    }
+    if let Some(b) = &r.before {
+        if !BEFORE_ACTIONS.contains(&b.as_str()) {
+            return Err(format!("{}: unknown step {b}", r.id));
+        }
+    }
+    Ok(())
+}
+
+/// Structural checks across the set: unique ids per OS, every template in
+/// the other files expands. Each cache rule was checked as it was read.
+pub fn check(d: &Defs) -> Result<(), String> {
     let mut seen: HashMap<(&str, &str), ()> = HashMap::new();
     for r in &d.caches {
-        for os in &r.os {
-            if !["windows", "macos", "linux"].contains(&os.as_str()) {
-                return Err(format!("{}: unknown os {os}", r.id));
-            }
-        }
         for os in ["windows", "macos", "linux"] {
             if (r.os.is_empty() || r.os.iter().any(|o| o == os)) && seen.insert((r.id.as_str(), os), ()).is_some() {
                 return Err(format!("{}: listed twice for {os}", r.id));
-            }
-        }
-        for p in &r.paths {
-            entry(p, &r.id, &tpl)?;
-        }
-        if let HowDef::Admin { action: Some(a), .. } = &r.how {
-            if crate::junk::admin_action(a).is_none() {
-                return Err(format!("{}: unknown admin action {a}", r.id));
-            }
-        }
-        if let Some(b) = &r.before {
-            if !BEFORE_ACTIONS.contains(&b.as_str()) {
-                return Err(format!("{}: unknown step {b}", r.id));
             }
         }
     }
@@ -588,6 +639,10 @@ pub fn check(d: &Defs) -> Result<(), String> {
         }
     }
     Ok(())
+}
+
+fn builtin_index() -> Index {
+    parse("index.json", BUILTIN[0].1).expect("the built-in index is valid")
 }
 
 fn builtin() -> Defs {
@@ -613,6 +668,11 @@ fn load() -> Loaded {
     let now = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map(|d| d.as_secs()).unwrap_or(0);
     let found = folder().and_then(|d| from_folder(d));
     match found {
+        // After an app update the built-in set may be the newer one: the
+        // folder copy only wins when it is newer.
+        Some(Ok(defs)) if set_version(&defs.index.version) <= set_version(&builtin_index().version) => {
+            Loaded { defs: builtin(), source: Source::BuiltIn, error: None, loaded_at: now }
+        }
         Some(Ok(defs)) => Loaded { defs, source: Source::Folder, error: None, loaded_at: now },
         Some(Err(e)) => Loaded { defs: builtin(), source: Source::BuiltIn, error: Some(e), loaded_at: now },
         None => Loaded { defs: builtin(), source: Source::BuiltIn, error: None, loaded_at: now },
@@ -645,6 +705,92 @@ pub fn reload() -> Info {
     info()
 }
 
+// ----------------------------------------------------------------- download
+
+const REMOTE: &str = "https://raw.githubusercontent.com/TriptoAfsin/dev-cleaner/main/definitions/";
+const MAX_FILE: usize = 4 * 1024 * 1024;
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct Fetched {
+    /// "updated", "up-to-date" or "needs-app" (the newest set needs a newer
+    /// Dev Cleaner; the current set stays).
+    pub outcome: String,
+    pub version: String,
+    pub min_app: String,
+    pub info: Info,
+}
+
+fn fetch(agent: &ureq::Agent, url: &str) -> Result<String, String> {
+    let r = agent.get(url).set("User-Agent", "dev-cleaner").call().map_err(|e| match e {
+        ureq::Error::Status(c, _) => format!("GitHub answered with HTTP {c}."),
+        ureq::Error::Transport(_) => "Couldn't reach GitHub. Check your connection.".to_string(),
+    })?;
+    let mut body = String::new();
+    std::io::Read::read_to_string(&mut std::io::Read::take(r.into_reader(), MAX_FILE as u64 + 1), &mut body).map_err(|_| "The download couldn't be read.".to_string())?;
+    if body.len() > MAX_FILE {
+        return Err("A definitions file is too large.".into());
+    }
+    Ok(body)
+}
+
+/// Fetch the newest definitions from GitHub. A set is kept only when it is
+/// newer than the one in use, this app can read it, and it passes every
+/// check; it is written to the definitions folder next to the old one and
+/// swapped in, then loaded. Any failure leaves the current set in place.
+pub fn download() -> Result<Fetched, String> {
+    let base = match std::env::var("DEV_CLEANER_DEFS_URL") {
+        Ok(u) if !u.is_empty() => if u.ends_with('/') { u } else { format!("{u}/") },
+        _ if crate::util::fake_home().is_some() => return Err("Definitions downloads are off in tests".into()),
+        _ => REMOTE.to_string(),
+    };
+    let dir = folder().ok_or("no data folder")?.clone();
+    let agent = ureq::AgentBuilder::new().timeout(std::time::Duration::from_secs(15)).build();
+    let index_text = fetch(&agent, &format!("{base}index.json"))?;
+    let index: Index = parse("index.json", &index_text)?;
+    let have = info();
+    let up_to_date = set_version(&index.version) <= set_version(&have.version);
+    let needs_app = index.schema != SCHEMA || (!index.min_app.is_empty() && crate::updates::is_newer(&index.min_app, env!("CARGO_PKG_VERSION")));
+    let done = |outcome: &str| Fetched { outcome: outcome.into(), version: index.version.clone(), min_app: index.min_app.clone(), info: info() };
+    if up_to_date {
+        return Ok(done("up-to-date"));
+    }
+    if needs_app {
+        return Ok(done("needs-app"));
+    }
+    // Only plain file names, never a path.
+    let mut files: HashMap<String, String> = HashMap::new();
+    files.insert("index.json".into(), index_text);
+    for f in &index.files {
+        if !f.ends_with(".json") || !f.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_' || c == '.') || f.starts_with('.') {
+            return Err(format!("Refused a file name in the download: {f}"));
+        }
+        files.insert(f.clone(), fetch(&agent, &format!("{base}{f}"))?);
+    }
+    parse_set(|name| files.get(name).cloned().ok_or(format!("{name} is missing from the download")))
+        .map_err(|e| format!("The downloaded set didn't pass its checks ({e}). Keeping the current one."))?;
+
+    // Write next to the folder, then swap, so a half-written set is never read.
+    let staging = dir.with_extension("download");
+    let _ = std::fs::remove_dir_all(&staging);
+    std::fs::create_dir_all(&staging).map_err(|e| e.to_string())?;
+    for (name, text) in &files {
+        std::fs::write(staging.join(name), text).map_err(|e| e.to_string())?;
+    }
+    let old = dir.with_extension("old");
+    let _ = std::fs::remove_dir_all(&old);
+    if dir.exists() {
+        std::fs::rename(&dir, &old).map_err(|e| format!("Couldn't replace the definitions folder: {e}"))?;
+    }
+    if let Err(e) = std::fs::rename(&staging, &dir) {
+        let _ = std::fs::rename(&old, &dir);
+        return Err(format!("Couldn't replace the definitions folder: {e}"));
+    }
+    let _ = std::fs::remove_dir_all(&old);
+    reload();
+    Ok(done("updated"))
+}
+
 // --------------------------------------------------------------------- info
 
 #[derive(Serialize)]
@@ -661,6 +807,8 @@ pub struct Info {
     pub loaded_at: u64,
     pub error: Option<String>,
     pub counts: Counts,
+    /// Rules this app skipped, with the reason.
+    pub skipped: Vec<String>,
 }
 
 #[derive(Serialize)]
@@ -685,7 +833,7 @@ pub fn applies(r: &CacheRule) -> bool {
 pub fn info() -> Info {
     let l = current();
     let d = &l.defs;
-    let builtin_version = parse::<Index>("index.json", BUILTIN[0].1).map(|i| i.version).unwrap_or_default();
+    let builtin_version = builtin_index().version;
     let here: Vec<&CacheRule> = d.caches.iter().filter(|r| applies(r)).collect();
     let p = &d.processes;
     Info {
@@ -709,6 +857,7 @@ pub fn info() -> Info {
             startup: d.startup.keep.len() + d.startup.optional.len(),
             services: d.services.protected.len() + d.services.dev.len() + d.services.optional.len(),
         },
+        skipped: d.skipped.clone(),
     }
 }
 
@@ -723,7 +872,32 @@ mod tests {
         assert_eq!(d.index.schema, SCHEMA);
         for f in &d.index.files {
             assert!(BUILTIN.iter().any(|(n, _)| n == f), "{f} is listed but not built in");
-        }
+        }        // Our own set must be fully readable: nothing skipped.
+        assert!(d.skipped.is_empty(), "built-in rules skipped: {:?}", d.skipped);
+    }
+
+    #[test]
+    fn a_rule_for_a_newer_app_is_skipped_and_the_rest_kept() {
+        let text = r#"{"rules": [
+            {"id": "ok", "name": "Ok", "eco": "X", "risk": "safe", "about": "", "paths": ["{home}/.ok"]},
+            {"id": "future-field", "name": "F", "eco": "X", "risk": "safe", "about": "", "paths": [], "someNewField": 1},
+            {"id": "future-expander", "name": "E", "eco": "X", "risk": "safe", "about": "", "paths": [{"expand": "teleport", "dir": "{home}"}]},
+            {"id": "future-app", "name": "A", "eco": "X", "risk": "safe", "about": "", "paths": [], "minApp": "99.0.0"},
+            {"id": "old-app", "name": "B", "eco": "X", "risk": "safe", "about": "", "paths": [], "minApp": "0.1.0"}
+        ]}"#;
+        let (ok, skipped) = parse_caches(text).unwrap();
+        let ids: Vec<&str> = ok.iter().map(|r| r.id.as_str()).collect();
+        assert_eq!(ids, ["ok", "old-app"]);
+        assert_eq!(skipped.len(), 3);
+        assert!(skipped.iter().any(|s| s.starts_with("future-app: needs Dev Cleaner 99.0.0")));
+        assert!(parse_caches("{ nope").is_err(), "a file that isn't JSON still fails the set");
+    }
+
+    #[test]
+    fn set_versions_compare_as_numbers() {
+        assert!(set_version("2026.11.10.1") > set_version("2026.11.9.9"));
+        assert!(set_version("2026.11.09.10") > set_version("2026.11.09.2"));
+        assert!(set_version("2026.11.09.2") == set_version("2026.11.09.2"));
     }
 
     #[test]

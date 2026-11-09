@@ -253,6 +253,13 @@ async fn reload_definitions() -> R<defs::Info> {
     blocking(defs::reload).await
 }
 
+/// Download the newest definitions from GitHub when there is a newer set
+/// this app can read, then load it. The current set stays on any failure.
+#[tauri::command]
+async fn update_definitions() -> R<defs::Fetched> {
+    blocking(defs::download).await?
+}
+
 /// Open the folder a newer set of definitions is read from, creating it.
 #[tauri::command]
 fn open_definitions_folder(app: AppHandle) -> R<()> {
@@ -376,6 +383,7 @@ pub fn run() {
             service_action,
             definitions_info,
             reload_definitions,
+            update_definitions,
             open_definitions_folder,
             live_stats,
             list_processes,

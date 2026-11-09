@@ -73,7 +73,7 @@ winget install TriptoAfsin.DevCleaner
 - Processes the OS needs (csrss, svchost, lsass, WindowServer, launchd...) cannot be ended, from the UI or the backend.
 - Project and model deletes are re-validated in the backend: only a recognised build folder or model file can be removed.
 - Downloaded AI models, experiment outputs (`wandb/`, `mlruns/`, `outputs/`) and the Hugging Face `token` are never selected for you.
-- Nothing about you or your files leaves your machine. The only network request is the update check (a plain request to GitHub's releases API), which can be turned off in Settings.
+- Nothing about you or your files leaves your machine. The only network requests are the update check (GitHub's releases API) and the definitions download (the `definitions/` files from this repository on GitHub), plain requests with nothing about you in them. Both can be turned off in Settings; Refresh on the Definitions card still fetches on demand.
 
 ## Terms of use and disclaimer
 
@@ -88,7 +88,7 @@ If you don't accept these terms, don't install or use the software.
 
 ## Definitions
 
-What the app knows (cache locations, project build folders, process verdicts, port hints, AI model folders, config files) lives as data in [`definitions/`](definitions/README.md), not in code. A copy is built into the app; Settings → Definitions shows the version in use, where it came from and the folder a newer set is read from. Adding a cache is a JSON edit; see the [definitions guide](definitions/README.md).
+What the app knows (cache locations, project build folders, process verdicts, port hints, AI model folders, config files) lives as data in [`definitions/`](definitions/README.md), not in code. A copy is built into the app, and new rules reach you without an app update: Settings → Definitions → **Refresh** downloads the newest set from this repository (the app also checks daily when update checks are on), checks it, and uses it when it is newer. A rule written for a newer version of the app is skipped on older ones, and the rest of the set still applies. Adding a cache is a JSON edit; see the [definitions guide](definitions/README.md).
 
 ## Develop
 

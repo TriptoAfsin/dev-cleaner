@@ -163,7 +163,7 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
         <div className="flex items-center justify-between gap-6">
           <div>
             <div className="text-[13px] font-medium text-text">Check for updates automatically</div>
-            <div className="mt-0.5 text-[12px] text-muted">A few seconds after launch, then once a day. One plain request to GitHub, nothing about you is sent.</div>
+            <div className="mt-0.5 text-[12px] text-muted">A few seconds after launch, then once a day: new versions, plus new definitions (cache rules), which are applied without an app update. Plain requests to GitHub; nothing about you is sent.</div>
           </div>
           <Switch checked={settings.checkUpdates} onChange={(v) => set("checkUpdates", v)} label="Check for updates automatically" />
         </div>

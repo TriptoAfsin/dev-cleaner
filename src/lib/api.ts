@@ -170,7 +170,12 @@ export type DefinitionsInfo = {
   loadedAt: number
   error: string | null
   counts: { caches: number; junk: number; projects: number; processes: number; ports: number; models: number; configs: number }
+  /** Rules this app skipped (written for a newer Dev Cleaner), with the reason. */
+  skipped: string[]
 }
+
+/** A definitions download: "updated", "up-to-date", or "needs-app" when the newest set needs a newer Dev Cleaner. */
+export type DefinitionsFetched = { outcome: "updated" | "up-to-date" | "needs-app"; version: string; minApp: string; info: DefinitionsInfo }
 
 export type StartupItem = {
   id: string
@@ -233,6 +238,7 @@ export const api = {
   serviceAction: (name: string, action: ServiceAction) => invoke<Service>("service_action", { name, action }),
   definitionsInfo: () => invoke<DefinitionsInfo>("definitions_info"),
   reloadDefinitions: () => invoke<DefinitionsInfo>("reload_definitions"),
+  updateDefinitions: () => invoke<DefinitionsFetched>("update_definitions"),
   openDefinitionsFolder: () => invoke<void>("open_definitions_folder"),
   loadSettings: () => invoke<Record<string, unknown> | null>("load_settings"),
   saveSettings: (settings: unknown) => invoke<void>("save_settings", { settings }),
