@@ -1,3 +1,4 @@
+import { sectionOf } from "./sections"
 // Recommendations from what was actually measured. Every insight names the
 // number it is based on; nothing here guesses.
 import type { CacheItem, LiveStats, ProcGroup, SystemInfo } from "./api"
@@ -37,7 +38,7 @@ export function insights(s: SystemInfo | null, live: LiveStats | null, caches: C
   }
   const big = [...caches].sort((a, b) => b.size - a.size)[0]
   if (big && big.size > 10 * 1024 ** 3) {
-    out.push({ id: "big-cache", level: "tip", title: `${big.name} holds ${bytes(big.size)}`, detail: `${big.about}`, go: "disk" })
+    out.push({ id: "big-cache", level: "tip", title: `${big.name} holds ${bytes(big.size)}`, detail: `${big.about}`, go: ({ disk: "disk", junk: "disk", harnesses: "models", mltools: "models" } as const)[sectionOf(big)] })
   }
   for (const d of s?.drives ?? []) {
     if (d.removable || !d.total || (sysDrive && d.mount.toLowerCase() === sysDrive.mount.toLowerCase())) continue

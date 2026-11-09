@@ -85,7 +85,7 @@ export function SettingsPage() {
           <div>
             <div className="text-[13px] font-medium">Drives</div>
             <div className="mt-0.5 text-[12px] text-muted">
-              Which drives cleanups include. System junk walks them for unfinished downloads, Steam shader caches and Thumbs.db files and empties their Recycle Bins; Disk cleanup finds the pnpm store on each; AI models searches them for model files; Projects can add them with “Add drives”. Caches in your user folder are always included.
+              Which drives cleanups include. System junk walks them for unfinished downloads, Steam shader caches and Thumbs.db files and empties their Recycle Bins; Disk cleanup finds the pnpm store on each; AI / ML searches them for model files; Projects can add them with “Add drives”. Caches in your user folder are always included.
             </div>
           </div>
           <button
@@ -125,7 +125,7 @@ export function SettingsPage() {
         <div className="flex items-center justify-between gap-6 border-t border-border px-4 py-3.5">
           <div>
             <div className="text-[13px] font-medium">Search these drives for AI models</div>
-            <div className="mt-0.5 text-[12px] text-muted">The AI models scan also walks each chosen drive for .gguf, .safetensors and other model files. Slower on big drives.</div>
+            <div className="mt-0.5 text-[12px] text-muted">The AI / ML model scan also walks each chosen drive for .gguf, .safetensors and other model files. Slower on big drives.</div>
           </div>
           <Switch checked={settings.modelDrives} onChange={(v) => set("modelDrives", v)} label="Search drives for AI models" />
         </div>

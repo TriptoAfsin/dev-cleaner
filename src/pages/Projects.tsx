@@ -395,6 +395,7 @@ const KIND_HELP: Record<string, string> = {
   scala: "sbt's build output for this project. sbt compile recreates it.",
   clojure: "Leiningen's build output. lein compile recreates it.",
   gradle: "Gradle's build output or project-local cache (build, .gradle, .kotlin). The next ./gradlew build recreates it.",
+  cxx: "CMake or ndk-build output of an Android module's C/C++ code (.cxx, or .externalNativeBuild on older plugins). The next Gradle build compiles the native code again.",
   dotnet: "MSBuild output (bin) or intermediate files (obj) of a .NET project. dotnet build recreates both.",
   composer: "PHP packages Composer installed for this project. composer install brings them back from composer.lock.",
   bundler: "Gems Bundler installed into the project. bundle install brings them back from Gemfile.lock.",

@@ -1071,6 +1071,1618 @@
       ]
     },
     {
+      "id": "nvm-cache",
+      "name": "nvm downloads",
+      "eco": "Node",
+      "risk": "slow",
+      "about": "Node tarballs nvm downloaded to install versions. Installed versions are kept; nvm downloads again only to install a version you removed.",
+      "paths": [
+        "{env:NVM_DIR|{home}/.nvm}/.cache"
+      ]
+    },
+    {
+      "id": "node-versions",
+      "name": "Old Node.js versions",
+      "eco": "Node",
+      "risk": "data",
+      "about": "Node versions installed by nvm, nvm-windows, fnm or Volta, except the two newest of each. A version's global npm packages go with it. A project pinned to one of these (.nvmrc, volta pin) needs it installed again.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{env:NVM_DIR|{home}/.nvm}/versions/node",
+          "keep": 2
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{env:NVM_HOME|{roaming}/nvm}",
+            "keep": 2,
+            "prefix": [
+              "v"
+            ]
+          }
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{roaming}/fnm/node-versions",
+            "keep": 2
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{local}/fnm/node-versions",
+            "keep": 2
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{local}/fnm/node-versions",
+            "keep": 2
+          }
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{local}/Volta/tools/image/node",
+            "keep": 2
+          },
+          "unix": {
+            "expand": "old-entries",
+            "dir": "{home}/.volta/tools/image/node",
+            "keep": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "volta-cache",
+      "name": "Volta downloads",
+      "eco": "Node",
+      "risk": "slow",
+      "about": "Archives Volta downloaded (already unpacked into its tool images), plus its logs and temp files. Volta downloads again only to install a version it doesn't have.",
+      "paths": [
+        {
+          "windows": "{local}/Volta/tools/inventory",
+          "unix": "{home}/.volta/tools/inventory"
+        },
+        {
+          "windows": "{local}/Volta/log",
+          "unix": "{home}/.volta/log"
+        },
+        {
+          "windows": "{local}/Volta/tmp",
+          "unix": "{home}/.volta/tmp"
+        }
+      ]
+    },
+    {
+      "id": "mise-cache",
+      "name": "mise cache",
+      "eco": "Tools",
+      "risk": "safe",
+      "about": "Downloaded tarballs and plugin data mise keeps to install tools. Installed tools are kept.",
+      "paths": [
+        {
+          "windows": "{temp}/mise",
+          "macos": "{cache}/mise",
+          "linux": "{xdgCache}/mise"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "mise",
+        "args": [
+          "cache",
+          "clear"
+        ]
+      }
+    },
+    {
+      "id": "sdkman-archives",
+      "name": "SDKMAN! archives",
+      "eco": "Java",
+      "risk": "slow",
+      "about": "Zip files SDKMAN! downloaded to install JDKs, Gradle, Maven and others. Installed candidates are kept.",
+      "paths": [
+        "{env:SDKMAN_DIR|{home}/.sdkman}/archives"
+      ]
+    },
+    {
+      "id": "jdks",
+      "name": "Old IDE-downloaded JDKs",
+      "eco": "Java",
+      "risk": "data",
+      "about": "JDKs IntelliJ IDEA or Android Studio downloaded into ~/.jdks, except the two newest. A project set to one of these needs it downloaded again from the IDE.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.jdks",
+          "keep": 2
+        }
+      ]
+    },
+    {
+      "id": "fvm-versions",
+      "name": "Old FVM Flutter SDKs",
+      "eco": "Dart",
+      "risk": "data",
+      "about": "Flutter SDKs installed by FVM, about 1-2 GB each, except the two newest. A project pinned to one runs fvm install again.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{env:FVM_CACHE_PATH|{home}/fvm}/versions",
+          "keep": 2
+        }
+      ]
+    },
+    {
+      "id": "dart-server",
+      "name": "Dart analysis server cache",
+      "eco": "Dart",
+      "risk": "safe",
+      "about": "The Dart and Flutter analysis server's cache. Rebuilt when an editor opens a Dart project; quit editors first.",
+      "paths": [
+        {
+          "windows": "{local}/.dartServer",
+          "unix": "{home}/.dartServer"
+        }
+      ]
+    },
+    {
+      "id": "android-studio",
+      "name": "Android Studio caches",
+      "eco": "Android",
+      "risk": "slow",
+      "about": "Caches, indexes and logs of every Android Studio version (including Preview builds). The IDE re-indexes on next open. Settings and plugins are kept.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "children",
+            "dir": "{local}/Google",
+            "contains": [
+              "AndroidStudio"
+            ],
+            "tail": [
+              "caches",
+              "index",
+              "log",
+              "tmp"
+            ]
+          },
+          "unix": {
+            "expand": "children",
+            "dir": "{cache}/Google",
+            "contains": [
+              "AndroidStudio"
+            ],
+            "tail": [
+              "caches",
+              "index",
+              "log",
+              "tmp"
+            ]
+          }
+        },
+        {
+          "macos": {
+            "expand": "children",
+            "dir": "{home}/Library/Logs/Google",
+            "contains": [
+              "AndroidStudio"
+            ],
+            "tail": [
+              ""
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "id": "android-sdk-temp",
+      "name": "Android SDK partial downloads",
+      "eco": "Android",
+      "risk": "safe",
+      "about": "Interrupted or half-finished SDK downloads. Don't clean while the SDK Manager is updating.",
+      "paths": [
+        {
+          "windows": "{env:ANDROID_HOME|{local}/Android/Sdk}/.temp",
+          "macos": "{env:ANDROID_HOME|{home}/Library/Android/sdk}/.temp",
+          "linux": "{env:ANDROID_HOME|{home}/Android/Sdk}/.temp"
+        },
+        {
+          "windows": "{env:ANDROID_HOME|{local}/Android/Sdk}/.downloadIntermediates",
+          "macos": "{env:ANDROID_HOME|{home}/Library/Android/sdk}/.downloadIntermediates",
+          "linux": "{env:ANDROID_HOME|{home}/Android/Sdk}/.downloadIntermediates"
+        }
+      ]
+    },
+    {
+      "id": "android-ndk-old",
+      "name": "Old Android NDKs and build tools",
+      "eco": "Android",
+      "risk": "slow",
+      "about": "NDK versions (1-2 GB each) except the newest, and build-tools except the two newest. A project that pins an older ndkVersion or buildToolsVersion downloads it again on its next build.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{local}/Android/Sdk}/ndk",
+            "keep": 1
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{home}/Library/Android/sdk}/ndk",
+            "keep": 1
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{home}/Android/Sdk}/ndk",
+            "keep": 1
+          }
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{local}/Android/Sdk}/build-tools",
+            "keep": 2
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{home}/Library/Android/sdk}/build-tools",
+            "keep": 2
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{env:ANDROID_HOME|{home}/Android/Sdk}/build-tools",
+            "keep": 2
+          }
+        }
+      ]
+    },
+    {
+      "id": "avd-snapshots",
+      "name": "Emulator Quick Boot snapshots",
+      "eco": "Android",
+      "risk": "slow",
+      "about": "The Quick Boot snapshot of each Android emulator, often several GB. The next start is a cold boot. Named snapshots you saved and the emulators themselves are kept. Close the emulator first.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{env:ANDROID_AVD_HOME|{home}/.android/avd}",
+          "contains": [
+            ".avd"
+          ],
+          "tail": [
+            "snapshots/default_boot"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "metro-cache",
+      "name": "Metro bundler cache",
+      "eco": "React Native",
+      "risk": "safe",
+      "about": "React Native and Expo's Metro transform cache in the temp folder. Rebuilt on the next bundle (the first one is slower).",
+      "paths": [
+        "{temp}/metro-cache"
+      ]
+    },
+    {
+      "id": "expo-client-cache",
+      "name": "Expo Go app downloads",
+      "eco": "React Native",
+      "risk": "slow",
+      "about": "Expo Go builds the Expo CLI downloaded to install on emulators and simulators. Downloaded again when needed.",
+      "paths": [
+        "{home}/.expo/android-apk-cache",
+        "{home}/.expo/ios-simulator-app-cache"
+      ]
+    },
+    {
+      "id": "jest-cache",
+      "name": "Jest cache",
+      "eco": "Testing",
+      "risk": "safe",
+      "about": "Jest's transform and dependency cache in the temp folder, entries older than a week. The next test run rebuilds it.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{temp}",
+          "contains": [
+            "jest_"
+          ],
+          "tail": [
+            ""
+          ]
+        }
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 168
+      }
+    },
+    {
+      "id": "selenium",
+      "name": "Selenium Manager cache",
+      "eco": "Testing",
+      "risk": "slow",
+      "about": "Browser drivers and whole Chrome/Firefox builds Selenium Manager downloaded, one per version. Downloaded again on the next run.",
+      "paths": [
+        "{env:SE_CACHE_PATH|{home}/.cache/selenium}"
+      ]
+    },
+    {
+      "id": "firebase-emulators",
+      "name": "Firebase emulators",
+      "eco": "Cloud",
+      "risk": "slow",
+      "about": "Emulator jars and UI bundles the Firebase CLI downloaded; old versions pile up. Downloaded again the next time you start the emulators.",
+      "paths": [
+        "{env:FIREBASE_EMULATORS_PATH|{home}/.cache/firebase/emulators}"
+      ]
+    },
+    {
+      "id": "prisma-engines",
+      "name": "Prisma engines",
+      "eco": "Node",
+      "risk": "slow",
+      "about": "Query and schema engine binaries Prisma downloaded. Fetched again by the next prisma generate.",
+      "paths": [
+        "{home}/.cache/prisma"
+      ]
+    },
+    {
+      "id": "minikube-cache",
+      "name": "minikube downloads",
+      "eco": "Kubernetes",
+      "risk": "slow",
+      "about": "ISOs, kic base images and preloaded image tarballs minikube downloaded, often several GB. Your clusters are kept; a new cluster downloads what it needs.",
+      "paths": [
+        "{env:MINIKUBE_HOME|{home}/.minikube}/cache"
+      ]
+    },
+    {
+      "id": "helm-cache",
+      "name": "Helm cache",
+      "eco": "Kubernetes",
+      "risk": "safe",
+      "about": "Repository indexes and chart archives. helm repo update fetches them again.",
+      "paths": [
+        {
+          "windows": "{temp}/helm",
+          "macos": "{cache}/helm",
+          "linux": "{xdgCache}/helm"
+        }
+      ]
+    },
+    {
+      "id": "vagrant-tmp",
+      "name": "Vagrant temp",
+      "eco": "VMs",
+      "risk": "safe",
+      "about": "Vagrant's temp files (leftover box downloads). Boxes and machines are kept.",
+      "paths": [
+        "{env:VAGRANT_HOME|{home}/.vagrant.d}/tmp"
+      ]
+    },
+    {
+      "id": "gcloud-logs",
+      "name": "Google Cloud CLI logs",
+      "eco": "Cloud",
+      "risk": "safe",
+      "about": "gcloud's per-command logs older than a week. Credentials and configurations are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/gcloud/logs",
+          "unix": "{home}/.config/gcloud/logs"
+        }
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 168
+      }
+    },
+    {
+      "id": "platformio-cache",
+      "name": "PlatformIO cache",
+      "eco": "Embedded",
+      "risk": "safe",
+      "about": "PlatformIO's download and API cache. Installed platforms and toolchains are kept.",
+      "paths": [
+        "{home}/.platformio/.cache",
+        "{home}/.platformio/cache"
+      ]
+    },
+    {
+      "id": "espidf-dist",
+      "name": "ESP-IDF tool downloads",
+      "eco": "Embedded",
+      "risk": "slow",
+      "about": "Archives ESP-IDF downloaded to install its tools. Installed tools are kept; install.sh downloads again if needed.",
+      "paths": [
+        "{env:IDF_TOOLS_PATH|{home}/.espressif}/dist"
+      ]
+    },
+    {
+      "id": "arduino-staging",
+      "name": "Arduino downloads",
+      "eco": "Embedded",
+      "risk": "slow",
+      "about": "Board cores and libraries the Arduino IDE and arduino-cli downloaded (already installed). Downloaded again only to reinstall.",
+      "paths": [
+        {
+          "windows": "{local}/Arduino15/staging",
+          "macos": "{home}/Library/Arduino15/staging",
+          "linux": "{home}/.arduino15/staging"
+        }
+      ],
+      "how": {
+        "kind": "tool",
+        "tool": "arduino-cli",
+        "args": [
+          "cache",
+          "clean"
+        ]
+      }
+    },
+    {
+      "id": "arduino-build-cache",
+      "name": "Arduino build cache",
+      "eco": "Embedded",
+      "risk": "safe",
+      "about": "Compiled sketches and cores. The next upload compiles again.",
+      "paths": [
+        {
+          "windows": "{local}/arduino",
+          "macos": "{cache}/arduino",
+          "linux": "{xdgCache}/arduino"
+        }
+      ]
+    },
+    {
+      "id": "unity-upm-cache",
+      "name": "Unity package cache",
+      "eco": "Game engines",
+      "risk": "slow",
+      "about": "Packages the Unity Package Manager downloaded. Fetched again when a project needs them.",
+      "paths": [
+        {
+          "windows": "{local}/Unity/cache",
+          "macos": "{home}/Library/Unity/cache",
+          "linux": "{home}/.config/unity3d/cache"
+        }
+      ]
+    },
+    {
+      "id": "godot-cache",
+      "name": "Godot editor cache",
+      "eco": "Game engines",
+      "risk": "safe",
+      "about": "The Godot editor's cache. Rebuilt on the next open.",
+      "paths": [
+        {
+          "windows": "{temp}/Godot",
+          "macos": "{cache}/Godot",
+          "linux": "{xdgCache}/godot"
+        }
+      ]
+    },
+    {
+      "id": "godot-export-templates",
+      "name": "Old Godot export templates",
+      "eco": "Game engines",
+      "risk": "slow",
+      "about": "Export templates for Godot versions other than the newest, about 1 GB each. The editor offers to download them again when you export with that version.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{roaming}/Godot/export_templates",
+            "keep": 1
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{home}/Library/Application Support/Godot/export_templates",
+            "keep": 1
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{xdgData}/godot/export_templates",
+            "keep": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "unreal-ddc",
+      "name": "Unreal shared DDC",
+      "eco": "Game engines",
+      "risk": "slow",
+      "about": "Unreal Engine's shared Derived Data Cache (shaders and cooked assets). Rebuilt by the editor; shader compiles can take a long time.",
+      "paths": [
+        {
+          "windows": "{local}/UnrealEngine/Common/DerivedDataCache",
+          "macos": "{home}/Library/Application Support/Epic/UnrealEngine/Common/DerivedDataCache"
+        }
+      ]
+    },
+    {
+      "id": "vscode-server",
+      "name": "Old VS Code / Cursor servers",
+      "eco": "Editors",
+      "risk": "slow",
+      "about": "The server VS Code, Cursor or Windsurf installs on this machine for Remote-SSH and WSL, one copy (about 200 MB) per editor update, except the two newest; plus cached extension downloads. The editor reinstalls its server on the next connect.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.vscode-server/cli/servers",
+          "keep": 2,
+          "prefix": [
+            "Stable-",
+            "Insiders-"
+          ]
+        },
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.vscode-server/bin",
+          "keep": 2
+        },
+        "{home}/.vscode-server/data/CachedExtensionVSIXs",
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.cursor-server/cli/servers",
+          "keep": 2,
+          "prefix": [
+            "Stable-"
+          ]
+        },
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.cursor-server/bin",
+          "keep": 2
+        },
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.windsurf-server/bin",
+          "keep": 2
+        }
+      ]
+    },
+    {
+      "id": "choco-cache",
+      "name": "Chocolatey cache",
+      "eco": "System",
+      "risk": "safe",
+      "os": [
+        "windows"
+      ],
+      "about": "Packages Chocolatey downloaded. Installed software is kept.",
+      "paths": [
+        "{temp}/chocolatey"
+      ]
+    },
+    {
+      "id": "winget-temp",
+      "name": "WinGet downloads",
+      "eco": "System",
+      "risk": "safe",
+      "os": [
+        "windows"
+      ],
+      "about": "Installers WinGet downloaded, older than a day. Installed software is kept.",
+      "paths": [
+        "{temp}/WinGet"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "rattler-cache",
+      "name": "pixi / rattler cache",
+      "eco": "Python",
+      "risk": "slow",
+      "about": "Conda packages pixi downloaded and extracted. Environments re-link from it; the next install downloads what's missing.",
+      "paths": [
+        {
+          "windows": "{local}/rattler",
+          "macos": "{cache}/rattler",
+          "linux": "{xdgCache}/rattler"
+        }
+      ]
+    },
+    {
+      "id": "browser-automation-temp",
+      "name": "Browser automation leftovers",
+      "eco": "Testing",
+      "risk": "safe",
+      "about": "Temp browser profiles, artifacts and transform caches Playwright, Puppeteer, chrome-devtools-mcp and browser-use leave in the temp folder when a run crashes or is killed, older than a day. Persistent profiles that keep you logged in are not touched.",
+      "paths": [
+        {
+          "expand": "children",
+          "dir": "{temp}",
+          "contains": [
+            "playwright_chromiumdev_profile-",
+            "playwright_firefoxdev_profile-",
+            "playwright_webkitdev_profile-",
+            "playwright-artifacts-",
+            "playwright-transform-cache",
+            "puppeteer_dev_chrome_profile-",
+            "puppeteer_dev_firefox_profile-",
+            "chrome-devtools-mcp-",
+            "browser-use-user-data-dir-",
+            "browser_use_agent_"
+          ],
+          "tail": [
+            ""
+          ]
+        }
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "ai-editor-caches",
+      "name": "Windsurf, Kiro, Trae and Zed caches",
+      "eco": "Editors",
+      "risk": "safe",
+      "about": "Web, code and GPU caches, downloaded extension packages and logs of AI editors. Settings, extensions, chats and workspaces are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/Windsurf/Cache",
+          "macos": "{home}/Library/Application Support/Windsurf/Cache",
+          "linux": "{home}/.config/Windsurf/Cache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/Code Cache",
+          "macos": "{home}/Library/Application Support/Windsurf/Code Cache",
+          "linux": "{home}/.config/Windsurf/Code Cache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/GPUCache",
+          "macos": "{home}/Library/Application Support/Windsurf/GPUCache",
+          "linux": "{home}/.config/Windsurf/GPUCache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/DawnCache",
+          "macos": "{home}/Library/Application Support/Windsurf/DawnCache",
+          "linux": "{home}/.config/Windsurf/DawnCache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/Windsurf/DawnGraphiteCache",
+          "linux": "{home}/.config/Windsurf/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/Windsurf/DawnWebGPUCache",
+          "linux": "{home}/.config/Windsurf/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/Windsurf/CachedExtensionVSIXs",
+          "macos": "{home}/Library/Application Support/Windsurf/CachedExtensionVSIXs",
+          "linux": "{home}/.config/Windsurf/CachedExtensionVSIXs"
+        },
+        {
+          "windows": "{roaming}/Windsurf/logs",
+          "macos": "{home}/Library/Application Support/Windsurf/logs",
+          "linux": "{home}/.config/Windsurf/logs"
+        },
+        {
+          "windows": "{roaming}/Kiro/Cache",
+          "macos": "{home}/Library/Application Support/Kiro/Cache",
+          "linux": "{home}/.config/Kiro/Cache"
+        },
+        {
+          "windows": "{roaming}/Kiro/Code Cache",
+          "macos": "{home}/Library/Application Support/Kiro/Code Cache",
+          "linux": "{home}/.config/Kiro/Code Cache"
+        },
+        {
+          "windows": "{roaming}/Kiro/GPUCache",
+          "macos": "{home}/Library/Application Support/Kiro/GPUCache",
+          "linux": "{home}/.config/Kiro/GPUCache"
+        },
+        {
+          "windows": "{roaming}/Kiro/DawnCache",
+          "macos": "{home}/Library/Application Support/Kiro/DawnCache",
+          "linux": "{home}/.config/Kiro/DawnCache"
+        },
+        {
+          "windows": "{roaming}/Kiro/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/Kiro/DawnGraphiteCache",
+          "linux": "{home}/.config/Kiro/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/Kiro/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/Kiro/DawnWebGPUCache",
+          "linux": "{home}/.config/Kiro/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/Kiro/CachedExtensionVSIXs",
+          "macos": "{home}/Library/Application Support/Kiro/CachedExtensionVSIXs",
+          "linux": "{home}/.config/Kiro/CachedExtensionVSIXs"
+        },
+        {
+          "windows": "{roaming}/Kiro/logs",
+          "macos": "{home}/Library/Application Support/Kiro/logs",
+          "linux": "{home}/.config/Kiro/logs"
+        },
+        {
+          "windows": "{roaming}/Trae/Cache",
+          "macos": "{home}/Library/Application Support/Trae/Cache",
+          "linux": "{home}/.config/Trae/Cache"
+        },
+        {
+          "windows": "{roaming}/Trae/Code Cache",
+          "macos": "{home}/Library/Application Support/Trae/Code Cache",
+          "linux": "{home}/.config/Trae/Code Cache"
+        },
+        {
+          "windows": "{roaming}/Trae/GPUCache",
+          "macos": "{home}/Library/Application Support/Trae/GPUCache",
+          "linux": "{home}/.config/Trae/GPUCache"
+        },
+        {
+          "windows": "{roaming}/Trae/DawnCache",
+          "macos": "{home}/Library/Application Support/Trae/DawnCache",
+          "linux": "{home}/.config/Trae/DawnCache"
+        },
+        {
+          "windows": "{roaming}/Trae/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/Trae/DawnGraphiteCache",
+          "linux": "{home}/.config/Trae/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/Trae/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/Trae/DawnWebGPUCache",
+          "linux": "{home}/.config/Trae/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/Trae/CachedExtensionVSIXs",
+          "macos": "{home}/Library/Application Support/Trae/CachedExtensionVSIXs",
+          "linux": "{home}/.config/Trae/CachedExtensionVSIXs"
+        },
+        {
+          "windows": "{roaming}/Trae/logs",
+          "macos": "{home}/Library/Application Support/Trae/logs",
+          "linux": "{home}/.config/Trae/logs"
+        },
+        {
+          "macos": "{cache}/Zed",
+          "linux": "{env:XDG_CACHE_HOME|{home}/.cache}/zed"
+        },
+        {
+          "macos": "{home}/Library/Logs/Zed",
+          "windows": "{local}/Zed/logs",
+          "linux": "{env:XDG_DATA_HOME|{home}/.local/share}/zed/logs"
+        },
+        {
+          "windows": "{local}/Zed/hang_traces",
+          "macos": "{home}/Library/Application Support/Zed/hang_traces",
+          "linux": "{env:XDG_DATA_HOME|{home}/.local/share}/zed/hang_traces"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-temp",
+      "name": "Claude Code temp and scratchpads",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Each Claude Code session's scratchpad, task output and pasted images in its temp folder (CLAUDE_CODE_TMPDIR, or the system temp). Only entries older than a day go, so running sessions keep theirs. Claude Code itself never empties this folder.",
+      "paths": [
+        "{env:CLAUDE_CODE_TMPDIR|{temp}}/claude"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "claude-code-tmp-unix",
+      "name": "Claude Code temp and scratchpads",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "os": [
+        "macos",
+        "linux"
+      ],
+      "realOnly": true,
+      "about": "Claude Code's per-user temp folder (/tmp/claude-<uid> or /private/tmp/claude-<uid>): each session's scratchpad, task output and pasted images. Only entries older than a day go, so running sessions keep theirs.",
+      "paths": [
+        {
+          "macos": {
+            "expand": "children",
+            "dir": "/private/tmp",
+            "contains": [
+              "claude-"
+            ],
+            "tail": [
+              ""
+            ]
+          },
+          "linux": {
+            "expand": "children",
+            "dir": "/tmp",
+            "contains": [
+              "claude-"
+            ],
+            "tail": [
+              ""
+            ]
+          }
+        }
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "claude-code-mcp-logs",
+      "name": "Claude Code MCP logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Full logs of every MCP server Claude Code ran, one folder per project. Claude Code never prunes them; they can grow to many GB. Only logs are deleted.",
+      "paths": [
+        {
+          "windows": "{local}/claude-cli-nodejs/Cache",
+          "macos": "{cache}/claude-cli-nodejs",
+          "linux": "{xdgCache}/claude-cli-nodejs"
+        }
+      ]
+    },
+    {
+      "id": "claude-code-session-junk",
+      "name": "Claude Code debug logs and snapshots",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Debug logs, shell snapshots, per-session environment, the paste and image caches, and the plugin and skill trash in ~/.claude, older than a day. Transcripts, checkpoints, memory, settings, skills and plugins are never touched.",
+      "paths": [
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/debug",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/shell-snapshots",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/session-env",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/paste-cache",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/image-cache",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/todos",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/statsig",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/logs",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/plugins/.trash",
+        "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/skills/.trash"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "claude-code-versions",
+      "name": "Old Claude Code versions",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Claude Code binaries the native installer downloaded, except the two newest (the one you run is always among them). A running version is left alone.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{env:XDG_DATA_HOME|{home}/.local/share}/claude/versions",
+          "keep": 2
+        }
+      ]
+    },
+    {
+      "id": "claude-desktop-cache",
+      "name": "Claude desktop app caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "The Claude app's web, code and GPU caches and its logs. Chats and settings are kept. Quit the app first for the most space.",
+      "paths": [
+        {
+          "windows": "{roaming}/Claude/Cache",
+          "macos": "{home}/Library/Application Support/Claude/Cache",
+          "linux": "{home}/.config/Claude/Cache"
+        },
+        {
+          "windows": "{roaming}/Claude/Code Cache",
+          "macos": "{home}/Library/Application Support/Claude/Code Cache",
+          "linux": "{home}/.config/Claude/Code Cache"
+        },
+        {
+          "windows": "{roaming}/Claude/GPUCache",
+          "macos": "{home}/Library/Application Support/Claude/GPUCache",
+          "linux": "{home}/.config/Claude/GPUCache"
+        },
+        {
+          "windows": "{roaming}/Claude/DawnCache",
+          "macos": "{home}/Library/Application Support/Claude/DawnCache",
+          "linux": "{home}/.config/Claude/DawnCache"
+        },
+        {
+          "windows": "{roaming}/Claude/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/Claude/DawnGraphiteCache",
+          "linux": "{home}/.config/Claude/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/Claude/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/Claude/DawnWebGPUCache",
+          "linux": "{home}/.config/Claude/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/Claude/logs",
+          "macos": "{home}/Library/Application Support/Claude/logs",
+          "linux": "{home}/.config/Claude/logs"
+        },
+        {
+          "macos": "{home}/Library/Logs/Claude"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/Cache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/Code Cache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/GPUCache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/DawnCache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/DawnGraphiteCache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/DawnWebGPUCache"
+        },
+        {
+          "windows": "{local}/Packages/Claude_pzs8sxrjxfjjc/LocalCache/Roaming/Claude/logs"
+        }
+      ]
+    },
+    {
+      "id": "claude-desktop-versions",
+      "name": "Claude desktop: old Claude Code builds",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Copies of Claude Code the Claude app downloaded for its Code tab, except the newest. Downloaded again if the app needs an older one.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{roaming}/Claude/claude-code",
+            "keep": 1
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{home}/Library/Application Support/Claude/claude-code",
+            "keep": 1
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{home}/.config/Claude/claude-code",
+            "keep": 1
+          }
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{roaming}/Claude/claude-code-vm",
+            "keep": 1
+          },
+          "macos": {
+            "expand": "old-entries",
+            "dir": "{home}/Library/Application Support/Claude/claude-code-vm",
+            "keep": 1
+          },
+          "linux": {
+            "expand": "old-entries",
+            "dir": "{home}/.config/Claude/claude-code-vm",
+            "keep": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "codex-cache",
+      "name": "Codex caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Codex's tool, plugin-catalog and model caches. Fetched again automatically. Sessions, memories, auth and config are kept.",
+      "paths": [
+        "{env:CODEX_HOME|{home}/.codex}/cache",
+        "{env:CODEX_HOME|{home}/.codex}/models_cache.json",
+        {
+          "macos": "{cache}/Codex"
+        }
+      ]
+    },
+    {
+      "id": "codex-temp",
+      "name": "Codex temp files and logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Per-run temp files, the login log and sandbox logs, older than a day.",
+      "paths": [
+        "{env:CODEX_HOME|{home}/.codex}/tmp",
+        "{env:CODEX_HOME|{home}/.codex}/log",
+        "{env:CODEX_HOME|{home}/.codex}/.sandbox"
+      ],
+      "how": {
+        "kind": "olderThan",
+        "hours": 24
+      }
+    },
+    {
+      "id": "codex-log-db",
+      "name": "Codex trace log database",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "logs_*.sqlite: Codex's diagnostic trace log, often hundreds of MB to over a GB. Codex recreates it. Quit Codex (CLI and app) first; while it runs the file is left alone.",
+      "paths": [
+        {
+          "expand": "files",
+          "dir": "{env:CODEX_HOME|{home}/.codex}",
+          "ext": [
+            "sqlite",
+            "sqlite-wal",
+            "sqlite-shm"
+          ],
+          "prefix": [
+            "logs_"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "codex-versions",
+      "name": "Old Codex versions",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Old releases of the standalone Codex CLI and the app's server daemon. The one `current` points to is always kept. The Windows app's old helper copies (one per app build) go too, except the newest.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{env:CODEX_HOME|{home}/.codex}/packages/standalone/releases",
+          "keep": 0
+        },
+        {
+          "expand": "old-entries",
+          "dir": "{env:CODEX_HOME|{home}/.codex}/packages/app-server-daemon/releases",
+          "keep": 0
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{local}/OpenAI/Codex/bin",
+            "keep": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "kimi-code",
+      "name": "Kimi Code logs and caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Kimi Code's logs, update metadata and caches (Moonshot's own list of what's safe to delete), plus native modules unpacked for older versions. Sessions, credentials, config and skills are kept.",
+      "paths": [
+        "{env:KIMI_CODE_HOME|{home}/.kimi-code}/logs",
+        "{env:KIMI_CODE_HOME|{home}/.kimi-code}/updates",
+        "{env:KIMI_CODE_HOME|{home}/.kimi-code}/cache",
+        "{home}/.kimi/logs",
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{local}/kimi-code/native",
+            "keep": 1
+          }
+        },
+        {
+          "windows": "{local}/kimi-code-app-updater"
+        }
+      ]
+    },
+    {
+      "id": "deepseek-harness",
+      "name": "DeepSeek Harness cache",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "The cache of DeepSeek Harness (dsh). Sessions and config are kept.",
+      "paths": [
+        "{env:DSH_HOME|{home}/.dsh}/cache"
+      ]
+    },
+    {
+      "id": "agent-browser",
+      "name": "agent-browser screenshots and traces",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Screenshots, diff images, traces and profiles agent-browser saved without a name. Saved logins (sessions/), auth and config are kept.",
+      "paths": [
+        "{home}/.agent-browser/tmp"
+      ]
+    },
+    {
+      "id": "agent-browser-chrome",
+      "name": "agent-browser old Chrome builds",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Chrome for Testing builds agent-browser installed, except the newest.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.agent-browser/browsers",
+          "keep": 1
+        }
+      ]
+    },
+    {
+      "id": "opencode",
+      "name": "OpenCode logs and caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "OpenCode's (and Kilo's) logs, saved tool output, cache and temp files. Sessions, snapshots used for undo, and auth are kept.",
+      "paths": [
+        "{env:XDG_DATA_HOME|{home}/.local/share}/opencode/log",
+        "{env:XDG_DATA_HOME|{home}/.local/share}/opencode/tool-output",
+        "{env:XDG_CACHE_HOME|{home}/.cache}/opencode",
+        "{temp}/opencode",
+        "{env:XDG_DATA_HOME|{home}/.local/share}/kilo/log",
+        "{env:XDG_CACHE_HOME|{home}/.cache}/kilo"
+      ]
+    },
+    {
+      "id": "qwen-code",
+      "name": "Qwen Code debug logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Qwen Code's debug logs and saved tool results. Chats, checkpoints, memory and settings are kept.",
+      "paths": [
+        "{env:QWEN_HOME|{home}/.qwen}/debug",
+        {
+          "expand": "children",
+          "dir": "{env:QWEN_HOME|{home}/.qwen}/tmp",
+          "tail": [
+            "tool-results"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "copilot-cli",
+      "name": "GitHub Copilot CLI logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Copilot CLI's process logs and plugin data, plus versions other than the newest. Sessions and config are kept.",
+      "paths": [
+        "{env:COPILOT_HOME|{home}/.copilot}/logs",
+        "{env:COPILOT_HOME|{home}/.copilot}/plugin-data",
+        {
+          "expand": "old-entries",
+          "dir": "{env:COPILOT_HOME|{home}/.copilot}/pkg/universal",
+          "keep": 1
+        }
+      ]
+    },
+    {
+      "id": "cursor-agent",
+      "name": "Old Cursor CLI versions",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Versions of the Cursor CLI (cursor-agent) except the newest.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{env:XDG_DATA_HOME|{home}/.local/share}/cursor-agent/versions",
+          "keep": 1
+        },
+        {
+          "windows": {
+            "expand": "old-entries",
+            "dir": "{local}/cursor-agent/versions",
+            "keep": 1
+          }
+        }
+      ]
+    },
+    {
+      "id": "codeium-bin",
+      "name": "Old Windsurf language servers",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Language-server builds Windsurf (Codeium) downloaded, one per update, except the newest. Cascade history and memories are kept.",
+      "paths": [
+        {
+          "expand": "old-entries",
+          "dir": "{home}/.codeium/bin",
+          "keep": 1
+        }
+      ]
+    },
+    {
+      "id": "factory-droid",
+      "name": "Factory Droid logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Droid's logs and bug-report bundles. Sessions, specs and settings are kept.",
+      "paths": [
+        "{home}/.factory/logs",
+        "{home}/.factory/bug-reports"
+      ]
+    },
+    {
+      "id": "crush",
+      "name": "Crush cache",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Charm Crush's cache. Projects' .crush databases and config are kept.",
+      "paths": [
+        {
+          "windows": "{local}/crush/cache",
+          "unix": "{env:XDG_CACHE_HOME|{home}/.cache}/crush"
+        }
+      ]
+    },
+    {
+      "id": "goose",
+      "name": "Goose logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Goose's logs (it deletes them itself after two weeks). Sessions and config are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/Block/goose/data/logs",
+          "unix": "{env:XDG_STATE_HOME|{home}/.local/state}/goose/logs"
+        }
+      ]
+    },
+    {
+      "id": "aider",
+      "name": "Aider caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Aider's global caches. Chat history files in your repos are kept.",
+      "paths": [
+        "{home}/.aider/caches"
+      ]
+    },
+    {
+      "id": "continue",
+      "name": "Continue logs and index",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Continue's logs and codebase index. The index is rebuilt in the background, which takes a while on big repos. Sessions and config are kept.",
+      "paths": [
+        "{env:CONTINUE_GLOBAL_DIR|{home}/.continue}/logs",
+        "{env:CONTINUE_GLOBAL_DIR|{home}/.continue}/index"
+      ]
+    },
+    {
+      "id": "cline",
+      "name": "Cline cache and logs",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Cline's cache in VS Code and its CLI logs. Task history and checkpoints are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/Code/User/globalStorage/saoudrizwan.claude-dev/cache",
+          "macos": "{home}/Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev/cache",
+          "linux": "{home}/.config/Code/User/globalStorage/saoudrizwan.claude-dev/cache"
+        },
+        "{home}/.cline/data/logs"
+      ]
+    },
+    {
+      "id": "warp",
+      "name": "Warp logs and cache",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "The Warp terminal's logs and cache. Its database, history and settings are kept.",
+      "paths": [
+        {
+          "windows": "{local}/warp/Warp/cache",
+          "linux": "{env:XDG_CACHE_HOME|{home}/.cache}/warp-terminal"
+        },
+        {
+          "windows": "{local}/warp/Warp/data/logs"
+        }
+      ]
+    },
+    {
+      "id": "t3code",
+      "name": "T3 Code logs and caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "T3 Code's logs and caches, its app's web caches, and the throwaway Claude Code sessions it runs only to title a thread (folders named …t3code-claude-title… in ~/.claude/projects). Threads, attachments, worktrees and settings are kept.",
+      "paths": [
+        "{env:T3CODE_HOME|{home}/.t3}/userdata/logs",
+        "{env:T3CODE_HOME|{home}/.t3}/caches",
+        {
+          "expand": "children",
+          "dir": "{env:CLAUDE_CONFIG_DIR|{home}/.claude}/projects",
+          "contains": [
+            "t3code-claude-title"
+          ],
+          "tail": [
+            ""
+          ]
+        },
+        {
+          "expand": "children",
+          "dir": "{temp}",
+          "contains": [
+            "t3code-claude-title-"
+          ],
+          "tail": [
+            ""
+          ]
+        },
+        {
+          "windows": "{roaming}/t3code/Cache",
+          "macos": "{home}/Library/Application Support/t3code/Cache",
+          "linux": "{home}/.config/t3code/Cache"
+        },
+        {
+          "windows": "{roaming}/t3code/Code Cache",
+          "macos": "{home}/Library/Application Support/t3code/Code Cache",
+          "linux": "{home}/.config/t3code/Code Cache"
+        },
+        {
+          "windows": "{roaming}/t3code/GPUCache",
+          "macos": "{home}/Library/Application Support/t3code/GPUCache",
+          "linux": "{home}/.config/t3code/GPUCache"
+        },
+        {
+          "windows": "{roaming}/t3code/DawnCache",
+          "macos": "{home}/Library/Application Support/t3code/DawnCache",
+          "linux": "{home}/.config/t3code/DawnCache"
+        },
+        {
+          "windows": "{roaming}/t3code/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/t3code/DawnGraphiteCache",
+          "linux": "{home}/.config/t3code/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/t3code/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/t3code/DawnWebGPUCache",
+          "linux": "{home}/.config/t3code/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/Cache",
+          "macos": "{home}/Library/Application Support/t3code-v2/Cache",
+          "linux": "{home}/.config/t3code-v2/Cache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/Code Cache",
+          "macos": "{home}/Library/Application Support/t3code-v2/Code Cache",
+          "linux": "{home}/.config/t3code-v2/Code Cache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/GPUCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/GPUCache",
+          "linux": "{home}/.config/t3code-v2/GPUCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/DawnCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/DawnCache",
+          "linux": "{home}/.config/t3code-v2/DawnCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/DawnGraphiteCache",
+          "linux": "{home}/.config/t3code-v2/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/DawnWebGPUCache",
+          "linux": "{home}/.config/t3code-v2/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/ShaderCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/ShaderCache",
+          "linux": "{home}/.config/t3code-v2/ShaderCache"
+        },
+        {
+          "windows": "{roaming}/t3code-v2/GrShaderCache",
+          "macos": "{home}/Library/Application Support/t3code-v2/GrShaderCache",
+          "linux": "{home}/.config/t3code-v2/GrShaderCache"
+        }
+      ]
+    },
+    {
+      "id": "ghostex",
+      "name": "Ghostex caches and old updates",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "os": [
+        "windows"
+      ],
+      "about": "Ghostex's cache and logs, and update packages other than the newest. The app, its state and settings are kept.",
+      "paths": [
+        "{local}/Ghostex/Cache",
+        "{local}/Ghostex/Logs",
+        {
+          "expand": "old-entries",
+          "dir": "{local}/Ghostex/packages",
+          "keep": 1,
+          "prefix": [
+            "Ghostex"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "ai-app-updates",
+      "name": "AI app update downloads",
+      "eco": "AI harnesses",
+      "risk": "slow",
+      "about": "Installers that T3 Code, LM Studio and Ollama downloaded for an update. Deleting one cancels that pending update; the app downloads it again.",
+      "paths": [
+        {
+          "windows": "{local}/t3code-updater"
+        },
+        {
+          "windows": "{local}/t3-code-desktop-updater"
+        },
+        {
+          "windows": "{local}/lm-studio-updater"
+        },
+        {
+          "windows": "{local}/Ollama/updates"
+        },
+        {
+          "windows": "{local}/Ollama/updates_v2"
+        },
+        {
+          "macos": "{cache}/ollama/updates"
+        }
+      ]
+    },
+    {
+      "id": "ai-chat-apps",
+      "name": "ChatGPT, Antigravity and Cherry Studio caches",
+      "eco": "AI harnesses",
+      "risk": "safe",
+      "about": "Web, code and GPU caches and logs of AI desktop apps (ChatGPT, Google Antigravity, Cherry Studio). Conversations, settings and logins are kept. Quit the apps first for the most space.",
+      "paths": [
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/Cache"
+        },
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/Code Cache"
+        },
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/GPUCache"
+        },
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/DawnCache"
+        },
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/DawnGraphiteCache"
+        },
+        {
+          "windows": "{local}/Packages/OpenAI.ChatGPT-Desktop_2p2nqsd0c76g0/LocalCache/Roaming/ChatGPT/DawnWebGPUCache"
+        },
+        {
+          "macos": "{cache}/com.openai.chat"
+        },
+        {
+          "windows": "{roaming}/Antigravity/Cache",
+          "macos": "{home}/Library/Application Support/Antigravity/Cache",
+          "linux": "{home}/.config/Antigravity/Cache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/Code Cache",
+          "macos": "{home}/Library/Application Support/Antigravity/Code Cache",
+          "linux": "{home}/.config/Antigravity/Code Cache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/GPUCache",
+          "macos": "{home}/Library/Application Support/Antigravity/GPUCache",
+          "linux": "{home}/.config/Antigravity/GPUCache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/DawnCache",
+          "macos": "{home}/Library/Application Support/Antigravity/DawnCache",
+          "linux": "{home}/.config/Antigravity/DawnCache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/Antigravity/DawnGraphiteCache",
+          "linux": "{home}/.config/Antigravity/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/Antigravity/DawnWebGPUCache",
+          "linux": "{home}/.config/Antigravity/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/Antigravity/logs",
+          "macos": "{home}/Library/Application Support/Antigravity/logs",
+          "linux": "{home}/.config/Antigravity/logs"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/Cache",
+          "macos": "{home}/Library/Application Support/CherryStudio/Cache",
+          "linux": "{home}/.config/CherryStudio/Cache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/Code Cache",
+          "macos": "{home}/Library/Application Support/CherryStudio/Code Cache",
+          "linux": "{home}/.config/CherryStudio/Code Cache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/GPUCache",
+          "macos": "{home}/Library/Application Support/CherryStudio/GPUCache",
+          "linux": "{home}/.config/CherryStudio/GPUCache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/DawnCache",
+          "macos": "{home}/Library/Application Support/CherryStudio/DawnCache",
+          "linux": "{home}/.config/CherryStudio/DawnCache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/DawnGraphiteCache",
+          "macos": "{home}/Library/Application Support/CherryStudio/DawnGraphiteCache",
+          "linux": "{home}/.config/CherryStudio/DawnGraphiteCache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/DawnWebGPUCache",
+          "macos": "{home}/Library/Application Support/CherryStudio/DawnWebGPUCache",
+          "linux": "{home}/.config/CherryStudio/DawnWebGPUCache"
+        },
+        {
+          "windows": "{roaming}/CherryStudio/logs",
+          "macos": "{home}/Library/Application Support/CherryStudio/logs",
+          "linux": "{home}/.config/CherryStudio/logs"
+        }
+      ]
+    },
+    {
+      "id": "ollama-logs",
+      "name": "Ollama logs",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "Ollama's server and app logs. Models, chats and keys are kept.",
+      "paths": [
+        {
+          "windows": {
+            "expand": "files",
+            "dir": "{local}/Ollama",
+            "ext": [
+              "log"
+            ]
+          }
+        },
+        "{home}/.ollama/logs"
+      ]
+    },
+    {
+      "id": "lmstudio-logs",
+      "name": "LM Studio server logs",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "LM Studio's local server logs. Models and conversations are kept.",
+      "paths": [
+        "{home}/.lmstudio/server-logs"
+      ]
+    },
+    {
+      "id": "jan-logs",
+      "name": "Jan logs",
+      "eco": "AI / ML",
+      "risk": "safe",
+      "about": "The Jan app's logs. Threads and models are kept.",
+      "paths": [
+        {
+          "windows": "{roaming}/Jan/data/logs",
+          "macos": "{home}/Library/Application Support/Jan/data/logs",
+          "linux": "{env:XDG_DATA_HOME|{home}/.local/share}/Jan/data/logs"
+        }
+      ]
+    },
+    {
       "id": "hf-datasets",
       "name": "Hugging Face datasets cache",
       "eco": "AI / ML",
@@ -1618,6 +3230,33 @@
       "junk": true,
       "os": [
         "windows"
+      ]
+    },
+    {
+      "id": "teams-cache",
+      "name": "Microsoft Teams cache",
+      "eco": "Apps",
+      "risk": "safe",
+      "os": [
+        "windows"
+      ],
+      "junk": true,
+      "about": "The new Teams app's cache and diagnostic logs (Microsoft's own fix for a slow Teams). You stay signed in. Quit Teams first.",
+      "paths": [
+        "{local}/Packages/MSTeams_8wekyb3d8bbwe/LocalCache/Microsoft/MSTeams"
+      ]
+    },
+    {
+      "id": "postman-cache",
+      "name": "Postman cache",
+      "eco": "Apps",
+      "risk": "safe",
+      "junk": true,
+      "about": "Postman's web and code caches. Collections and environments (in IndexedDB) are not touched.",
+      "paths": [
+        "{roaming}/Postman/Cache",
+        "{roaming}/Postman/Code Cache",
+        "{roaming}/Postman/GPUCache"
       ]
     },
     {

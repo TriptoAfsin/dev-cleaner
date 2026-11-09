@@ -1,23 +1,37 @@
 import { SnapshotButton } from "@/components/Share"
-import { useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState, type ReactNode } from "react"
 import { AppWindow, Check, Loader2, RefreshCw, Trash2 } from "lucide-react"
 import type { CacheItem, CleanEvent } from "@/lib/api"
 import { bytes, cn, took } from "@/lib/format"
 import { BrandIcon } from "@/lib/brands"
+import { sectionOf, type Section } from "@/lib/sections"
 import { useStore } from "@/lib/store"
 import { useDrives } from "@/lib/settings"
 import { AdminBanner } from "@/components/Privileges"
 import { AnimatedNumber, Button, Card, Checkbox, Dialog, PageHeader, Skeleton } from "@/components/ui"
 import { CacheRow } from "@/components/shared"
 
+
+const TEXT: Record<Section, { title: string; lede: string; snapshot: string }> = {
+  disk: { title: "Disk cleanup", lede: "Package and tool caches on this machine:", snapshot: "disk" },
+  junk: { title: "System junk", lede: "", snapshot: "junk" },
+  harnesses: {
+    title: "AI / ML",
+    lede: "Temp folders, logs, caches and old versions that AI coding agents and their apps leave behind (Claude Code, Codex, Kimi, OpenCode, Pi and more):",
+    snapshot: "ai-harnesses",
+  },
+  mltools: { title: "AI / ML", lede: "Caches of ML tools and libraries (Hugging Face, PyTorch, Keras, Weights & Biases, Gradio):", snapshot: "ai-tools" },
+}
+
 /** Selected by default: safe, measured, no admin prompt, never your data. */
 export const preselect = (c: CacheItem) => c.found && c.size > 0 && c.risk === "safe" && !c.admin
 
-export function Disk({ junk = false }: { junk?: boolean }) {
+export function Disk({ section = "disk", tabs }: { section?: Section; tabs?: ReactNode }) {
+  const junk = section === "junk"
   const store = useStore()
   const drives = useDrives()
   const { scanning, scan, scanTotal, cleaning } = store
-  const caches = store.caches.filter((c) => !!c.junk === junk)
+  const caches = store.caches.filter((c) => sectionOf(c) === section)
   const [filter, setFilter] = useState("All")
   const [sel, setSel] = useState<Set<string> | null>(null)
   const [open, setOpen] = useState<string | null>(null)
@@ -43,15 +57,16 @@ export function Disk({ junk = false }: { junk?: boolean }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
-        title={junk ? "System junk" : "Disk cleanup"}
+        title={TEXT[section].title}
+        tabs={tabs}
         lede={
           <>
-            {junk ? `Temp files, update leftovers, error reports, logs, browser caches and the Recycle Bin, plus unfinished downloads and Steam shader caches on ${drives.selected.length === drives.all.length ? "every drive" : `${drives.selected.length} drives`}:` : "Package and tool caches on this machine:"} <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
+            {junk ? `Temp files, update leftovers, error reports, logs, browser caches and the Recycle Bin, plus unfinished downloads and Steam shader caches on ${drives.selected.length === drives.all.length ? "every drive" : `${drives.selected.length} drives`}:` : TEXT[section].lede} <AnimatedNumber value={total} format={(n) => bytes(n)} /> in {found.length} places. Click a row to see what it is and what will run.
           </>
         }
         actions={
           <>
-            <SnapshotButton name={junk ? "junk" : "disk"} />
+            <SnapshotButton name={TEXT[section].snapshot} />
             <Button variant="primary" icon={<RefreshCw size={15} className={scanning ? "spin" : undefined} />} disabled={scanning} onClick={() => void scan()}>
               {scanning ? `Scanning ${store.caches.length}/${scanTotal || "…"}` : "Scan"}
             </Button>

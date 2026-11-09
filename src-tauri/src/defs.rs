@@ -130,7 +130,7 @@ pub enum PathEntry {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase", deny_unknown_fields)]
 pub struct Expand {
-    /// "children", "chromium-profiles", "files", "drive-walk" or "drive-roots".
+    /// "children", "old-entries", "chromium-profiles", "files", "drive-walk" or "drive-roots".
     pub expand: String,
     #[serde(default)]
     pub dir: String,
@@ -143,6 +143,12 @@ pub struct Expand {
     pub except: Vec<String>,
     #[serde(default)]
     pub except_prefix: Vec<String>,
+    /// For children: only names containing one of these.
+    #[serde(default)]
+    pub contains: Vec<String>,
+    /// For old-entries: how many of the newest entries to keep (default 1).
+    #[serde(default)]
+    pub keep: Option<usize>,
     #[serde(default)]
     pub ext: Vec<String>,
     #[serde(default)]
@@ -451,7 +457,7 @@ pub fn expand(t: &str) -> Option<PathBuf> {
 
 /// Named engine steps a cache rule may ask for before cleaning.
 pub const BEFORE_ACTIONS: &[&str] = &["stop-gradle"];
-pub const EXPANDERS: &[&str] = &["children", "chromium-profiles", "files", "drive-walk", "drive-roots"];
+pub const EXPANDERS: &[&str] = &["children", "old-entries", "chromium-profiles", "files", "drive-walk", "drive-roots"];
 pub const WALK_FINDS: &[&str] = &["partials", "thumbs", "shader-caches"];
 
 #[derive(Serialize, Clone, Copy, PartialEq, Eq)]

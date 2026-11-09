@@ -22,10 +22,10 @@ Nothing is removed until you confirm. Anything the OS needs is protected.
 
 | | |
 |---|---|
-| **Disk cleanup**: 75+ caches across Node, Bun, Deno, Rust, Python, Go, Java, Kotlin, Android, Scala, Clojure, Groovy, .NET, Ruby, PHP, Swift, Dart, Haskell, Elixir, Erlang, Julia, R, Perl, OCaml, Nim, Crystal, D, Gleam, Elm, Lua, Zig, C/C++, Terraform, Pulumi, Bazel, Docker, editors, AI/ML and the OS. pnpm stores are found on every drive, and each tool is asked where its cache really is. | <img src="./docs/screenshots/disk-dark.png" alt="Disk cleanup" /> |
+| **Disk cleanup**: 110+ caches across Node and its version managers, Bun, Deno, Rust, Python, Go, Java, Kotlin, Android, Scala, Clojure, Groovy, .NET, Ruby, PHP, Swift, Dart, Haskell, Elixir, Erlang, Julia, R, Perl, OCaml, Nim, Crystal, D, Gleam, Elm, Lua, Zig, C/C++, Terraform, Pulumi, Bazel, Docker, Kubernetes, Android Studio and the SDK, React Native, embedded toolchains, game engines, editors and remote editor servers, and the OS. pnpm stores are found on every drive, and each tool is asked where its cache really is. | <img src="./docs/screenshots/disk-dark.png" alt="Disk cleanup" /> |
 | **System junk**: temp folders, Windows Update and Delivery Optimization leftovers, error reports, memory dumps, servicing logs, thumbnail caches, browser and chat-app caches, unfinished downloads and the Recycle Bin / Trash. macOS: app caches, logs, Xcode device support, simulators, Mail attachments, Time Machine snapshots. Linux: thumbnails, journal, apt/dnf/pacman caches, old Snap revisions, unused Flatpak runtimes. Items that need admin run together after one approval. | <img src="./docs/screenshots/junk-dark.png" alt="System junk" /> |
-| **Projects**: point it at your code folders or whole drives; it finds `node_modules`, Python venvs, Rust, Maven and sbt `target`, Gradle `build`, .NET `bin`/`obj`, Composer `vendor`, Swift `.build`, Flutter, Mix, Stack, Cabal, Zig and CMake build trees, `.next`, `.turbo`, `.svelte-kit`, Unity `Library`, Godot and Unreal caches, shows when each was last used, and deletes the ones you pick. Source is never touched. | <img src="./docs/screenshots/projects-dark.png" alt="Projects" /> |
-| **AI models**: Ollama, LM Studio and Hugging Face models, plus loose `.gguf`, `.safetensors`, `.ckpt`, `.pt` and `.onnx` files (ComfyUI, Automatic1111, downloads). Nothing is pre-selected; Ollama models are removed with `ollama rm`. | <img src="./docs/screenshots/models-dark.png" alt="AI models" /> |
+| **Projects**: point it at your code folders or whole drives; it finds `node_modules`, Python venvs, Rust, Maven and sbt `target`, Gradle `build`, .NET `bin`/`obj`, Composer `vendor`, Swift `.build`, Flutter, Mix, Stack, Cabal, Zig and CMake build trees, `.next`, `.turbo`, `.svelte-kit`, Android native `.cxx`, Unity `Library`, Godot and Unreal caches, shows when each was last used, and deletes the ones you pick. Source is never touched. | <img src="./docs/screenshots/projects-dark.png" alt="Projects" /> |
+| **AI / ML**: *Models*: Ollama, LM Studio and Hugging Face models, plus loose `.gguf`, `.safetensors`, `.ckpt`, `.pt` and `.onnx` files (ComfyUI, Automatic1111, downloads); nothing is pre-selected and Ollama models are removed with `ollama rm`. *Harnesses*: what AI coding agents leave behind (Claude Code temp folders, MCP logs and old versions, Codex logs and old releases, Kimi Code, OpenCode, Qwen Code, Copilot CLI, agent-browser, T3 Code, Ghostex and more), never their transcripts, memory or settings. *CLI tools*: Hugging Face, PyTorch, Keras, wandb and Gradio caches. | <img src="./docs/screenshots/models-dark.png" alt="AI / ML" /> |
 | **Processes and memory**: apps grouped by name, sorted by RAM or CPU, each with a verdict: *Safe to end*, *Save first* or *System*. A live Top CPU chart with End buttons. Free memory trims idle pages without closing anything. | <img src="./docs/screenshots/processes-dark.png" alt="Processes" /> |
 | **Ports**: which process holds 3000, 5173, 5432, 8080 and other dev ports, with the command line and project folder; free a port in one click. | <img src="./docs/screenshots/ports-dark.png" alt="Ports" /> |
 | **System**: OS, CPU, memory compression, page file, drives, battery (laptops only), WSL, runtimes, editors and AI coding CLIs, each value with a tooltip, plus recommendations on where performance goes. Copy it all as Markdown for a bug report. | <img src="./docs/screenshots/system-dark.png" alt="System" /> |
@@ -75,6 +75,17 @@ winget install TriptoAfsin.DevCleaner
 - Downloaded AI models, experiment outputs (`wandb/`, `mlruns/`, `outputs/`) and the Hugging Face `token` are never selected for you.
 - Nothing about you or your files leaves your machine. The only network request is the update check (a plain request to GitHub's releases API), which can be turned off in Settings.
 
+## Terms of use and disclaimer
+
+By installing or using Dev Cleaner you accept the [MIT License](LICENSE) it is distributed under, including these terms:
+
+- **No warranty.** Dev Cleaner is provided "as is", without warranty of any kind, express or implied.
+- **You decide what is deleted.** The app only deletes what you select and confirm. Deletes are permanent: they don't go to the Recycle Bin or Trash and can't be undone.
+- **No liability.** The authors and contributors are not liable for any loss of data, lost work, damage to your system or software, downtime, or any other loss or damage arising from using, or being unable to use, this software, however caused.
+- **Back up first.** Keep backups of anything you can't afford to lose, and read what each item does (every row explains it) before cleaning. Ending processes and changing services or startup programs is also at your own risk.
+
+If you don't accept these terms, don't install or use the software.
+
 ## Definitions
 
 What the app knows (cache locations, project build folders, process verdicts, port hints, AI model folders, config files) lives as data in [`definitions/`](definitions/README.md), not in code. A copy is built into the app; Settings → Definitions shows the version in use, where it came from and the folder a newer set is read from. Adding a cache is a JSON edit; see the [definitions guide](definitions/README.md).
@@ -114,4 +125,4 @@ Pushing a `vX.Y.Z` tag runs `.github/workflows/release.yml`: Windows (msi, setup
 
 ## License
 
-MIT © Tripto Afsin
+MIT © Tripto Afsin. See [LICENSE](LICENSE) and the [terms of use](#terms-of-use-and-disclaimer) above.

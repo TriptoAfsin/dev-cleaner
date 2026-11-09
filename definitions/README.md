@@ -76,7 +76,8 @@ Per OS: `{"windows": "…", "unix": "…"}` or `{"windows": …, "macos": …, "
 
 | `expand` | Does |
 | --- | --- |
-| `children` | Sub-folders of `dir`, each joined with every `tail` (`""` = the sub-folder itself). `match: "versioned"` keeps names with a digit; `except` and `exceptPrefix` drop names. |
+| `children` | Sub-folders of `dir`, each joined with every `tail` (`""` = the sub-folder itself). `match: "versioned"` keeps names with a digit; `except` and `exceptPrefix` drop names. `contains` keeps only names containing one of the given strings. |
+| `old-entries` | Files and folders in `dir` except the newest `keep` (default 1) by modified time: old versions a tool never removes. A symlink in `dir`, and whatever it points at (the version in use), is never returned. `prefix` limits it to names starting with one of the given strings; `except` drops names. |
 | `chromium-profiles` | The cache folders of every Chromium profile under a `User Data` folder, never cookies, history or logins. |
 | `files` | Files in `dir` with one of the extensions `ext`, optionally starting with one of `prefix`. |
 | `drive-walk` | What the walk of the chosen drives found: `partials`, `thumbs`, `shader-caches`. |

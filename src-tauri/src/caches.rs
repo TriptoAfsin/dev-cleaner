@@ -212,6 +212,7 @@ fn expand_entry(e: &defs::PathEntry, drives: Option<&[String]>, walk: &crate::ju
                         (!versioned || n.chars().any(|c| c.is_ascii_digit()))
                             && !x.except.iter().any(|e| e == n)
                             && !x.except_prefix.iter().any(|p| n.starts_with(p.as_str()))
+                            && (x.contains.is_empty() || x.contains.iter().any(|c| n.contains(c.as_str())))
                     };
                     let Ok(rd) = std::fs::read_dir(&d) else { return };
                     for e in rd.flatten().filter(|e| e.file_type().is_ok_and(|t| t.is_dir())) {
@@ -223,6 +224,7 @@ fn expand_entry(e: &defs::PathEntry, drives: Option<&[String]>, walk: &crate::ju
                         }
                     }
                 }
+                "old-entries" => out.extend(dir().map(|d| old_entries(&d, x.keep.unwrap_or(1), &x.except, &x.prefix)).unwrap_or_default()),
                 "chromium-profiles" => out.extend(dir().map(|d| crate::junk::chromium(&d)).unwrap_or_default()),
                 "files" => {
                     let ext: Vec<&str> = x.ext.iter().map(String::as_str).collect();
@@ -255,6 +257,69 @@ fn expand_entry(e: &defs::PathEntry, drives: Option<&[String]>, walk: &crate::ju
             }
         }
     }
+}
+
+/// Files and folders in `dir` other than the newest `keep` (by modified
+/// time), for tools that keep every version they ever downloaded. Never a
+/// symlink, nor whatever a symlink in `dir` points at: that is the version
+/// in use (Codex's `current`), nor the target of a link in the folder above. With `prefix`, only names starting with one.
+fn old_entries(dir: &std::path::Path, keep: usize, except: &[String], prefix: &[String]) -> Vec<PathBuf> {
+    let Ok(rd) = std::fs::read_dir(dir) else { return vec![] };
+    let mut live = vec![];
+    // Codex keeps `current` beside `releases/`, so links one level up count too.
+    if let Some(Ok(up)) = dir.parent().map(std::fs::read_dir) {
+        for e in up.flatten() {
+            if std::fs::symlink_metadata(e.path()).is_ok_and(|m| m.file_type().is_symlink()) {
+                if let Ok(t) = std::fs::canonicalize(e.path()) {
+                    live.push(t);
+                }
+            }
+        }
+    }
+    let mut entries = vec![];
+    for e in rd.flatten() {
+        let Ok(meta) = std::fs::symlink_metadata(e.path()) else { continue };
+        if meta.file_type().is_symlink() {
+            if let Ok(t) = std::fs::canonicalize(e.path()) {
+                live.push(t);
+            }
+            continue;
+        }
+        let name = e.file_name().to_string_lossy().to_string();
+        if name.starts_with('.') || except.iter().any(|x| *x == name) || (!prefix.is_empty() && !prefix.iter().any(|p| name.starts_with(p.as_str()))) {
+            continue;
+        }
+        entries.push((meta.modified().ok(), e.path()));
+    }
+    // Version-named entries (22.17.0, v18.20.8, 0.166.0-x86_64…) sort by
+    // version: a reinstall or copy can leave an older version with a newer
+    // date. Anything else (hash-named builds) sorts by modified time.
+    let versions: Vec<Option<Vec<u64>>> = entries.iter().map(|(_, p)| version_of(&p.file_name().unwrap_or_default().to_string_lossy())).collect();
+    if versions.iter().all(Option::is_some) {
+        let mut v: Vec<_> = entries.into_iter().zip(versions).collect();
+        v.sort_by(|a, b| b.1.cmp(&a.1));
+        entries = v.into_iter().map(|(e, _)| e).collect();
+    } else {
+        entries.sort_by(|a, b| b.0.cmp(&a.0));
+    }
+    entries
+        .into_iter()
+        .skip(keep)
+        .map(|(_, p)| p)
+        .filter(|p| std::fs::canonicalize(p).map_or(true, |c| !live.iter().any(|l| *l == c)))
+        .collect()
+}
+
+/// The leading version in a name: "v22.17.0" → [22, 17, 0],
+/// "0.166.0-x86_64-pc-windows-msvc" → [0, 166, 0], "Stable-1a2b" → None.
+fn version_of(name: &str) -> Option<Vec<u64>> {
+    let rest = name.trim_start_matches(|c: char| !c.is_ascii_digit());
+    if rest.len() + 2 < name.len() {
+        return None; // a long non-numeric prefix: not a version name
+    }
+    let head: String = rest.chars().take_while(|c| c.is_ascii_digit() || *c == '.').collect();
+    let parts: Vec<u64> = head.split('.').filter(|x| !x.is_empty()).map(|x| x.parse().unwrap_or(0)).collect();
+    (parts.len() >= 2).then_some(parts)
 }
 
 /// A cache tool on PATH. Under the e2e fake home, none: the real `npm cache
@@ -696,5 +761,60 @@ mod tests {
         ids.dedup();
         assert_eq!(ids.len(), ts.len());
     }
-}
 
+    use std::time::{Duration, SystemTime};
+
+    fn aged(p: &std::path::Path, days_old: u64) {
+        let f = std::fs::File::options().write(true).open(p).or_else(|_| std::fs::File::open(p)).unwrap();
+        let _ = f.set_modified(SystemTime::now() - Duration::from_secs(days_old * 86400));
+    }
+
+    #[test]
+    fn old_entries_keeps_the_newest_and_what_a_symlink_points_at() {
+        let d = std::env::temp_dir().join(format!("dc-old-entries-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&d);
+        std::fs::create_dir_all(&d).unwrap();
+        for (name, age) in [("1.0.0", 30), ("1.1.0", 20), ("1.2.0", 10), ("1.3.0", 1)] {
+            let p = d.join(name);
+            std::fs::write(&p, b"x").unwrap();
+            aged(&p, age);
+        }
+        std::fs::write(d.join(".lock"), b"").unwrap();
+
+        let mut got: Vec<String> = old_entries(&d, 2, &[], &[]).iter().map(|p| p.file_name().unwrap().to_string_lossy().to_string()).collect();
+        got.sort();
+        assert_eq!(got, ["1.0.0", "1.1.0"]);
+
+        // An `except` name and a symlink's target stay even when old.
+        let got = old_entries(&d, 1, &["1.0.0".into()], &[]);
+        assert!(!got.iter().any(|p| p.ends_with("1.0.0")));
+        #[cfg(unix)]
+        {
+            std::os::unix::fs::symlink(d.join("1.1.0"), d.join("current")).unwrap();
+            let got = old_entries(&d, 1, &[], &[]);
+            assert!(!got.iter().any(|p| p.ends_with("1.1.0") || p.ends_with("current")));
+            assert!(got.iter().any(|p| p.ends_with("1.0.0")));
+        }
+        // Version names beat dates: v22 stays even when it is the oldest file.
+        let v = d.join("versions");
+        std::fs::create_dir_all(&v).unwrap();
+        for (name, age) in [("v22.17.0", 30), ("v18.20.8", 2), ("v16.20.2", 1)] {
+            std::fs::write(v.join(name), b"x").unwrap();
+            aged(&v.join(name), age);
+        }
+        let got = old_entries(&v, 2, &[], &[]);
+        assert_eq!(got.len(), 1);
+        assert!(got[0].ends_with("v16.20.2"));
+        assert_eq!(version_of("0.166.0-x86_64-pc-windows-msvc"), Some(vec![0, 166, 0]));
+        assert_eq!(version_of("13995fba801849b0"), None);
+        assert_eq!(version_of("Stable-1a2b3c"), None);
+        std::fs::remove_dir_all(&v).unwrap();
+        // A prefix narrows the candidates: nvm-windows keeps v18.x beside nvm.exe.
+        std::fs::write(d.join("nvm.exe"), b"x").unwrap();
+        aged(&d.join("nvm.exe"), 90);
+        let got = old_entries(&d, 0, &[], &["1.".into()]);
+        assert_eq!(got.len(), if cfg!(unix) { 3 } else { 4 }); // unix: 1.1.0 is behind `current`
+        assert!(!got.iter().any(|p| p.ends_with("nvm.exe")));
+        let _ = std::fs::remove_dir_all(&d);
+    }
+}

@@ -224,6 +224,21 @@
     },
     {
       "names": [
+        ".cxx",
+        ".externalNativeBuild"
+      ],
+      "kind": "cxx",
+      "label": "Android native build",
+      "restore": "./gradlew assembleDebug",
+      "parent": {
+        "any": [
+          "build.gradle",
+          "build.gradle.kts"
+        ]
+      }
+    },
+    {
+      "names": [
         "bin",
         "obj"
       ],

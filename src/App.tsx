@@ -11,7 +11,7 @@ import { api } from "./lib/api"
 import { Overview } from "./pages/Overview"
 import { Disk } from "./pages/Disk"
 import { Projects } from "./pages/Projects"
-import { Models } from "./pages/Models"
+import { AI } from "./pages/AI"
 import { Configs } from "./pages/Configs"
 import { Memory } from "./pages/Memory"
 import { Processes } from "./pages/Processes"
@@ -78,11 +78,11 @@ export function App() {
   }, [])
 
   const views: Record<Page, React.ReactNode> = {
-    models: <Models go={setPage} />,
+    models: <AI go={setPage} />,
     configs: <Configs />,
     overview: <Overview go={setPage} />,
     disk: <Disk />,
-    junk: <Disk junk key="junk" />,
+    junk: <Disk section="junk" key="junk" />,
     projects: <Projects />,
     memory: <Memory />,
     processes: <Processes />,

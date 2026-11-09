@@ -1,8 +1,8 @@
 {
   "$comment": "The definitions set. 'version' is date-based and separate from the app's version; 'schema' changes only when the format does, and an app ignores a set whose schema it doesn't know.",
   "schema": 1,
-  "version": "2026.11.09.1",
-  "minApp": "0.1.0",
+  "version": "2026.11.09.2",
+  "minApp": "0.4.0",
   "files": [
     "caches.json",
     "projects.json",

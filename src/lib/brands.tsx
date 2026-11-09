@@ -10,7 +10,9 @@ import {
   siSafari, siDiscord, siFlatpak, siSnapcraft, siDebian, siFedora, siArchlinux, siKotlin, siAndroid, siApachegroovy,
   siScala, siClojure, siSwift, siHaskell, siElixir, siErlang, siJulia, siR, siPerl, siOcaml, siNim, siCrystal, siD,
   siGleam, siElm, siLua, siPdm, siTerraform, siPulumi, siBazel, siDart, siZig, siCmake, siComposer, siRubygems,
-  siUnity, siGodotengine, siUnrealengine, siFsharp,
+  siUnity, siGodotengine, siUnrealengine, siFsharp, siDeepseek, siKimi, siCline, siWarp, siPuppeteer, siSelenium,
+  siFirebase, siKubernetes, siHelm, siVagrant, siGooglecloud, siArduino, siPlatformio, siEspressif, siPostman,
+  siPrisma, siExpo, siReact, siJest, siChocolatey, siFlutter, siLmstudio, siNvm,
 } from "simple-icons"
 import { cn } from "./format"
 
@@ -43,7 +45,7 @@ const MAP: Record<string, Icon> = {
   "sim-unavailable": siApple, "ios-backups": siApple, "quicklook": siApple,
   // more languages
   "gradle-wrapper": siGradle, "gradle-daemon": siGradle, "maven-wrapper": siApachemaven, konan: siKotlin, kotlin: siKotlin,
-  "android-cache": siAndroid, android: siAndroid, "groovy-grapes": siApachegroovy, groovy: siApachegroovy,
+  "android-cache": siAndroid, android: siAndroid, cxx: siAndroid, "android-studio": siAndroidstudio, "avd-snapshots": siAndroid, "groovy-grapes": siApachegroovy, groovy: siApachegroovy,
   "sbt-boot": siScala, scala: siScala, "clojure-gitlibs": siClojure, clojure: siClojure, "dotnet-workloads": siDotnet,
   "nuget-scratch": siNuget, dotnet: siDotnet, "f#": siFsharp, "ruby-gems": siRubygems, "bundler-cache": siRuby, bundler: siRuby,
   "ruby-builds": siRuby, swiftpm: siSwift, swift: siSwift, cabal: siHaskell, stack: siHaskell, "ghcup-cache": siHaskell,
@@ -53,6 +55,18 @@ const MAP: Record<string, Icon> = {
   elm: siElm, luarocks: siLua, lua: siLua, "python-tools": siPdm, "pyenv-cache": siPython, corepack: siNodedotjs,
   terraform: siTerraform, pulumi: siPulumi, bazel: siBazel, dart: siDart, zig: siZig, cmake: siCmake,
   composer: siComposer, unity: siUnity, godot: siGodotengine, unreal: siUnrealengine,
+  // AI harnesses and the tools added with them (rule ids match by prefix)
+  claude: siClaude, kimi: siKimi, deepseek: siDeepseek, qwen: siQwen, copilot: siGithubcopilot, codeium: siWindsurf,
+  cline: siCline, warp: siWarp, lmstudio: siLmstudio, "agent-browser": siGooglechrome,
+  "browser-automation-temp": siPuppeteer, selenium: siSelenium, firebase: siFirebase, "minikube-cache": siKubernetes,
+  kubernetes: siKubernetes, helm: siHelm, vagrant: siVagrant, gcloud: siGooglecloud, cloud: siGooglecloud,
+  arduino: siArduino, platformio: siPlatformio, espidf: siEspressif, embedded: siArduino, postman: siPostman,
+  prisma: siPrisma, expo: siExpo, "react native": siReact, "metro-cache": siReact,
+  jest: siJest, "choco-cache": siChocolatey, fvm: siFlutter, "nvm-cache": siNvm, "node-versions": siNodedotjs,
+  "volta-cache": siNodedotjs, "android-sdk-temp": siAndroid, "android-ndk-old": siAndroid,
+  "game engines": siUnity, "unity-upm-cache": siUnity, "godot-cache": siGodotengine, "godot-export-templates": siGodotengine,
+  "unreal-ddc": siUnrealengine, "vscode-server": siCursor, "ai-editor-caches": siWindsurf, "dart-server": siDart,
+  jdks: siOpenjdk, "sdkman-archives": siOpenjdk, "rattler-cache": siPython, "jan-logs": siOllama,
 }
 
 export function brandFor(key: string): Icon | null {

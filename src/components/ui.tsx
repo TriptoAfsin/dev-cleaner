@@ -184,11 +184,14 @@ export function Card({ children, className, ...rest }: { children: ReactNode; cl
   )
 }
 
-export function PageHeader({ title, lede, actions }: { title: string; lede?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({ title, lede, actions, tabs }: { title: string; lede?: ReactNode; actions?: ReactNode; tabs?: ReactNode }) {
   return (
     <div className="flex flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="m-0 text-[20px] font-semibold tracking-[-0.02em]">{title}</h1>
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+          <h1 className="m-0 text-[20px] font-semibold tracking-[-0.02em]">{title}</h1>
+          {tabs}
+        </div>
         {lede && <p className="mt-1 text-[13px] text-muted">{lede}</p>}
       </div>
       {actions && <div className="flex items-center gap-2">{actions}</div>}

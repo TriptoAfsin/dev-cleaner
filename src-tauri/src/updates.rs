@@ -130,7 +130,9 @@ pub fn check(current: &str) -> Result<UpdateInfo, String> {
     if tag.is_empty() {
         return Err("GitHub's answer had no version.".into());
     }
-    let notes: String = field(&v, "body").chars().take(1500).collect();
+    // The checksums belong on the release page; the rest is shown as Markdown.
+    let body = field(&v, "body");
+    let notes: String = body.split("## SHA-256 checksums").next().unwrap_or("").trim_end().chars().take(8000).collect();
     Ok(UpdateInfo {
         current: current.into(),
         latest: tag.trim_start_matches('v').into(),

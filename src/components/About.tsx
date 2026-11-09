@@ -1,9 +1,10 @@
 // About Dev Cleaner: version, how it was installed, links, and update checks
 // against GitHub releases. Shown as a Settings card and as a dialog from the
 // title bar; the title-bar button gets a dot when an update is out.
+import { Markdown } from "./Markdown"
 import { useEffect, useState } from "react"
 import { openUrl } from "@tauri-apps/plugin-opener"
-import { ArrowUpRight, Check, Copy, ExternalLink, Info, RefreshCw } from "lucide-react"
+import { ArrowUpRight, Check, Copy, ExternalLink, Info, RefreshCw, ShieldAlert } from "lucide-react"
 import { api, type AppInfo } from "@/lib/api"
 import { cn } from "@/lib/format"
 import { useSettings } from "@/lib/settings"
@@ -87,7 +88,11 @@ function UpdateStatus() {
             Dev Cleaner {u.info.latest}
             {u.info.publishedAt && <span className="text-[12px] font-normal text-subtle">· released {when(u.info.publishedAt)}</span>}
           </div>
-          {u.info.notes && <div className="max-h-40 overflow-y-auto whitespace-pre-wrap text-[12px] leading-[1.55] text-muted">{u.info.notes}</div>}
+          {u.info.notes && (
+            <div className="max-h-56 min-w-0 overflow-y-auto pr-1" data-testid="update-notes">
+              <Markdown source={u.info.notes} />
+            </div>
+          )}
           {app?.upgradeCommand && (
             <div className="flex flex-col gap-1">
               <span className="text-[12px] text-subtle">You installed with {VIA[app.installedVia] ?? app.installedVia}. Update with:</span>
@@ -114,6 +119,7 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
     ["Releases", `${repo}/releases`],
     ["Changelog", `${repo}/blob/main/CHANGELOG.md`],
     ["Report an issue", `${repo}/issues/new`],
+    ["License", `${repo}/blob/main/LICENSE`],
   ]
   return (
     <div className="flex flex-col gap-4">
@@ -139,6 +145,20 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
         </div>
       </div>
       <UpdateStatus />
+      <div className="flex gap-2.5 rounded-lg border border-border bg-surface-2 px-3 py-2.5" data-testid="terms">
+        <ShieldAlert size={15} className="mt-px shrink-0 text-warn" />
+        <p className="m-0 text-[12px] leading-[1.5] text-muted">
+          <span className="font-medium text-text">Use at your own risk.</span> Dev Cleaner is provided as is, without warranty. Deletes are permanent, and the authors aren't liable for lost data or any other damage. By using it you accept the{" "}
+          <button type="button" onClick={() => open(`${repo}/blob/main/LICENSE`)} className="text-accent hover:underline">
+            MIT License
+          </button>{" "}
+          and these{" "}
+          <button type="button" onClick={() => open(`${repo}#terms-of-use-and-disclaimer`)} className="text-accent hover:underline">
+            terms
+          </button>
+          .
+        </p>
+      </div>
       {withToggle && (
         <div className="flex items-center justify-between gap-6">
           <div>

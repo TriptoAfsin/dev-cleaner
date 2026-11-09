@@ -1,6 +1,7 @@
 import { motion } from "motion/react"
 import { Activity, ArchiveRestore, BrainCircuit, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Rocket, ServerCog, Settings } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
+import { sectionOf } from "@/lib/sections"
 import { useStore } from "@/lib/store"
 import { PrivilegeStatus } from "./Privileges"
 import type { ReactNode } from "react"
@@ -12,7 +13,7 @@ const NAV: { id: Page; label: string; icon: ReactNode }[] = [
   { id: "disk", label: "Disk cleanup", icon: <HardDrive size={15} /> },
   { id: "junk", label: "System junk", icon: <Trash2 size={15} /> },
   { id: "projects", label: "Projects", icon: <FolderSearch size={15} /> },
-  { id: "models", label: "AI models", icon: <BrainCircuit size={15} /> },
+  { id: "models", label: "AI / ML", icon: <BrainCircuit size={15} /> },
   { id: "configs", label: "Configs", icon: <ArchiveRestore size={15} /> },
   { id: "memory", label: "Memory", icon: <MemoryStick size={15} /> },
   { id: "processes", label: "Processes", icon: <Activity size={15} /> },
@@ -24,12 +25,14 @@ const NAV: { id: Page; label: string; icon: ReactNode }[] = [
 
 export function Sidebar({ page, go }: { page: Page; go: (p: Page) => void }) {
   const { caches, scanning, portsInUse } = useStore()
-  const reclaim = caches.filter((c) => !c.junk).reduce((n, c) => n + c.size, 0)
+  const reclaim = caches.filter((c) => sectionOf(c) === "disk").reduce((n, c) => n + c.size, 0)
+  const aiBytes = caches.filter((c) => (sectionOf(c) === "harnesses" || sectionOf(c) === "mltools") && c.risk !== "data").reduce((n, c) => n + c.size, 0)
   const junkBytes = caches.filter((c) => c.junk && c.risk !== "data").reduce((n, c) => n + c.size, 0)
   const badge: Partial<Record<Page, ReactNode>> = {
     disk: scanning && !reclaim ? <span className="pulse-dot">…</span> : reclaim ? bytes(reclaim, 0) : null,
     ports: portsInUse.length ? `${portsInUse.length} open` : null,
     junk: junkBytes ? bytes(junkBytes, 0) : null,
+    models: aiBytes ? bytes(aiBytes, 0) : null,
   }
   const item = (n: (typeof NAV)[number]) => {
     const on = n.id === page

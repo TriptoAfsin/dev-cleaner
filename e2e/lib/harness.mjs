@@ -79,6 +79,11 @@ export function seedCaches() {
   file(path.join(FAKE_HOME, "local", "pip", "Cache", "wheel.whl"), 80_000)
   file(path.join(FAKE_HOME, "temp", "old-installer.log"), 50_000, 3)
   file(path.join(FAKE_HOME, "temp", "fresh.lock"), 10_000)
+  // AI harnesses: Claude Code debug logs (old and fresh) and agent-browser screenshots.
+  file(path.join(FAKE_HOME, ".claude", "debug", "old-session.txt"), 60_000, 3)
+  file(path.join(FAKE_HOME, ".claude", "debug", "live-session.txt"), 5_000)
+  file(path.join(FAKE_HOME, ".claude", "projects", "p", "memory", "MEMORY.md"), 500, 90)
+  file(path.join(FAKE_HOME, ".agent-browser", "tmp", "screenshots", "shot.png"), 70_000)
 }
 
 /** A folder of projects, each with a build folder, plus decoys. */

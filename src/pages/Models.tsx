@@ -64,7 +64,7 @@ function SourceIcon({ kind, size = 15, mono }: { kind: string; size?: number; mo
   )
 }
 
-export function Models({ go }: { go: (p: Page) => void }) {
+export function Models({ go, tabs }: { go: (p: Page) => void; tabs?: React.ReactNode }) {
   const { settings } = useSettings()
   const drives = useDrives()
   const store = useStore() as ReturnType<typeof useStore> & { openReport?: (r: Report) => void }
@@ -208,7 +208,8 @@ export function Models({ go }: { go: (p: Page) => void }) {
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
       <PageHeader
-        title="AI models"
+        title="AI / ML"
+        tabs={tabs}
         lede="Models you downloaded for local AI: Ollama, LM Studio, Hugging Face, ComfyUI and loose .gguf / .safetensors files. Nothing is selected for you."
         actions={
           <>
