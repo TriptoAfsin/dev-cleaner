@@ -60,6 +60,8 @@ test("the title-bar button opens About; an up-to-date check says so", async () =
   await s.waitFor(() => s.exec(`return !!document.querySelector('[role=dialog] [data-testid=check-updates]')`), "about dialog")
   await (await s.find('[role=dialog] [data-testid=check-updates]')).click()
   await s.waitFor(async () => /latest version/.test(await s.exec(`return document.querySelector('[role=dialog]').innerText`)), "up to date")
+  await new Promise((r) => setTimeout(r, 400))
+  writeFileSync(path.join(ARTIFACTS, "about-dialog.png"), await s.screenshot())
   assert.equal(await s.exec(`return !!document.querySelector('[data-testid=update-dot]')`), false)
   await (await ctx.button("Close", "[role=dialog]")).click()
   assert.ok(hits >= 2)

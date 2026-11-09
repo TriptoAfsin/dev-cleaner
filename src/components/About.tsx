@@ -3,7 +3,7 @@
 // title bar; the title-bar button gets a dot when an update is out.
 import { useEffect, useState } from "react"
 import { openUrl } from "@tauri-apps/plugin-opener"
-import { Check, Copy, ExternalLink, Info, RefreshCw } from "lucide-react"
+import { ArrowUpRight, Check, Copy, ExternalLink, Info, RefreshCw } from "lucide-react"
 import { api, type AppInfo } from "@/lib/api"
 import { cn } from "@/lib/format"
 import { useSettings } from "@/lib/settings"
@@ -64,21 +64,21 @@ function UpdateStatus() {
   const app = useAppInfo()
   const checking = u.status === "checking"
   return (
-    <div className="flex flex-col gap-3" data-testid="update-status">
-      <div className="flex items-center justify-between gap-4">
-        <div className="text-[12.5px] text-muted" aria-live="polite">
+    <div className="flex flex-col gap-2.5" data-testid="update-status">
+      <div className="flex min-h-[52px] items-center justify-between gap-4 rounded-xl border border-border bg-surface-2 py-2 pl-3.5 pr-2">
+        <div className="min-w-0 text-[12.5px] leading-[1.4] text-muted" aria-live="polite">
           {checking && "Checking GitHub releases…"}
           {u.status === "idle" && "Not checked yet this session."}
           {u.status === "error" && <span className="text-danger">{u.error}</span>}
           {u.status === "done" && u.info && !u.info.newer && (
             <span className="flex items-center gap-1.5 text-ok">
-              <Check size={14} /> You have the latest version ({u.info.current}).
+              <Check size={14} className="shrink-0" /> You have the latest version.
             </span>
           )}
           {u.status === "done" && u.info?.newer && <span className="font-medium text-accent">Version {u.info.latest} is available.</span>}
         </div>
-        <Button icon={<RefreshCw size={14} className={cn(checking && "spin")} />} disabled={checking} onClick={() => void checkForUpdates()} data-testid="check-updates">
-          Check for updates
+        <Button size="sm" icon={<RefreshCw size={13} className={cn(checking && "spin")} />} disabled={checking} onClick={() => void checkForUpdates()} data-testid="check-updates" className="shrink-0">
+          {checking ? "Checking" : "Check for updates"}
         </Button>
       </div>
       {u.status === "done" && u.info?.newer && (
@@ -117,10 +117,12 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
   ]
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center gap-3.5">
-        <AppMark size={44} />
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 text-[15px] font-semibold text-text">
+      <div className="flex items-center gap-4">
+        <span className="shrink-0">
+          <AppMark size={56} />
+        </span>
+        <div className="flex min-w-0 flex-col gap-1">
+          <div className="flex items-center gap-2 text-[16px] font-semibold leading-none text-text">
             Dev Cleaner
             {app && (
               <Badge tone="accent">
@@ -128,10 +130,10 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
               </Badge>
             )}
           </div>
-          <div className="mt-0.5 text-[12.5px] text-muted">Reclaim disk and memory from developer caches, processes and ports.</div>
+          <div className="truncate text-[12.5px] text-muted">Developer caches, memory, processes and ports, cleaned.</div>
           {app && (
-            <div className="mono mt-1 text-[11.5px] text-subtle">
-              {app.os} · {app.arch} · {VIA[app.installedVia] ?? app.installedVia} · MIT licence
+            <div className="mono truncate text-[11px] text-subtle">
+              {app.os} · {app.arch} · {VIA[app.installedVia] ?? app.installedVia} · MIT
             </div>
           )}
         </div>
@@ -146,13 +148,19 @@ function AboutBody({ withToggle }: { withToggle?: boolean }) {
           <Switch checked={settings.checkUpdates} onChange={(v) => set("checkUpdates", v)} label="Check for updates automatically" />
         </div>
       )}
-      <div className="flex flex-wrap gap-1.5">
+      <nav aria-label="Project links" className="flex flex-wrap items-center gap-x-4 gap-y-1 border-t border-border pt-3">
         {links.map(([label, url]) => (
-          <Button key={label} size="sm" icon={<ExternalLink size={13} />} onClick={() => open(url)}>
+          <button
+            key={label}
+            type="button"
+            onClick={() => open(url)}
+            className="group flex items-center gap-1 text-[12.5px] text-muted transition-colors hover:text-text"
+          >
             {label}
-          </Button>
+            <ArrowUpRight size={12} className="text-subtle transition-transform duration-150 group-hover:-translate-y-px group-hover:translate-x-px group-hover:text-text" />
+          </button>
         ))}
-      </div>
+      </nav>
     </div>
   )
 }

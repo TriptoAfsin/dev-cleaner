@@ -16,3 +16,7 @@ flatpak/.venv
 flatpak/node-sources.json
 flatpak/cargo-sources.json
 repo
+
+# Local secrets (WINGET_TOKEN etc.). Never commit.
+.env
+.env.*
