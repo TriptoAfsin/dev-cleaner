@@ -8,8 +8,14 @@ section matching the tag.
 ## [Unreleased]
 
 ### Added
+- The Overview's CPU, Memory and Disk cards open Processes, Memory and Disk cleanup.
+- Memory shows how much RAM is free right in the sidebar.
 - Microsoft Store package: every release also builds an MSIX for the Store. About shows "Microsoft Store" for Store installs and sends updates there.
 - A privacy policy (`PRIVACY.md`).
+
+### Changed
+- The sidebar is grouped into Clean up, Manage and Machine sections that fold away and stay folded. Memory moves up under Overview, Configs joins Manage, and the sidebar is a little wider. Ctrl/Cmd + 1..9 follows the new order.
+- The sidebar no longer counts open ports; the status bar still lists them.
 
 ### Fixed
 - Update checks keep working when GitHub's API rate-limits them: the latest version is read from the release page and the notes from the changelog instead.

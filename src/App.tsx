@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react"
 import { AnimatePresence, MotionConfig, motion } from "motion/react"
 import { TitleBar } from "./components/TitleBar"
-import { Sidebar, StatusBar, type Page } from "./components/Shell"
+import { ORDER, Sidebar, StatusBar, type Page } from "./components/Shell"
 import { Toaster } from "./components/ui"
 import { ShareReportDialog } from "./components/Share"
 import { useSettings } from "./lib/settings"
@@ -20,8 +20,6 @@ import { Startup } from "./pages/Startup"
 import { Services } from "./pages/Services"
 import { SystemPage } from "./pages/System"
 import { SettingsPage } from "./pages/Settings"
-
-const ORDER: Page[] = ["overview", "disk", "junk", "projects", "models", "configs", "memory", "processes", "startup", "services", "ports", "system", "settings"]
 
 export function App() {
   const { settings } = useSettings()

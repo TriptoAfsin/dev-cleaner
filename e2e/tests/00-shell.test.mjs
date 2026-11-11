@@ -26,11 +26,41 @@ test("every section opens from the sidebar and marks itself current", async () =
   }
 })
 
+test("sidebar sections fold, remember it, and unfold when a page inside opens", async () => {
+  const { s } = ctx
+  const head = `document.querySelector('[data-testid=nav-group-manage] > button')`
+  await s.exec(`${head}.click()`)
+  await s.waitFor(() => s.exec(`return !document.querySelector('[data-testid=nav-processes]')`), "Manage folded")
+  assert.equal(await s.exec(`return ${head}.getAttribute('aria-expanded')`), "false")
+  assert.match(await s.exec(`return localStorage.getItem('dc-nav-folded')`), /manage/)
+  await s.exec(`document.body.focus()`)
+  await s.press("7", { ctrl: true }) // Processes
+  await s.waitFor(() => s.exec(`return document.querySelector('[data-testid=nav-processes]')?.getAttribute('aria-current') === 'page'`), "Manage unfolds for Processes")
+  await ctx.nav("overview")
+})
+
+test("Memory sits under Overview and shows free RAM", async () => {
+  const order = await ctx.s.exec(`return [...document.querySelectorAll('nav[aria-label=Sections] [data-testid^=nav-]:not([data-testid^=nav-group])')].map(b => b.dataset.testid)`)
+  assert.deepEqual(order.slice(0, 2), ["nav-overview", "nav-memory"])
+  await ctx.s.waitFor(async () => /\d.*free/.test(await ctx.s.exec(`return document.querySelector('[data-testid=nav-memory]').innerText`)), "memory badge")
+  const clipped = await ctx.s.exec(`return [...document.querySelectorAll('nav[aria-label=Sections] button span.truncate')].filter(e => e.scrollWidth > e.clientWidth).map(e => e.innerText)`)
+  assert.deepEqual(clipped, [], "no sidebar label is cut off")
+})
+
+test("the Overview gauges open their pages", async () => {
+  for (const [gauge, page] of [["cpu", "processes"], ["memory", "memory"], ["disk", "disk"]]) {
+    await ctx.nav("overview")
+    await ctx.s.exec(`document.querySelector('[data-testid=gauge-${gauge}]').click()`)
+    await ctx.s.waitFor(() => ctx.s.exec(`return !!document.querySelector('[data-testid="page-${page}"]')`), `${gauge} → ${page}`)
+  }
+  await ctx.nav("overview")
+})
+
 test("Ctrl+number jumps between sections", async () => {
   const { s } = ctx
   await s.exec(`document.body.focus()`)
-  await s.press("3", { ctrl: true })
-  await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-junk"]')`), "System junk via Ctrl+3")
+  await s.press("4", { ctrl: true })
+  await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-junk"]')`), "System junk via Ctrl+4")
   await s.press("1", { ctrl: true })
   await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-overview"]')`), "overview via Ctrl+1")
 })

@@ -60,8 +60,9 @@ export function Overview({ go }: { go: (p: Page) => void }) {
       />
 
       <div className="grid grid-cols-3 gap-3.5">
-        <GaugeCard label="CPU" value={(stats?.cpu ?? 0) / 100} detail={stats ? `${stats.cores.length} threads` : null} note={stats ? ((stats.cpu ?? 0) > 80 ? "Busy" : "Normal load") : null} warn={(stats?.cpu ?? 0) > 80} />
+        <GaugeCard onClick={() => go("processes")} label="CPU" value={(stats?.cpu ?? 0) / 100} detail={stats ? `${stats.cores.length} threads` : null} note={stats ? ((stats.cpu ?? 0) > 80 ? "Busy" : "Normal load") : null} warn={(stats?.cpu ?? 0) > 80} />
         <GaugeCard
+          onClick={() => go("memory")}
           label="Memory"
           value={memUsed}
           detail={stats ? `${bytes(stats.memUsed)} of ${bytes(stats.memTotal, 0)}` : null}
@@ -69,6 +70,7 @@ export function Overview({ go }: { go: (p: Page) => void }) {
           warn={memUsed > 0.85}
         />
         <GaugeCard
+          onClick={() => go("disk")}
           label={disk ? `Disk ${disk.mount}` : "Disk"}
           value={diskUsed}
           detail={disk ? `${bytes(disk.total - disk.free, 0)} of ${bytes(disk.total, 0)}` : null}
@@ -134,9 +136,22 @@ export function Overview({ go }: { go: (p: Page) => void }) {
   )
 }
 
-function GaugeCard({ label, value, detail, note, warn }: { label: string; value: number; detail: string | null; note: string | null; warn?: boolean }) {
+function GaugeCard({ label, value, detail, note, warn, onClick }: { label: string; value: number; detail: string | null; note: string | null; warn?: boolean; onClick: () => void }) {
   return (
-    <Card className="flex items-center gap-4 px-4 py-3.5" data-testid={`gauge-${label.split(" ")[0].toLowerCase()}`}>
+    <Card
+      role="link"
+      tabIndex={0}
+      aria-label={`Open ${label}`}
+      onClick={onClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onClick()
+        }
+      }}
+      className="flex cursor-pointer items-center gap-4 px-4 py-3.5 transition-colors duration-150 hover:border-accent/40 hover:bg-hover focus-visible:outline-2 focus-visible:outline-accent"
+      data-testid={`gauge-${label.split(" ")[0].toLowerCase()}`}
+    >
       <Gauge value={value} warn={warn}>
         <span className="mono text-[17px] font-medium">{detail == null ? "—" : `${Math.round(value * 100)}%`}</span>
       </Gauge>
