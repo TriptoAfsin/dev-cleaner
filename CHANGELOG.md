@@ -7,6 +7,8 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-11
+
 ### Added
 - The Overview's CPU, Memory and Disk cards open Processes, Memory and Disk cleanup.
 - Memory shows how much RAM is free right in the sidebar.
