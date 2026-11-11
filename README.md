@@ -10,6 +10,8 @@ Windows, macOS and Linux · Rust core, React shell, built with Tauri 2 · MIT
 
 [Download](https://github.com/TriptoAfsin/dev-cleaner/releases/latest) · [Install with a package manager](#install) · [Changelog](./CHANGELOG.md)
 
+<a href="https://apps.microsoft.com/detail/9N1VVF6949HW"><img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" alt="Get it from Microsoft" /></a>
+
 <img src="./docs/screenshots/overview-dark.png" alt="Dev Cleaner overview in dark mode" width="100%" />
 
 </div>
@@ -40,7 +42,11 @@ Also: choose which drives to include (pnpm stores, Recycle Bins, project and mod
 
 ## Install
 
-Download the installer from [Releases](https://github.com/TriptoAfsin/dev-cleaner/releases/latest):
+**Windows:** the easiest way is the [Microsoft Store](https://apps.microsoft.com/detail/9N1VVF6949HW). The Store build is signed, so SmartScreen doesn't warn, and the Store keeps it up to date.
+
+<a href="https://apps.microsoft.com/detail/9N1VVF6949HW"><img src="https://get.microsoft.com/images/en-us%20dark.svg" width="200" alt="Get it from Microsoft" /></a>
+
+For every other system, or to install without the Store, download the installer from [Releases](https://github.com/TriptoAfsin/dev-cleaner/releases/latest):
 
 - **Windows**: `.msi` or `-setup.exe`, or the portable `.zip` (settings stay in a `data` folder beside the exe).
 - **macOS**: `.dmg`, Apple silicon (`aarch64`) or Intel (`x64`).
@@ -56,11 +62,14 @@ brew install --cask t21dev/tap/dev-cleaner
 scoop bucket add t21dev https://github.com/t21dev/scoop-bucket
 scoop install t21dev/dev-cleaner
 
-# Windows, WinGet (once the first submission is merged)
+# Windows, WinGet (installs the Microsoft Store build)
+winget install 9N1VVF6949HW -s msstore
+
+# Windows, WinGet (GitHub build, once the first submission is merged)
 winget install TriptoAfsin.DevCleaner
 ```
 
-> The builds are not code-signed yet. On Windows, SmartScreen shows "Windows protected your PC": click **More info → Run anyway**. On macOS run `xattr -cr "/Applications/Dev Cleaner.app"` (the Homebrew cask does this for you). Every release lists SHA-256 checksums.
+> The GitHub builds are not code-signed yet. On Windows, SmartScreen shows "Windows protected your PC": click **More info → Run anyway**. On macOS run `xattr -cr "/Applications/Dev Cleaner.app"` (the Homebrew cask does this for you). Every release lists SHA-256 checksums.
 
 ## Safety
 
