@@ -7,6 +7,8 @@ section matching the tag.
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-12
+
 ### Added
 - **Space**: see where a drive's space went. A fast scan of a whole drive or folder draws a nested map of folders, coloured by what they are (rebuildable cache, has a fix, your files, apps, Windows). Click to inspect, double-click to open a folder. Each item says what it is, how much of the drive it takes, its largest contents, and where to clean it. Findings such as an oversized pagefile, old drivers or phone photos synced by Phone Link are listed with what they would free. Nothing is deleted from this page.
 - **Memory pressure**: Memory now leads with how hard the system is working for memory (Low, Moderate, High) from committed memory, free RAM and paging, with a 1 h / 3 h / 8 h chart, the apps whose memory keeps growing, and tips that fit what is happening right now. Slow spells are remembered for 7 days.
