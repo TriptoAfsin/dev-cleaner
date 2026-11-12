@@ -429,6 +429,8 @@ pub fn run() {
             space::space_scan,
             space::space_tree,
             space::space_cancel,
+            space::space_last,
+            space::space_open,
             // Memory pressure
 
             pressure::pressure_now,
