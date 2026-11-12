@@ -209,7 +209,7 @@ export function Memory() {
           <div className="mt-1 grid grid-cols-2 gap-3">
             <Stat k="Committed" v={s ? bytes(s.commitUsed) : "—"} u={s ? `of ${bytes(s.commitLimit, 0)}` : ""} tip={platform === "macos" ? "RAM in use plus swap in use, against RAM plus swap." : "Memory programs have asked for. When it reaches the limit (RAM plus page file), apps fail to allocate."} />
             <Stat k="Compressed" v={s?.compressed != null ? bytes(s.compressed) : stats?.compressed ? bytes(stats.compressed) : "—"} tip="Pages compressed in RAM instead of written to disk." />
-            <Stat k="Paging from disk" v={s ? Math.round(s.pagesInPerSec).toLocaleString() : "—"} u="/s" tip="Pages read back from disk per second (hard faults). Sustained high numbers are what makes a PC sluggish." />
+            <Stat k="Paging from disk" v={s ? Math.round(s.pagesInPerSec).toLocaleString() : "—"} u="/s" tip="Pages read from disk per second (hard faults). This also counts ordinary file reads, so it only means memory pressure when RAM is short; then sustained high numbers are what makes a PC sluggish." />
             <Stat k={platform === "windows" ? "Page file in use" : "Swap in use"} v={s?.pagefileUsed != null ? bytes(s.pagefileUsed) : "—"} />
           </div>
           {stats ? (
@@ -220,9 +220,9 @@ export function Memory() {
                   <div key={p.label} className="h-full transition-[width] duration-700 ease-out" style={{ width: `${(p.value / Math.max(1, total)) * 100}%`, background: p.color }} />
                 ))}
               </div>
-              <div className="flex gap-3 text-[11.5px] text-muted">
+              <div className="flex flex-wrap gap-x-3 gap-y-1 text-[11.5px] text-muted">
                 {parts.map((p) => (
-                  <span key={p.label} className="flex items-center gap-1">
+                  <span key={p.label} className="flex items-center gap-1 whitespace-nowrap">
                     <span className="h-2 w-2 rounded-sm" style={{ background: p.color }} />
                     {p.label} <span className="tabular-nums text-text">{bytes(p.value, 0)}</span>
                     <InfoTip text={p.tip} />

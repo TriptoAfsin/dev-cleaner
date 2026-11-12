@@ -59,8 +59,8 @@ test("the Overview gauges open their pages", async () => {
 test("Ctrl+number jumps between sections", async () => {
   const { s } = ctx
   await s.exec(`document.body.focus()`)
-  await s.press("4", { ctrl: true })
-  await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-junk"]')`), "System junk via Ctrl+4")
+  await s.press("5", { ctrl: true })
+  await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-junk"]')`), "System junk via Ctrl+5")
   await s.press("1", { ctrl: true })
   await s.waitFor(() => s.exec(`return !!document.querySelector('[data-testid="page-overview"]')`), "overview via Ctrl+1")
 })

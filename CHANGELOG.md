@@ -7,6 +7,14 @@ section matching the tag.
 
 ## [Unreleased]
 
+### Added
+- **Space**: see where a drive's space went. A fast scan of a whole drive or folder draws a nested map of folders, coloured by what they are (rebuildable cache, has a fix, your files, apps, Windows). Click to inspect, double-click to open a folder. Each item says what it is, how much of the drive it takes, its largest contents, and where to clean it. Findings such as an oversized pagefile, old drivers or phone photos synced by Phone Link are listed with what they would free. Nothing is deleted from this page.
+- **Memory pressure**: Memory now leads with how hard the system is working for memory (Low, Moderate, High) from committed memory, free RAM and paging, with a 1 h / 3 h / 8 h chart, the apps whose memory keeps growing, and tips that fit what is happening right now. Slow spells are remembered for 7 days.
+- **Processes › Orphaned**: dev processes left running after the editor, terminal or agent that started them closed (MCP servers, language servers, dev servers), grouped and ready to end together. The WSL VM shows how much of its memory is Linux page cache, with Reclaim cache and Shut down WSL, and Docker containers can be stopped from the same tab.
+- **System junk › Deep clean** (Windows): superseded driver packages (the newest of each is always kept, and drivers in use refuse removal), unused Windows Installer files (moved to a quarantine folder you can restore from, not deleted), a pagefile size advisor, and the component store cleanup with an optional reset. Everything runs after one UAC prompt.
+- **Responsiveness**: reversible settings that keep Windows quick under a heavy dev load: WSL hands back memory it no longer uses, quieter VS Code / Cursor / Windsurf file watching, the High performance power plan, fewer animations and no transparency. Each shows the evidence from this PC, the exact change, and can be undone from History. It also lists what is already right and popular tweaks it deliberately skips.
+- Definitions: NVIDIA's installer download caches under System junk.
+
 ## [0.6.0] - 2026-11-11
 
 ### Added

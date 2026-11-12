@@ -109,7 +109,8 @@ export function wslconfigDiff(c: WslConfig | null | undefined): { kind: "same" |
   const lines: { kind: "same" | "add" | "del"; text: string }[] = []
   if (c?.memory) lines.push({ kind: "same", text: `memory=${c.memory}` })
   const amr = c?.autoMemoryReclaim
-  if (amr && amr.toLowerCase() === "dropcache") lines.push({ kind: "same", text: `autoMemoryReclaim=${amr}` })
+  // gradual also hands memory back, just more slowly; either is fine.
+  if (amr && ["dropcache", "gradual"].includes(amr.toLowerCase())) lines.push({ kind: "same", text: `autoMemoryReclaim=${amr}` })
   else {
     if (amr) lines.push({ kind: "del", text: `autoMemoryReclaim=${amr}` })
     lines.push({ kind: "add", text: "autoMemoryReclaim=dropCache" })

@@ -12,8 +12,9 @@
 //!
 //! How the level is decided (see [`level`]):
 //! - High: committed memory at 90% of the commit limit or more, under 5% of
-//!   RAM available, or more than 300 pages/s read back from disk on average
-//!   over the last 30 seconds. The OS's own signal (Linux PSI "some avg10"
+//!   RAM available, or (once under 20% of RAM is available or commit is at
+//!   75%) more than 300 pages/s read back from disk on average over the last
+//!   30 seconds. Paging with plenty of RAM free is file reads, not pressure. The OS's own signal (Linux PSI "some avg10"
 //!   at 10% or more, macOS pressure level critical) also counts.
 //! - Moderate: commit at 75% or more, under 12% available, more than 60
 //!   pages/s on average, PSI at 2% or more, or macOS level "warn".
@@ -112,7 +113,7 @@ struct Minute {
 
 impl Minute {
     fn slow(&self) -> bool {
-        self.lv == Level::High || self.pa >= 100.0
+        self.lv == Level::High
     }
     fn sample(&self) -> PressureSample {
         PressureSample {
@@ -196,9 +197,13 @@ fn now() -> u64 {
 /// The pressure level from the figures above. `os` is the OS's own signal
 /// when it has one (Linux PSI, macOS memorystatus).
 pub fn level(commit_pct: f64, avail_pct: f64, paging_avg: f64, os: Option<Level>) -> Level {
-    let ours = if commit_pct >= 90.0 || avail_pct < 5.0 || paging_avg > 300.0 {
+    // Pages read from disk also count file reads (memory-mapped files, app
+    // launches, a disk scan), which happen with plenty of RAM free. Paging
+    // only means memory pressure once RAM is getting short.
+    let tight = avail_pct < 20.0 || commit_pct >= 75.0;
+    let ours = if commit_pct >= 90.0 || avail_pct < 5.0 || (tight && paging_avg > 300.0) {
         Level::High
-    } else if commit_pct >= 75.0 || avail_pct < 12.0 || paging_avg > 60.0 {
+    } else if commit_pct >= 75.0 || avail_pct < 12.0 || (tight && paging_avg > 60.0) {
         Level::Moderate
     } else {
         Level::Low
@@ -634,7 +639,9 @@ fn history_of(ring: &VecDeque<PressureSample>, minutes: &[Minute], current: Opti
         .filter(|s| s.commit_limit > 0)
         .map(|s| s.commit_used as f64 / s.commit_limit as f64 * 100.0)
         .fold(0.0, f64::max);
-    let peak_pages_in = samples.iter().map(|s| s.pages_in_per_sec).fold(0.0, f64::max);
+    // Paging only matters while memory is short (see `level`): file reads
+    // with RAM to spare would otherwise set the peak.
+    let peak_pages_in = samples.iter().filter(|s| s.level != Level::Low).map(|s| s.pages_in_per_sec).fold(0.0, f64::max);
     let since = samples.first().map(|s| s.t).unwrap_or(now);
     PressureHistory { samples: downsample(samples, MAX_POINTS), since, slow_spells: spells(&in_window), peak_commit_pct, peak_pages_in }
 }
@@ -697,10 +704,11 @@ mod tests {
         assert_eq!(level(40.0, 50.0, 0.0, None), Level::Low);
         assert_eq!(level(76.0, 50.0, 0.0, None), Level::Moderate);
         assert_eq!(level(40.0, 10.0, 0.0, None), Level::Moderate);
-        assert_eq!(level(40.0, 50.0, 80.0, None), Level::Moderate);
+        assert_eq!(level(40.0, 50.0, 80.0, None), Level::Low, "paging with RAM to spare is file reads");
+        assert_eq!(level(40.0, 15.0, 80.0, None), Level::Moderate);
         assert_eq!(level(91.0, 50.0, 0.0, None), Level::High);
         assert_eq!(level(40.0, 4.0, 0.0, None), Level::High);
-        assert_eq!(level(40.0, 50.0, 400.0, None), Level::High);
+        assert_eq!(level(40.0, 15.0, 400.0, None), Level::High);
         assert_eq!(level(40.0, 50.0, 0.0, Some(Level::High)), Level::High, "the OS signal counts");
     }
 
@@ -740,7 +748,7 @@ mod tests {
     #[test]
     fn slow_minutes_merge_into_spells() {
         let m = |t, lv, pa| Minute { t, lv, pa, ..Default::default() };
-        let mins = vec![m(0, Level::High, 0.0), m(60, Level::Low, 150.0), m(120, Level::Low, 0.0), m(300, Level::High, 0.0)];
+        let mins = vec![m(0, Level::High, 0.0), m(60, Level::High, 150.0), m(120, Level::Low, 0.0), m(300, Level::High, 0.0)];
         let s = spells(&mins);
         assert_eq!(s.len(), 2);
         assert_eq!((s[0].start, s[0].end), (0, 120));
@@ -749,7 +757,7 @@ mod tests {
 
     #[test]
     fn history_downsamples_and_keeps_peaks() {
-        let ring: VecDeque<PressureSample> = (0..3000).map(|i| sample(10_000 + i * 2, if i == 1234 { 99 } else { 50 }, if i == 2000 { 500.0 } else { 1.0 }, Level::Low)).collect();
+        let ring: VecDeque<PressureSample> = (0..3000).map(|i| sample(10_000 + i * 2, if i == 1234 { 99 } else { 50 }, if i == 2000 { 500.0 } else { 1.0 }, if i == 2000 { Level::Moderate } else { Level::Low })).collect();
         let h = history_of(&ring, &[], None, 8.0, 16_000);
         assert!(h.samples.len() <= MAX_POINTS);
         assert!(h.samples.iter().any(|s| s.commit_used == 99), "peak commit survives");

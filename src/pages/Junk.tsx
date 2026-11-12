@@ -15,9 +15,10 @@ let lastTab: Tab = "quick"
 export function Junk(_: { go: (p: Page) => void }) {
   const [tab, setTabState] = useState<Tab>(() => {
     try {
-      if (sessionStorage.getItem("dc-junk-tab") === "deep") {
+      const want = sessionStorage.getItem("dc-junk-tab")
+      if (want === "deep" || want === "quick") {
         sessionStorage.removeItem("dc-junk-tab")
-        lastTab = "deep"
+        lastTab = want
       }
     } catch {
       /* storage unavailable */
