@@ -6,10 +6,55 @@ import { bytes, cn } from "@/lib/format"
 import { usePoll, useStore } from "@/lib/store"
 import { Button, Card, PageHeader, Skeleton, Sparkline, VerdictPill, SearchField } from "@/components/ui"
 import { ProcIcon, TopCpu, useKill } from "@/components/shared"
+import { Segmented } from "@/components/memory/charts"
+import { Orphaned } from "@/components/memory/Orphaned"
+import { pressureApi } from "@/lib/pressure"
 
 type SortKey = "memory" | "cpu" | "name"
+type Tab = "apps" | "orphaned"
+
+// The tab survives leaving the page and coming back.
+let lastTab: Tab = "apps"
+
+/** Open Processes on the Orphaned tab (from Memory's tips). */
+export function openOrphans() {
+  lastTab = "orphaned"
+  window.dispatchEvent(new CustomEvent("dc-go", { detail: "processes" }))
+}
 
 export function Processes() {
+  const [tab, setTabState] = useState<Tab>(lastTab)
+  const setTab = (t: Tab) => {
+    lastTab = t
+    setTabState(t)
+  }
+  const orphans = usePoll(pressureApi.orphans, 5000)
+  const count = (orphans.data ?? []).filter((o) => !o.protected).length
+  const tabs = (
+    <Segmented
+      value={tab}
+      onChange={setTab}
+      label="Process views"
+      testId="proc-tab"
+      options={[
+        { id: "apps", label: "Apps" },
+        {
+          id: "orphaned",
+          label: (
+            <>
+              Orphaned
+              {count > 0 && <span className="rounded-full bg-warn-soft px-1.5 text-[11px] font-medium tabular-nums text-warn">{count}</span>}
+            </>
+          ),
+        },
+      ]}
+    />
+  )
+  if (tab === "orphaned") return <Orphaned tabs={tabs} orphans={orphans} />
+  return <AllApps tabs={tabs} />
+}
+
+function AllApps({ tabs }: { tabs: React.ReactNode }) {
   const { stats, cpuHistory } = useStore()
   const procs = usePoll(api.listProcesses, 2000)
   const kill = useKill(procs.refresh)
@@ -34,7 +79,7 @@ export function Processes() {
 
   return (
     <div className="flex h-full min-h-0 flex-col gap-4">
-      <PageHeader title="Processes" lede={stats ? `${stats.processCount} processes running. Each app gets a verdict on whether it is safe to end.` : "Reading processes…"} actions={<SnapshotButton name="processes" />} />
+      <PageHeader title="Processes" tabs={tabs} lede={stats ? `${stats.processCount} processes running. Each app gets a verdict on whether it is safe to end.` : "Reading processes…"} actions={<SnapshotButton name="processes" />} />
       <div className="grid min-h-[360px] flex-1 grid-cols-[360px_minmax(0,1fr)] grid-rows-[minmax(0,1fr)] gap-3.5">
         <Card className="flex flex-col self-start">
           <div className="flex items-baseline justify-between px-4 pt-3.5">

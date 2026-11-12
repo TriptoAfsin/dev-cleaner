@@ -337,7 +337,7 @@ pub fn run() {
             window.build()?;
             // Put it back where it was before anyone can see it.
             winstate::restore(app.handle());
-            pressure::start();
+            pressure::start(app.handle());
             Ok(())
         })
         // Save during moves and resizes too, so a crash or kill keeps the last
