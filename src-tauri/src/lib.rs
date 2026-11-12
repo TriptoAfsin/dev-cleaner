@@ -4,6 +4,11 @@ mod holders;
 mod junk;
 mod privileges;
 mod configs;
+mod deepclean;
+mod orphans;
+mod pressure;
+mod space;
+mod tune;
 mod models;
 mod monitor;
 mod ports;
@@ -332,6 +337,7 @@ pub fn run() {
             window.build()?;
             // Put it back where it was before anyone can see it.
             winstate::restore(app.handle());
+            pressure::start();
             Ok(())
         })
         // Save during moves and resizes too, so a crash or kill keeps the last
@@ -419,6 +425,35 @@ pub fn run() {
             save_file,
             reveal_window,
             settle_window,
+            // Space analyzer
+            space::space_scan,
+            space::space_tree,
+            space::space_cancel,
+            // Memory pressure
+
+            pressure::pressure_now,
+            pressure::pressure_history,
+            pressure::memory_growth,
+            // Orphans, WSL, Docker
+
+            orphans::list_orphans,
+            orphans::wsl_status,
+            orphans::wsl_reclaim,
+            orphans::wsl_shutdown,
+            orphans::list_containers,
+            orphans::stop_containers,
+            // Deep clean
+
+            deepclean::deep_scan,
+            deepclean::deep_run,
+            deepclean::quarantine_list,
+            deepclean::quarantine_restore,
+            // Responsiveness
+
+            tune::tune_list,
+            tune::tune_apply,
+            tune::tune_undo,
+            tune::tune_history,
         ])
         .run(tauri::generate_context!())
         .expect("error while running Dev Cleaner");

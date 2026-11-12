@@ -19,7 +19,7 @@ test("starts on Overview with the custom title bar and live stats", async () => 
 })
 
 test("every section opens from the sidebar and marks itself current", async () => {
-  for (const page of ["disk", "junk", "projects", "models", "configs", "memory", "processes", "startup", "services", "ports", "system", "settings", "overview"]) {
+  for (const page of ["space", "disk", "junk", "projects", "models", "configs", "memory", "processes", "startup", "services", "ports", "system", "tune", "settings", "overview"]) {
     await ctx.nav(page)
     const current = await ctx.s.exec(`return document.querySelector('[aria-current=page]')?.dataset.testid`)
     assert.equal(current, `nav-${page}`)
@@ -34,7 +34,7 @@ test("sidebar sections fold, remember it, and unfold when a page inside opens", 
   assert.equal(await s.exec(`return ${head}.getAttribute('aria-expanded')`), "false")
   assert.match(await s.exec(`return localStorage.getItem('dc-nav-folded')`), /manage/)
   await s.exec(`document.body.focus()`)
-  await s.press("7", { ctrl: true }) // Processes
+  await s.press("8", { ctrl: true }) // Processes
   await s.waitFor(() => s.exec(`return document.querySelector('[data-testid=nav-processes]')?.getAttribute('aria-current') === 'page'`), "Manage unfolds for Processes")
   await ctx.nav("overview")
 })

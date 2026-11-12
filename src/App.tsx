@@ -20,6 +20,9 @@ import { Startup } from "./pages/Startup"
 import { Services } from "./pages/Services"
 import { SystemPage } from "./pages/System"
 import { SettingsPage } from "./pages/Settings"
+import { Space } from "./pages/Space"
+import { Junk } from "./pages/Junk"
+import { Responsiveness } from "./pages/Responsiveness"
 
 export function App() {
   const { settings } = useSettings()
@@ -90,7 +93,9 @@ export function App() {
     configs: <Configs />,
     overview: <Overview go={setPage} />,
     disk: <Disk />,
-    junk: <Disk section="junk" key="junk" />,
+    junk: <Junk go={setPage} />,
+    space: <Space go={setPage} />,
+    tune: <Responsiveness go={setPage} />,
     projects: <Projects />,
     memory: <Memory />,
     processes: <Processes />,

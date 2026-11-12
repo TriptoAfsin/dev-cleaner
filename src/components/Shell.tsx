@@ -1,12 +1,12 @@
 import { motion } from "motion/react"
-import { Activity, ArchiveRestore, BrainCircuit, ChevronDown, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Rocket, ServerCog, Settings } from "lucide-react"
+import { Activity, ArchiveRestore, LayoutDashboard, Zap, BrainCircuit, ChevronDown, Trash2, Cable, FolderSearch, Gauge as GaugeIcon, HardDrive, MemoryStick, Monitor, Rocket, ServerCog, Settings } from "lucide-react"
 import { bytes, cn } from "@/lib/format"
 import { sectionOf } from "@/lib/sections"
 import { useStore } from "@/lib/store"
 import { PrivilegeStatus } from "./Privileges"
 import { useEffect, useState, type ReactNode } from "react"
 
-export type Page = "overview" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "startup" | "services" | "ports" | "system" | "settings"
+export type Page = "overview" | "space" | "tune" | "disk" | "junk" | "projects" | "models" | "configs" | "memory" | "processes" | "startup" | "services" | "ports" | "system" | "settings"
 
 type NavItem = { id: Page; label: string; icon: ReactNode }
 const item = (id: Page, label: string, icon: ReactNode): NavItem => ({ id, label, icon })
@@ -17,6 +17,7 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
     id: "clean",
     label: "Clean up",
     items: [
+      item("space", "Space", <LayoutDashboard size={15} />),
       item("disk", "Disk cleanup", <HardDrive size={15} />),
       item("junk", "System junk", <Trash2 size={15} />),
       item("models", "AI / ML", <BrainCircuit size={15} />),
@@ -34,7 +35,7 @@ const GROUPS: { id: string; label: string; items: NavItem[] }[] = [
       item("configs", "Configs", <ArchiveRestore size={15} />),
     ],
   },
-  { id: "machine", label: "Machine", items: [item("system", "System", <Monitor size={15} />)] },
+  { id: "machine", label: "Machine", items: [item("system", "System", <Monitor size={15} />), item("tune", "Responsiveness", <Zap size={15} />)] },
 ]
 
 /** Sidebar order, top to bottom. Ctrl/Cmd + 1..9 follows it. */
