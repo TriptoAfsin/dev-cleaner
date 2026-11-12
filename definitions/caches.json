@@ -3317,6 +3317,43 @@
       "realOnly": true
     },
     {
+      "id": "nvidia-installer-cache",
+      "name": "NVIDIA driver downloads",
+      "eco": "System",
+      "risk": "safe",
+      "about": "Driver packages the NVIDIA app and GeForce Experience downloaded and already installed. The installed driver is not touched; a new download happens only for the next update.",
+      "paths": [
+        "{programData}/NVIDIA Corporation/Downloader"
+      ],
+      "how": {
+        "kind": "admin"
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
+      "id": "nvidia-installer2",
+      "name": "NVIDIA installer cache",
+      "eco": "System",
+      "risk": "slow",
+      "about": "Copies of every component the NVIDIA installer has set up (Installer2). Only entries older than 30 days are removed. Repairing or removing an old NVIDIA component may then need the driver package again.",
+      "paths": [
+        "{systemDrive}/Program Files/NVIDIA Corporation/Installer2"
+      ],
+      "how": {
+        "kind": "admin",
+        "days": 30
+      },
+      "junk": true,
+      "os": [
+        "windows"
+      ],
+      "realOnly": true
+    },
+    {
       "id": "wer-system",
       "name": "Error reports (system)",
       "eco": "System",
